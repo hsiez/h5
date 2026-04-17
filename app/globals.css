@@ -1,26 +1,160 @@
 @import "tailwindcss";
 
+/* =========================================================================
+   Design System — tokens
+   White background, Geist sans, 4px spacing rule, #141414 darkest neutral.
+   Tailwind v4 reads @theme to generate utilities (e.g. bg-neutral-900,
+   text-base, p-4, rounded-lg). Edit values here, not in components.
+   ========================================================================= */
+
+@theme {
+  /* ---- Fonts (Geist is loaded via next/font in layout.tsx) ---- */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+
+  /* ---- Spacing — strict 4px rule ----
+     Tailwind v4 multiplies --spacing by the utility number.
+     p-1 = 4px, p-2 = 8px, p-4 = 16px, p-6 = 24px, p-8 = 32px, p-12 = 48px,
+     p-16 = 64px, p-24 = 96px, p-32 = 128px. No half-steps, no exceptions. */
+  --spacing: 4px;
+
+  /* ---- Type scale (rems anchored at 16px root) ---- */
+  --text-xs: 0.75rem;     /* 12px — captions, badges, micro-meta */
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;    /* 14px — secondary body, labels */
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;      /* 16px — body */
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;    /* 18px — emphasized body */
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.25rem;     /* 20px — card titles */
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;     /* 24px — section heads */
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 2rem;       /* 32px — page titles */
+  --text-3xl--line-height: 2.5rem;
+  --text-4xl: 3rem;       /* 48px — hero */
+  --text-4xl--line-height: 3.25rem;
+
+  /* ---- Font weight — three values, no more ---- */
+  --font-weight-normal: 400;    /* body */
+  --font-weight-medium: 500;    /* labels, subtle emphasis */
+  --font-weight-semibold: 600;  /* headings, primary actions */
+
+  /* ---- Letter spacing ---- */
+  --tracking-tight: -0.02em;    /* large headings */
+  --tracking-normal: 0em;
+  --tracking-wide: 0.02em;      /* uppercase labels */
+
+  /* ---- Neutrals — anchored at #141414 (--color-neutral-900) ---- */
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f4f4f4;
+  --color-neutral-200: #e6e6e6;
+  --color-neutral-300: #d1d1d1;
+  --color-neutral-400: #a1a1a1;
+  --color-neutral-500: #707070;
+  --color-neutral-600: #4f4f4f;
+  --color-neutral-700: #363636;
+  --color-neutral-800: #232323;
+  --color-neutral-900: #141414;
+
+  /* ---- Surfaces ---- */
+  --color-background: var(--color-neutral-0);
+  --color-surface: var(--color-neutral-0);
+  --color-surface-muted: var(--color-neutral-50);
+  --color-surface-sunken: var(--color-neutral-100);
+
+  /* ---- Borders — alpha-blended blacks, not flat neutrals.
+     Solid neutrals look pasted-on the moment a surface stops being pure
+     white (popovers, modals over content). Opacity blends with whatever
+     is behind it. White-bg only — these would vanish on dark surfaces. */
+  --color-border-subtle: rgba(20, 20, 20, 0.04);  /* floating cards */
+  --color-border: rgba(20, 20, 20, 0.08);         /* default hairline */
+  --color-border-strong: rgba(20, 20, 20, 0.16);  /* secondary buttons, focus rings */
+
+  /* ---- Text hierarchy — the most important colors ---- */
+  --color-text-primary: var(--color-neutral-900);
+  --color-text-secondary: var(--color-neutral-600);
+  --color-text-tertiary: var(--color-neutral-400);
+  --color-text-on-accent: var(--color-neutral-0);
+
+  /* ---- Accent (Vercel-style blue, swap freely) ---- */
+  --color-accent-50: #eef4ff;
+  --color-accent-100: #d9e6ff;
+  --color-accent-200: #b3ccff;
+  --color-accent-500: #2563eb;   /* default action */
+  --color-accent-600: #1d4ed8;   /* hover */
+  --color-accent-700: #1e40af;   /* active */
+
+  /* ---- Status ---- */
+  --color-success-500: #16a34a;
+  --color-warning-500: #d97706;
+  --color-danger-500: #dc2626;
+  --color-danger-600: #b91c1c;
+
+  /* ---- Border radius — 8 → 40px range ---- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-3xl: 40px;
+  --radius-full: 9999px;
+
+  /* ---- Shadows — elevation, not decoration ---- */
+  --shadow-sm: 0 1px 2px 0 rgba(20, 20, 20, 0.04);
+  --shadow-md: 0 4px 8px -2px rgba(20, 20, 20, 0.06), 0 2px 4px -2px rgba(20, 20, 20, 0.04);
+  --shadow-lg: 0 12px 24px -6px rgba(20, 20, 20, 0.08), 0 4px 8px -4px rgba(20, 20, 20, 0.04);
+  --shadow-xl: 0 24px 48px -12px rgba(20, 20, 20, 0.12);
+
+  /* ---- Content widths (max-w-prose, max-w-content, etc.) ---- */
+  --container-prose: 65ch;
+  --container-content: 768px;
+  --container-wide: 1024px;
+  --container-max: 1200px;
+
+  /* ---- Motion ---- */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* =========================================================================
+   Icon tokens — 20px stroke 1.5, 32px bounding box (touch target).
+   Apply via the .icon utility class below.
+   ========================================================================= */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --icon-size: 20px;
+  --icon-stroke: 1.5;
+  --icon-bound: 32px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-bound);
+  height: var(--icon-bound);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.icon > svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  stroke-width: var(--icon-stroke);
 }
 
+/* =========================================================================
+   Base — body text inherits from Geist + the primary text token.
+   Default body is Geist 16px / regular. Use `text-sm font-medium` for
+   secondary 14px medium (the second body style in the spec).
+   ========================================================================= */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+  font-weight: var(--font-weight-normal);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
