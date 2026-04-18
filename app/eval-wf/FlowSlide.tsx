@@ -141,27 +141,26 @@ export function FlowSlide() {
       <div className="grid md:grid-cols-2 gap-8 text-sm text-(--color-text-secondary) max-w-content mx-auto w-full px-2">
         <div>
           <div className="text-xs font-medium uppercase tracking-wide text-(--color-text-tertiary) mb-2">
-            First turn — eval continues
+            Pause on a hook
           </div>
           <p>
-            The workflow is suspended on{" "}
+            After the initial eval, the workflow suspends on{" "}
             <span className="font-mono text-(--color-text-primary)">
               await hook
             </span>
-            . The follow-up resumes it — rescore + alert run with the user&apos;s
-            reaction as ground truth.
+            . When the user sends a follow-up, the hook fires and the workflow
+            resumes — rescoring with the follow-up as ground truth.
           </p>
         </div>
         <div>
           <div className="text-xs font-medium uppercase tracking-wide text-(--color-text-tertiary) mb-2">
-            Second turn — new eval starts
+            Alert on bad signal
           </div>
           <p>
-            The same message is also a fresh user turn. Chat route fires{" "}
-            <span className="font-mono text-(--color-text-primary)">
-              startChatTurnEvalWorkflow()
-            </span>{" "}
-            — its own eval cycle begins.
+            If the follow-up signals the turn went poorly, the workflow falls
+            through to the{" "}
+            <span className="font-mono text-(--color-text-primary)">alert</span>{" "}
+            step and pages us in Slack.
           </p>
         </div>
       </div>

@@ -299,7 +299,7 @@ export function AnatomySlide({ step }: { step: number }) {
       </motion.div>
       </div>
 
-      <div className="text-sm text-(--color-text-tertiary) text-center max-w-prose mx-auto min-h-[3em] flex items-start justify-center">
+      <div className="mx-auto max-w-prose w-full min-h-[5em] flex items-start justify-center">
         <AnimatePresence mode="wait">
           <motion.p
             key={step}
@@ -307,6 +307,7 @@ export function AnatomySlide({ step }: { step: number }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.25, ease: EASE_OUT }}
+            className="text-base text-white font-medium text-center bg-(--color-text-primary) rounded-2xl px-6 py-4 leading-relaxed"
           >
             {captions[step] ?? captions[0]}
           </motion.p>
