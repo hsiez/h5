@@ -56,9 +56,9 @@ export const slides: SlideContent[] = [
     id: "intro",
     title: (
       <>
-        Vercel Workflows{" "}
+        Evals with agency{" "}
         <span className="text-(--color-text-tertiary)">
-          Powering chat evals
+          Powered by Workflows
         </span>
       </>
     ),
@@ -93,7 +93,6 @@ export const slides: SlideContent[] = [
   },
   {
     id: "problem",
-    eyebrow: "Problem space",
     title: "Score every turn — don't slow the chat",
     body: (
       <div className="flex flex-col gap-6 max-w-prose">
@@ -127,24 +126,21 @@ export const slides: SlideContent[] = [
   },
   {
     id: "scoring",
-    eyebrow: "Scoring method",
     title: "Score per turn, aggregate to health",
     steps: 3,
     body: (step) => <ScoringSlide step={step} />,
   },
   {
     id: "anatomy",
-    eyebrow: "What we score",
-    title: "One turn",
+    title: "Evaluating a Turn",
     steps: 7,
     body: (step) => <AnatomySlide step={step} />,
   },
   {
     id: "rubric",
-    eyebrow: "Rubric → workflow",
     title: "Inside the eval rubric",
     body: (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 md:gap-6">
         <p className="text-sm text-(--color-text-secondary) max-w-prose">
           Every row below maps 1:1 to an async function inside{" "}
           <span className="font-mono text-(--color-text-primary)">
@@ -154,87 +150,68 @@ export const slides: SlideContent[] = [
           <span className="text-(--color-text-primary) font-medium">is</span>{" "}
           the workflow.
         </p>
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-(--color-border-strong)">
-              <th className="text-left py-3 pr-4 font-medium text-(--color-text-tertiary) text-xs uppercase tracking-wide">
-                Workflow step
-              </th>
-              <th className="text-left py-3 pr-4 font-medium text-(--color-text-tertiary) text-xs uppercase tracking-wide">
-                Model
-              </th>
-              <th className="text-left py-3 font-medium text-(--color-text-tertiary) text-xs uppercase tracking-wide">
-                Purpose
-              </th>
-            </tr>
-          </thead>
-          <tbody className="text-(--color-text-secondary)">
-            {[
-              [
-                "classifyTurn",
-                "gpt-5-mini",
-                "Tag what the user is asking for: new_feature / adjustment / error_fix.",
-              ],
-              [
-                "evalPlanToolInteractions",
-                "deterministic",
-                "Did the user engage with offered plan tools, or skip them?",
-              ],
-              [
-                "evalSandboxAlignment",
-                "gpt-5-mini",
-                "Did the build address what the user asked for?",
-              ],
-              [
-                "createSandboxAgentEval",
-                "gpt-5-mini",
-                "Quality of the orchestrator prompt — clarity + context completeness.",
-              ],
-              [
-                "createConversationHealthSpan",
-                "aggregation",
-                "Roll-up across the whole conversation.",
-              ],
-              [
-                "rescoreWithFollowUp",
-                "gpt-5-mini",
-                "Re-grade alignment using the user's actual reaction.",
-              ],
-              [
-                "sendQualityAlert",
-                "Slack",
-                "Page on negative sentiment + revised score < 0.5.",
-              ],
-            ].map(([step, model, purpose]) => (
-              <tr
-                key={step}
-                className="border-b border-(--color-border)"
-              >
-                <td className="py-3 pr-4 font-mono text-(--color-text-primary)">
-                  {step}
-                </td>
-                <td className="py-3 pr-4 font-mono text-xs text-(--color-text-tertiary)">
-                  {model}
-                </td>
-                <td className="py-3">{purpose}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="flex flex-col">
+          {[
+            [
+              "classifyTurn",
+              "LLM Judge",
+              "Tag what the user is asking for: new_feature / adjustment / error_fix.",
+            ],
+            [
+              "evalPlanToolInteractions",
+              "deterministic",
+              "Did the user engage with offered plan tools, or skip them?",
+            ],
+            [
+              "evalSandboxAlignment",
+              "LLM Judge",
+              "Did the build address what the user asked for?",
+            ],
+            [
+              "createSandboxAgentEval",
+              "LLM Judge",
+              "Quality of the orchestrator prompt — clarity + context completeness.",
+            ],
+            [
+              "createConversationHealthSpan",
+              "aggregation",
+              "Roll-up across the whole conversation.",
+            ],
+            [
+              "rescoreWithFollowUp",
+              "LLM Judge",
+              "Re-grade alignment using the user's actual reaction.",
+            ],
+            [
+              "sendQualityAlert",
+              "Slack",
+              "Page on negative sentiment + revised score < 0.5.",
+            ],
+          ].map(([step, model, purpose]) => (
+            <div
+              key={step}
+              className="grid grid-cols-1 md:grid-cols-[minmax(0,18rem)_minmax(0,8rem)_1fr] gap-x-6 gap-y-1 py-3 border-b border-(--color-border) text-sm"
+            >
+              <div className="font-mono text-(--color-text-primary) break-all">
+                {step}
+              </div>
+              <div className="hidden md:block font-mono text-xs text-(--color-text-tertiary) md:self-center">
+                {model}
+              </div>
+              <div className="text-(--color-text-secondary)">{purpose}</div>
+            </div>
+          ))}
         </div>
       </div>
     ),
   },
   {
     id: "workflow-fork",
-    eyebrow: "Workflow shape",
     title: "Eval, wait, alert",
     body: <FlowSlide />,
   },
   {
     id: "wins",
-    eyebrow: "Wins",
     title: "Why Vercel Workflows",
     steps: WINS_STEPS,
     body: (step) => <WinsSlide step={step} />,

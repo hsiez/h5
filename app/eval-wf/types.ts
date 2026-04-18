@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 export type SlideContent = {
   id: string;
-  eyebrow?: string;
   title: ReactNode;
   body: ReactNode | ((step: number) => ReactNode);
   /**

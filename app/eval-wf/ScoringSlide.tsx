@@ -26,8 +26,8 @@ function relativeBounds(child: HTMLElement, parent: HTMLElement): Bounds {
 }
 
 const captions = [
-  "A multi-turn conversation — user asks, agent responds, user follows up, again and again.",
-  "You can evaluate the whole conversation at once — but every new message means re-evaluating the entire history.",
+  "A multi-turn conversation — user asks, agent calls tools + generates response, user follows up, again and again. How can we tell if it's going well?",
+  "One approach is evaluating the whole conversation at once — but every new message means re-evaluating the entire history. This gets clunky when the history includes info on previous tool calls and sub agents.",
   "So we score each turn individually, then aggregate per-turn scores into an overall conversation health score.",
 ];
 
@@ -90,8 +90,23 @@ export function ScoringSlide({ step }: { step: number }) {
   }, []);
 
   return (
-    <div className="flex flex-col gap-10">
-      <div className="relative mx-auto w-full max-w-content overflow-hidden px-8 py-8">
+    <div className="flex flex-col gap-2 md:gap-4">
+      <div className="max-w-prose w-full h-20 flex items-center">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={step}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: EASE_OUT }}
+            className="text-sm md:text-base text-(--color-text-secondary) font-medium leading-relaxed"
+          >
+            {captions[step] ?? captions[0]}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+
+      <div className="relative w-full max-w-content overflow-hidden py-4 md:py-8 -mx-2 md:-mx-4 px-2 md:px-4">
         <div ref={containerRef} className="relative flex flex-col gap-3">
           {conversation.map((msg, i) => (
             <div
@@ -196,20 +211,6 @@ export function ScoringSlide({ step }: { step: number }) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-prose w-full min-h-[5em] flex items-start justify-center">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={step}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.25, ease: EASE_OUT }}
-            className="text-base text-white font-medium text-center bg-(--color-text-primary) rounded-2xl px-6 py-4 leading-relaxed"
-          >
-            {captions[step] ?? captions[0]}
-          </motion.p>
-        </AnimatePresence>
-      </div>
     </div>
   );
 }

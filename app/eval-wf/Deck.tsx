@@ -110,18 +110,13 @@ export function Deck() {
               slideRefs.current[i] = el;
             }}
             id={slide.id}
-            className="snap-start h-svh w-full flex items-center justify-center px-8 md:px-16 lg:px-24"
+            className="snap-start h-svh w-full flex items-center justify-center overflow-hidden px-6 md:px-16 lg:px-24 py-16 md:py-12"
           >
-            <div className="w-full max-w-content flex flex-col gap-8">
-              {slide.eyebrow && (
-                <div className="text-xs font-medium uppercase tracking-wide text-(--color-text-tertiary)">
-                  {slide.eyebrow}
-                </div>
-              )}
-              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-(--color-text-primary) text-balance">
+            <div className="w-full max-w-content flex flex-col gap-6 md:gap-12">
+              <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-(--color-text-primary) text-balance">
                 {slide.title}
               </h2>
-              <div className="text-base text-(--color-text-secondary) leading-relaxed">
+              <div className="text-sm md:text-base text-(--color-text-secondary) leading-relaxed">
                 {typeof slide.body === "function"
                   ? slide.body(i === current ? stepIndex : 0)
                   : slide.body}
@@ -132,7 +127,7 @@ export function Deck() {
       </div>
 
       <div className="pointer-events-none fixed top-6 left-6 text-xs font-medium tracking-wide text-(--color-text-tertiary) select-none">
-        eval-wf · vercel workflows
+        Reforge Build Acq. by Miro · Vercel Workflows
       </div>
 
       <div className="pointer-events-none fixed bottom-6 right-6 text-xs font-mono tabular-nums text-(--color-text-tertiary) select-none">
@@ -140,7 +135,7 @@ export function Deck() {
         {String(slides.length).padStart(2, "0")}
       </div>
 
-      <div className="fixed right-6 top-1/2 -translate-y-1/2 flex flex-col items-end gap-2">
+      <div className="hidden md:flex fixed right-6 top-1/2 -translate-y-1/2 flex-col items-end gap-2">
         {slides.map((slide, i) => (
           <button
             key={slide.id}

@@ -23,7 +23,7 @@ function safeRadius(width: number, height: number, target: number) {
 }
 
 const captions = [
-  "User asks → agent builds the artifact and replies → user follows up. Each turn becomes a workflow run.",
+  "This example shows a customer requesting a prototype. The orchestrator agent calls the coding agent that handles the creation of the proto.",
   "The orchestrator spent a turn calling the code agent to build this prototype. Now we evaluate how it did.",
   "Score the prototype against the user's request, the harness prompt, and tool + skill usage metrics.",
   "The follow-up is the real money — the clearest signal on how the user feels. Sometimes it's a brand-new ask, an implicit acceptance of the prior turn.",
@@ -120,10 +120,31 @@ export function AnatomySlide({ step }: { step: number }) {
   }, [showNewTurn, lastIdx]);
 
   return (
-    <div className="flex flex-col gap-20">
+    <div className="flex flex-col gap-2 md:gap-4">
+      <div className="max-w-prose w-full h-20 flex items-center">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={step}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: EASE_OUT }}
+            className="text-sm md:text-base text-(--color-text-secondary) font-medium leading-relaxed"
+          >
+            {captions[step] ?? captions[0]}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+
       <div
-        className="relative mx-auto w-full max-w-content overflow-hidden px-8 py-8"
-        style={{ height: viewportHeight }}
+        className="relative w-full max-w-content overflow-hidden py-8 -mx-2 md:-mx-4 px-2 md:px-4"
+        style={{
+          height: viewportHeight,
+          WebkitMaskImage:
+            "linear-gradient(to bottom, transparent 0, #000 32px, #000 calc(100% - 32px), transparent 100%)",
+          maskImage:
+            "linear-gradient(to bottom, transparent 0, #000 32px, #000 calc(100% - 32px), transparent 100%)",
+        }}
       >
       <motion.div
         ref={containerRef}
@@ -299,20 +320,6 @@ export function AnatomySlide({ step }: { step: number }) {
       </motion.div>
       </div>
 
-      <div className="mx-auto max-w-prose w-full min-h-[5em] flex items-start justify-center">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={step}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.25, ease: EASE_OUT }}
-            className="text-base text-white font-medium text-center bg-(--color-text-primary) rounded-2xl px-6 py-4 leading-relaxed"
-          >
-            {captions[step] ?? captions[0]}
-          </motion.p>
-        </AnimatePresence>
-      </div>
     </div>
   );
 }
