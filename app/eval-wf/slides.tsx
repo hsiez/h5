@@ -1,6 +1,7 @@
+import { ActionsSlide } from "./ActionsSlide";
 import { AnatomySlide } from "./AnatomySlide";
 import { FlowSlide } from "./FlowSlide";
-import { ScoringSlide } from "./ScoringSlide";
+import { TraceScoringSlide, TracesSlide } from "./TracesSlide";
 import { WINS_STEPS, WinsSlide } from "./WinsSlide";
 import type { SlideContent } from "./types";
 
@@ -92,43 +93,84 @@ export const slides: SlideContent[] = [
     ),
   },
   {
-    id: "problem",
-    title: "Score every turn — don't slow the chat",
+    id: "generating-evals",
+    title: "First, let's generate evals",
     body: (
-      <div className="flex flex-col gap-6 max-w-prose">
+      <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
+        <a
+          href="https://www.colehoffer.ai/articles/evaluating-chat-agents"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block shrink-0 w-full md:w-[340px] rounded-xl overflow-hidden border border-(--color-border) shadow-md transition-shadow hover:shadow-lg"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://www.colehoffer.ai/imgs/alaskaFull.png"
+            alt="Evaluating LLM Chat Agents with Real World Signals"
+            width={1200}
+            height={630}
+            className="w-full h-auto block"
+          />
+        </a>
+        <div className="flex flex-col gap-4 text-sm md:text-base">
+          <p className="text-(--color-text-secondary)">
+            <a
+              href="https://www.colehoffer.ai/articles/evaluating-chat-agents"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-(--color-text-primary) font-medium underline underline-offset-4 decoration-(--color-border-strong) hover:decoration-(--color-text-primary)"
+            >
+              Evaluating LLM Chat Agents with Real World Signals
+            </a>{" "}
+            — Cole Hoffer.
+          </p>
+          <p className="text-(--color-text-secondary) max-w-prose">
+            The principles behind how we generate evals come from this post —
+            using human follow-up behavior as ground truth and scoring against
+            specific instruction adherence instead of vague relevance.
+          </p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "traces",
+    title: "Traces are what we evaluate",
+    body: (
+      <div className="flex flex-col gap-4 max-w-prose">
         <p>
-          We grade every agent turn{" "}
+          A{" "}
           <span className="text-(--color-text-primary) font-medium">
-            post-hoc
+            trace
           </span>{" "}
-          — LLM-as-judge over the response, the build, the prompt, and the
-          user&apos;s reaction.
+          is step-by-step visibility into an agent&apos;s execution — reasoning,
+          tool calls, sub-agent runs, and latency, captured as a nested
+          timeline.
         </p>
         <p>
-          None of it can sit in the chat request path. Users are mid-flow;
-          any added latency is a regression we&apos;d notice immediately.
+          Our chat agent writes traces to{" "}
+          <span className="text-(--color-text-primary) font-medium">
+            Braintrust
+          </span>{" "}
+          during every turn. It&apos;s how we debug why a response went wrong.
         </p>
         <p>
-          So evals run as{" "}
-          <span className="text-(--color-text-primary) font-medium">
-            background jobs
-          </span>{" "}
-          — async, durable, and ideally able to pause for hours waiting on
-          the user&apos;s next message. That requirement set is what pushed
-          us to{" "}
-          <span className="text-(--color-text-primary) font-medium">
-            Vercel Workflows
-          </span>
-          .
+          Evals read those same traces post-hoc — no re-running the agent, just
+          scoring what already happened.
         </p>
       </div>
     ),
   },
   {
-    id: "scoring",
-    title: "Score per turn, aggregate to health",
+    id: "trace-example",
+    title: "What a trace looks like",
+    body: <TracesSlide />,
+  },
+  {
+    id: "score-spans",
+    title: "Score each span, aggregate to health",
     steps: 3,
-    body: (step) => <ScoringSlide step={step} />,
+    body: (step) => <TraceScoringSlide step={step} />,
   },
   {
     id: "anatomy",
@@ -207,8 +249,44 @@ export const slides: SlideContent[] = [
   },
   {
     id: "workflow-fork",
-    title: "Eval, wait, alert",
+    title: "Eval rubric workflow",
     body: <FlowSlide />,
+  },
+  {
+    id: "evals-what-do",
+    title: (
+      <>
+        Cool, we have evals.{" "}
+        <span className="text-(--color-text-tertiary)">
+          What do they do?
+        </span>
+      </>
+    ),
+    body: (
+      <div className="flex flex-col gap-6 max-w-prose">
+        <p>
+          By default, eval results pile up in{" "}
+          <span className="text-(--color-text-primary) font-medium">
+            Braintrust
+          </span>{" "}
+          — graphs on graphs on graphs. The team watches the dashboard the
+          first week after launch, then forgets it exists.
+        </p>
+        <p>
+          That&apos;s a lot of signal going nowhere. We want evals to{" "}
+          <span className="text-(--color-text-primary) font-medium">
+            nudge action
+          </span>{" "}
+          — not wait for someone to go look.
+        </p>
+      </div>
+    ),
+  },
+  {
+    id: "actions",
+    title: "Actions based on evals",
+    steps: 4,
+    body: (step) => <ActionsSlide step={step} />,
   },
   {
     id: "wins",

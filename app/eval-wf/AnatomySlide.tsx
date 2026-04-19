@@ -47,11 +47,18 @@ function lastMessageIndex(step: number) {
 function relativeBounds(child: HTMLElement, parent: HTMLElement): Bounds {
   const c = child.getBoundingClientRect();
   const p = parent.getBoundingClientRect();
+  // Parent may be inside a CSS `transform: scale(...)` ancestor (the slide
+  // scaler). `getBoundingClientRect` returns post-transform viewport px, but
+  // the SVG we draw into is itself inside the same transform and uses
+  // pre-transform (layout) px. Divide by the effective scale so outlines
+  // align with targets at any zoom.
+  const scaleX = parent.offsetWidth ? p.width / parent.offsetWidth : 1;
+  const scaleY = parent.offsetHeight ? p.height / parent.offsetHeight : 1;
   return {
-    x: c.left - p.left,
-    y: c.top - p.top,
-    width: c.width,
-    height: c.height,
+    x: (c.left - p.left) / scaleX,
+    y: (c.top - p.top) / scaleY,
+    width: c.width / scaleX,
+    height: c.height / scaleY,
   };
 }
 

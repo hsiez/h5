@@ -9,7 +9,6 @@ const TOP_NODES = [
   "Roll up",
   "Wait",
   "Rescore",
-  "Alert",
 ];
 
 const BOT_NODES = ["Trigger", "Classify", "Score plan", "Stash hook", "..."];
@@ -38,7 +37,7 @@ export function FlowSlide() {
 
   return (
     <div className="flex flex-col gap-10">
-      <div className="mx-auto w-full max-w-content">
+      <div className="w-full max-w-content">
         <svg
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           className="w-full h-auto"
@@ -138,31 +137,18 @@ export function FlowSlide() {
         </svg>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8 text-sm text-(--color-text-secondary) max-w-content mx-auto w-full px-2">
-        <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-(--color-text-tertiary) mb-2">
-            Pause on a hook
-          </div>
-          <p>
-            After the initial eval, the workflow suspends on{" "}
-            <span className="font-mono text-(--color-text-primary)">
-              await hook
-            </span>
-            . When the user sends a follow-up, the hook fires and the workflow
-            resumes — rescoring with the follow-up as ground truth.
-          </p>
+      <div className="text-sm text-(--color-text-secondary) max-w-content w-full">
+        <div className="text-xs font-medium uppercase tracking-wide text-(--color-text-tertiary) mb-2">
+          Pause on a hook
         </div>
-        <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-(--color-text-tertiary) mb-2">
-            Alert on bad signal
-          </div>
-          <p>
-            If the follow-up signals the turn went poorly, the workflow falls
-            through to the{" "}
-            <span className="font-mono text-(--color-text-primary)">alert</span>{" "}
-            step and pages us in Slack.
-          </p>
-        </div>
+        <p className="max-w-prose">
+          After the initial eval, the workflow suspends on{" "}
+          <span className="font-mono text-(--color-text-primary)">
+            await hook
+          </span>
+          . When the user sends a follow-up, the hook fires and the workflow
+          resumes — rescoring with the follow-up as ground truth.
+        </p>
       </div>
     </div>
   );

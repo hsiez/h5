@@ -1,7 +1,48 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { slides } from "./slides";
+
+const CANVAS_W = 1280;
+const CANVAS_H = 720;
+
+function SlideScaler({ children }: { children: React.ReactNode }) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const el = frameRef.current;
+    if (!el) return;
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      setScale(Math.min(rect.width / CANVAS_W, rect.height / CANVAS_H));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={frameRef}
+      className="h-full w-full flex items-center justify-center overflow-hidden"
+    >
+      <div
+        style={{
+          width: CANVAS_W,
+          height: CANVAS_H,
+          transform: `scale(${scale})`,
+          transformOrigin: "center center",
+          flexShrink: 0,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export function Deck() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,23 +151,27 @@ export function Deck() {
               slideRefs.current[i] = el;
             }}
             id={slide.id}
-            className="snap-start h-svh w-full flex items-center justify-center overflow-hidden px-6 md:px-16 lg:px-24 py-16 md:py-12"
+            className="snap-start h-svh w-full overflow-hidden"
           >
-            <div className="w-full max-w-content flex flex-col gap-6 md:gap-12">
-              <h2 className="text-2xl md:text-4xl font-semibold tracking-tight text-(--color-text-primary) text-balance">
-                {slide.title}
-              </h2>
-              <div className="text-sm md:text-base text-(--color-text-secondary) leading-relaxed">
-                {typeof slide.body === "function"
-                  ? slide.body(i === current ? stepIndex : 0)
-                  : slide.body}
+            <SlideScaler>
+              <div className="h-full w-full px-16 py-10 flex items-center justify-center">
+                <div className="w-full max-w-content flex flex-col gap-8">
+                  <h2 className="text-4xl font-semibold tracking-tight text-(--color-text-primary) text-balance">
+                    {slide.title}
+                  </h2>
+                  <div className="text-base text-(--color-text-secondary) leading-relaxed">
+                    {typeof slide.body === "function"
+                      ? slide.body(i === current ? stepIndex : 0)
+                      : slide.body}
+                  </div>
+                </div>
               </div>
-            </div>
+            </SlideScaler>
           </section>
         ))}
       </div>
 
-      <div className="pointer-events-none fixed top-6 left-6 text-xs font-medium tracking-wide text-(--color-text-tertiary) select-none">
+      <div className="pointer-events-none fixed bottom-6 left-6 text-xs font-medium tracking-wide text-(--color-text-tertiary) select-none">
         Reforge Build Acq. by Miro · Vercel Workflows
       </div>
 
