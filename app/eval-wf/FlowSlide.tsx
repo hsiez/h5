@@ -139,15 +139,19 @@ export function FlowSlide() {
 
       <div className="text-sm text-(--color-text-secondary) max-w-content w-full">
         <div className="text-xs font-medium uppercase tracking-wide text-(--color-text-tertiary) mb-2">
-          Pause on a hook
+          Span by span
         </div>
         <p className="max-w-prose">
-          After the initial eval, the workflow suspends on{" "}
-          <span className="font-mono text-(--color-text-primary)">
-            await hook
+          Each span runs through a flow of evaluation steps — some{" "}
+          <span className="text-(--color-text-primary) font-medium">
+            LLM-as-judge
           </span>
-          . When the user sends a follow-up, the hook fires and the workflow
-          resumes — rescoring with the follow-up as ground truth.
+          , some{" "}
+          <span className="text-(--color-text-primary) font-medium">
+            deterministic
+          </span>
+          . Together they let us speculate how well the agent did, grounded in
+          the user&apos;s initial ask and the logs captured in the trace.
         </p>
       </div>
     </div>

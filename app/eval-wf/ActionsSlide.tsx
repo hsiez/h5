@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 const EASE_OUT = [0.2, 0.8, 0.2, 1] as const;
 
 const NODE_R = 20;
-const SLACK_SIZE = 32;
+const SLACK_SIZE = 36;
 const ROW_Y = 110;
 const VB_H = 220;
 
@@ -22,8 +22,21 @@ const captions = [
   "With evals in place, we head to Braintrust to see how the agent is performing.",
   "Reading every trace isn't sustainable. Fire a Slack alert when feedback turns negative — with prototype + user context, enough to start investigating.",
   "Better: do the investigative work before I'm pinged. Dog-food Reforge's Synthetic Users — browser agents that probe the prototype and figure out what went wrong — and bundle the findings into the Slack alert.",
-  "Last step of the workflow: file a Linear ticket with the eval score and the synthetic-user findings. Our coding agent picks up tickets and opens a PR on GitHub. I'm not pinged until it's time to review the solution.",
+  "Where we're going: file a Linear ticket with the eval score and the synthetic-user findings. Our coding agent picks up tickets and opens a PR on GitHub. I'm not pinged until it's time to review the solution.",
 ];
+
+function GitHubLogo({ size = 24 }: { size?: number }) {
+  const offset = -size / 2;
+  const scale = size / 24;
+  return (
+    <g transform={`translate(${offset}, ${offset}) scale(${scale})`}>
+      <path
+        fill="#181717"
+        d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
+      />
+    </g>
+  );
+}
 
 function SlackLogo({ size = 24 }: { size?: number }) {
   const offset = -size / 2;
@@ -70,49 +83,42 @@ function NodeLabel({
   );
 }
 
-function NodeFrame() {
+function ImageNode({ href }: { href: string }) {
   return (
-    <circle
-      r={NODE_R}
-      fill="var(--color-background)"
-      stroke="rgba(20,20,20,0.16)"
-      strokeWidth="1"
-      filter="url(#node-shadow)"
+    <image
+      href={href}
+      x={-NODE_R}
+      y={-NODE_R}
+      width={NODE_R * 2}
+      height={NODE_R * 2}
+      preserveAspectRatio="xMidYMid meet"
     />
   );
 }
 
-function ImageNode({ href, clipId }: { href: string; clipId: string }) {
+function HiltNode() {
+  const R = NODE_R * 1.6;
   return (
-    <>
-      <defs>
-        <clipPath id={clipId}>
-          <circle r={NODE_R} />
-        </clipPath>
-      </defs>
-      <NodeFrame />
-      <image
-        href={href}
-        x={-NODE_R}
-        y={-NODE_R}
-        width={NODE_R * 2}
-        height={NODE_R * 2}
-        preserveAspectRatio="xMidYMid slice"
-        clipPath={`url(#${clipId})`}
-      />
-    </>
+    <svg
+      x={-R}
+      y={-R}
+      width={R * 2}
+      height={R * 2}
+      viewBox="450 700 2100 2100"
+      preserveAspectRatio="xMidYMid slice"
+      overflow="hidden"
+    >
+      <image href="/hilt.png" x="0" y="0" width="3041" height="4055" />
+    </svg>
   );
 }
 
 function AgentNode() {
   return (
-    <>
-      <NodeFrame />
-      <path
-        d="M0 -11 L2.5 -2.5 L11 0 L2.5 2.5 L0 11 L-2.5 2.5 L-11 0 L-2.5 -2.5 Z"
-        fill="var(--color-text-primary)"
-      />
-    </>
+    <path
+      d="M0 -11 L2.5 -2.5 L11 0 L2.5 2.5 L0 11 L-2.5 2.5 L-11 0 L-2.5 -2.5 Z"
+      fill="var(--color-text-primary)"
+    />
   );
 }
 
@@ -159,24 +165,6 @@ export function ActionsSlide({ step }: { step: number }) {
           className="w-full h-auto"
           aria-label="Actions triggered by evals"
         >
-          <defs>
-            <filter
-              id="node-shadow"
-              x="-50%"
-              y="-50%"
-              width="200%"
-              height="200%"
-            >
-              <feDropShadow
-                dx="0"
-                dy="1"
-                stdDeviation="1"
-                floodColor="#141414"
-                floodOpacity="0.04"
-              />
-            </filter>
-          </defs>
-
           <line
             x1={S0 + NODE_R + 4}
             y1={ROW_Y}
@@ -210,7 +198,7 @@ export function ActionsSlide({ step }: { step: number }) {
           ))}
 
           <g transform={`translate(${S0}, ${ROW_Y})`}>
-            <ImageNode href="/braintrust.png" clipId="bt-clip" />
+            <ImageNode href="/braintrust.png" />
             <NodeLabel text="evals" position="top" />
           </g>
 
@@ -226,7 +214,7 @@ export function ActionsSlide({ step }: { step: number }) {
               delay: showReforge && !reduceMotion ? 0.2 : 0,
             }}
           >
-            <ImageNode href="/reforge.png" clipId="reforge-clip" />
+            <ImageNode href="/reforge.png" />
             <NodeLabel text="Synthetic Users" position="top" />
           </motion.g>
 
@@ -258,7 +246,7 @@ export function ActionsSlide({ step }: { step: number }) {
               delay: showTicketFlow && !reduceMotion ? 0.1 : 0,
             }}
           >
-            <ImageNode href="/linear.png" clipId="linear-clip" />
+            <ImageNode href="/linear.png" />
             <NodeLabel text="Linear" position="top" />
           </motion.g>
 
@@ -290,7 +278,7 @@ export function ActionsSlide({ step }: { step: number }) {
               delay: showTicketFlow && !reduceMotion ? 0.4 : 0,
             }}
           >
-            <ImageNode href="/github.png" clipId="github-clip" />
+            <GitHubLogo size={SLACK_SIZE} />
             <NodeLabel text="GitHub" position="top" />
           </motion.g>
 
@@ -299,8 +287,8 @@ export function ActionsSlide({ step }: { step: number }) {
             animate={{ x: hiltX, y: ROW_Y }}
             transition={motionTransition}
           >
-            <ImageNode href="/hilt.png" clipId="hilt-clip" />
-            <NodeLabel text="HILT" position="bottom" />
+            <HiltNode />
+            <NodeLabel text="HILT" position="top" />
           </motion.g>
         </svg>
       </div>
