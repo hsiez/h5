@@ -44,9 +44,9 @@ export function RubricSlide() {
         <span className="font-mono text-(--color-text-primary)">
           chatTurnEvalWorkflow
         </span>
-        . The rubric isn&apos;t a spec the workflow follows — the rubric{" "}
+        . The rubric isn&apos;t a spec the Workflow follows — the rubric{" "}
         <span className="text-(--color-text-primary) font-medium">is</span>{" "}
-        the workflow.
+        the Workflow.
       </p>
       <div className="flex flex-col">
         {ROWS.map(([step, model, purpose]) => (

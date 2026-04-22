@@ -70,7 +70,7 @@ export const slides: SlideContent[] = [
       <div className="flex flex-col gap-10">
         <p className="text-lg max-w-prose">
           A walkthrough of how Reforge Build evaluates the performance of
-          chat-based agents using workflows.
+          chat-based agents using Workflows.
         </p>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-medium text-(--color-text-tertiary)">
           <span className="flex items-center gap-2">
@@ -182,12 +182,12 @@ export const slides: SlideContent[] = [
   },
   {
     id: "workflow-fork",
-    title: "Eval rubric workflow",
+    title: "Eval rubric Workflow",
     body: <FlowSlide />,
   },
   {
     id: "anatomy",
-    title: "Why pause the workflow",
+    title: "Why pause the Workflow",
     steps: 7,
     body: (step) => <AnatomySlide step={step} />,
   },

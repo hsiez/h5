@@ -49,7 +49,7 @@ export default async function Image() {
           }}
         >
           A walkthrough of how Reforge Build evaluates the performance of
-          chat-based agents using workflows.
+          chat-based agents using Workflows.
         </div>
 
         <div
