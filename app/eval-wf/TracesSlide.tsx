@@ -7,7 +7,7 @@ const EASE_OUT = [0.2, 0.8, 0.2, 1] as const;
 function UserMessage({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex justify-end">
-      <div className="bg-(--color-neutral-100) text-(--color-text-primary) px-2.5 py-1.5 rounded-2xl max-w-[75%] text-xs leading-snug">
+      <div className="bg-(--color-neutral-200) text-(--color-text-primary) px-2.5 py-1.5 rounded-2xl max-w-[75%] text-xs leading-snug">
         {children}
       </div>
     </div>

@@ -156,9 +156,11 @@ export function Deck() {
             <SlideScaler>
               <div className="h-full w-full px-16 py-10 flex items-center justify-center">
                 <div className="w-full max-w-content flex flex-col gap-8">
-                  <h2 className="text-4xl font-semibold tracking-tight text-(--color-text-primary) text-balance">
-                    {slide.title}
-                  </h2>
+                  {slide.title && (
+                    <h2 className="text-4xl font-semibold tracking-tight text-(--color-text-primary) text-balance">
+                      {slide.title}
+                    </h2>
+                  )}
                   <div className="text-base text-(--color-text-secondary) leading-relaxed">
                     {typeof slide.body === "function"
                       ? slide.body(i === current ? stepIndex : 0)

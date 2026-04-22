@@ -42,6 +42,7 @@ export function DemoSlide({ step }: { step: number }) {
   const reduceMotion = useReducedMotion();
   const handedOff = step >= 1;
   const beforeVideoRef = useRef<HTMLVideoElement>(null);
+  const afterVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const v = beforeVideoRef.current;
@@ -52,6 +53,21 @@ export function DemoSlide({ step }: { step: number }) {
       void v.play().catch(() => {});
     }
   }, [handedOff]);
+
+  useEffect(() => {
+    const v = afterVideoRef.current;
+    if (!v) return;
+    if (!handedOff) {
+      v.pause();
+      v.currentTime = 0;
+      return;
+    }
+    const delay = reduceMotion ? 0 : 800;
+    const t = setTimeout(() => {
+      void v.play().catch(() => {});
+    }, delay);
+    return () => clearTimeout(t);
+  }, [handedOff, reduceMotion]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,8 +147,8 @@ export function DemoSlide({ step }: { step: number }) {
             reduceMotion={reduceMotion}
           >
             <video
+              ref={afterVideoRef}
               src={AFTER_VIDEO_SRC}
-              autoPlay
               loop
               muted
               playsInline

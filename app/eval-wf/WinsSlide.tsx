@@ -14,10 +14,6 @@ const wins = [
     body: "Evals have to keep up with the product. The step primitive stays out of the way — you write a regular async function, wrap it in step(), and it's durable. Fast to ship, easy to undo.",
   },
   {
-    title: "Actionable",
-    body: "Evals are worthless if they don't nudge action. A baked-in alert step pushes signal to where the team already looks — not into a dashboard nobody opens.",
-  },
-  {
     title: "One vendor",
     body: "We're a Vercel shop. Keeping ops under one roof means simpler observability and less to maintain.",
   },

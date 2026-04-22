@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export type SlideContent = {
   id: string;
-  title: ReactNode;
+  title?: ReactNode;
   body: ReactNode | ((step: number) => ReactNode);
   /**
    * Number of micro-steps within the slide. ↓/→ advances steps before moving

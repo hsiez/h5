@@ -1,5 +1,7 @@
+import { AboutSlide } from "./AboutSlide";
 import { ActionsSlide } from "./ActionsSlide";
 import { AnatomySlide } from "./AnatomySlide";
+import { ClosingSlide } from "./ClosingSlide";
 import { DEMO_STEPS, DemoSlide } from "./DemoSlide";
 import { FlowSlide } from "./FlowSlide";
 import { TraceScoringSlide, TracesSlide } from "./TracesSlide";
@@ -92,6 +94,11 @@ export const slides: SlideContent[] = [
         </div>
       </div>
     ),
+  },
+  {
+    id: "about",
+    title: "About me",
+    body: <AboutSlide />,
   },
   {
     id: "generating-evals",
@@ -231,5 +238,9 @@ export const slides: SlideContent[] = [
     title: "Why Vercel Workflows",
     steps: WINS_STEPS,
     body: (step) => <WinsSlide step={step} />,
+  },
+  {
+    id: "closing",
+    body: <ClosingSlide />,
   },
 ];
