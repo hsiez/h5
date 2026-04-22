@@ -1,5 +1,6 @@
 import { ActionsSlide } from "./ActionsSlide";
 import { AnatomySlide } from "./AnatomySlide";
+import { DEMO_STEPS, DemoSlide } from "./DemoSlide";
 import { FlowSlide } from "./FlowSlide";
 import { TraceScoringSlide, TracesSlide } from "./TracesSlide";
 import { WINS_STEPS, WinsSlide } from "./WinsSlide";
@@ -218,6 +219,12 @@ export const slides: SlideContent[] = [
     title: "Actions based on evals",
     steps: 4,
     body: (step) => <ActionsSlide step={step} />,
+  },
+  {
+    id: "demo",
+    title: "See it in motion",
+    steps: DEMO_STEPS,
+    body: (step) => <DemoSlide step={step} />,
   },
   {
     id: "wins",
