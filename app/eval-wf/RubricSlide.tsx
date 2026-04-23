@@ -39,7 +39,7 @@ const ROWS: Array<[string, string, string]> = [
 export function RubricSlide() {
   return (
     <div className="flex flex-col gap-4 md:gap-6">
-      <p className="text-sm text-(--color-text-secondary) max-w-prose">
+      <p className="text-base text-(--color-text-secondary) max-w-prose">
         Every row below maps 1:1 to an async function inside{" "}
         <span className="font-mono text-(--color-text-primary)">
           chatTurnEvalWorkflow
@@ -52,12 +52,12 @@ export function RubricSlide() {
         {ROWS.map(([step, model, purpose]) => (
           <div
             key={step}
-            className="grid grid-cols-1 md:grid-cols-[minmax(0,18rem)_minmax(0,8rem)_1fr] gap-x-6 gap-y-1 py-3 border-b border-(--color-border) text-sm"
+            className="grid grid-cols-1 md:grid-cols-[minmax(0,18rem)_minmax(0,8rem)_1fr] gap-x-6 gap-y-1 py-3 border-b border-(--color-border) text-base"
           >
             <div className="font-mono text-(--color-text-primary) break-all">
               {step}
             </div>
-            <div className="hidden md:block font-mono text-xs text-(--color-text-tertiary) md:self-center">
+            <div className="hidden md:block font-mono text-sm text-(--color-text-tertiary) md:self-center">
               {model}
             </div>
             <div className="text-(--color-text-secondary)">{purpose}</div>

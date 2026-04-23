@@ -161,7 +161,7 @@ export function Deck() {
                       {slide.title}
                     </h2>
                   )}
-                  <div className="text-base text-(--color-text-secondary) leading-relaxed">
+                  <div className="text-lg text-(--color-text-secondary) leading-relaxed">
                     {typeof slide.body === "function"
                       ? slide.body(i === current ? stepIndex : 0)
                       : slide.body}
@@ -173,11 +173,11 @@ export function Deck() {
         ))}
       </div>
 
-      <div className="pointer-events-none fixed bottom-6 left-6 text-xs font-medium tracking-wide text-(--color-text-tertiary) select-none">
+      <div className="pointer-events-none fixed bottom-4 left-4 text-xs font-medium tracking-wide text-(--color-text-tertiary)/70 select-none">
         Reforge Build Acq. by Miro · Vercel Workflows
       </div>
 
-      <div className="pointer-events-none fixed bottom-6 right-6 text-xs font-mono tabular-nums text-(--color-text-tertiary) select-none">
+      <div className="pointer-events-none fixed bottom-4 right-4 text-xs font-mono tabular-nums text-(--color-text-tertiary)/70 select-none">
         {String(current + 1).padStart(2, "0")} <span className="text-(--color-border-strong)">/</span>{" "}
         {String(slides.length).padStart(2, "0")}
       </div>

@@ -7,7 +7,7 @@ const EASE_OUT = [0.2, 0.8, 0.2, 1] as const;
 function UserMessage({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex justify-end">
-      <div className="bg-(--color-neutral-200) text-(--color-text-primary) px-2.5 py-1.5 rounded-2xl max-w-[75%] text-xs leading-snug">
+      <div className="bg-(--color-neutral-200) text-(--color-text-primary) px-3 py-2 rounded-2xl max-w-[75%] text-sm leading-snug">
         {children}
       </div>
     </div>
@@ -24,7 +24,7 @@ function AgentCard({
   return (
     <div className="max-w-[260px]">
       <div className="bg-white border border-(--color-border) rounded-lg shadow-sm p-2.5 flex flex-col gap-1.5">
-        <div className="text-[9px] font-mono uppercase tracking-wide text-(--color-text-tertiary)">
+        <div className="text-[10px] font-mono uppercase tracking-wide text-(--color-text-tertiary)">
           {tool}
         </div>
         {children}
@@ -44,8 +44,8 @@ function StyleChip({
     <span
       className={
         selected
-          ? "inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-(--color-text-primary) text-white text-[11px] font-medium"
-          : "inline-flex items-center px-2 py-0.5 rounded-full border border-(--color-border-strong) text-(--color-text-secondary) text-[11px] font-medium"
+          ? "inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-(--color-text-primary) text-white text-xs font-medium"
+          : "inline-flex items-center px-2 py-0.5 rounded-full border border-(--color-border-strong) text-(--color-text-secondary) text-xs font-medium"
       }
     >
       {selected && <span aria-hidden>✓</span>}
@@ -57,7 +57,7 @@ function StyleChip({
 function DiscoveryTool() {
   return (
     <AgentCard tool="discovery_tool">
-      <div className="text-xs text-(--color-text-primary)">
+      <div className="text-sm text-(--color-text-primary)">
         What style are you after?
       </div>
       <div className="flex flex-wrap gap-1">
@@ -80,10 +80,10 @@ function PlanTool() {
   ];
   return (
     <AgentCard tool="plan_tool">
-      <ul className="text-xs text-(--color-text-primary) flex flex-col gap-0.5">
+      <ul className="text-sm text-(--color-text-primary) flex flex-col gap-0.5">
         {steps.map((s, i) => (
           <li key={i} className="flex gap-1.5">
-            <span className="text-(--color-text-tertiary) font-mono text-[11px] tabular-nums pt-0.5">
+            <span className="text-(--color-text-tertiary) font-mono text-xs tabular-nums pt-0.5">
               {i + 1}
             </span>
             <span>{s}</span>
@@ -119,7 +119,7 @@ function PrototypeThumbnail() {
           </div>
         </div>
       </div>
-      <p className="text-[11px] text-(--color-text-secondary) px-1 pt-1.5">
+      <p className="text-xs text-(--color-text-secondary) px-1 pt-1.5">
         Here&apos;s your landing page.
       </p>
     </div>
@@ -134,12 +134,16 @@ function TreeCell({
   branch = false,
   node = false,
   strong = false,
+  labelSize = "text-base",
+  minWidth = "min-w-[180px]",
 }: {
   label?: string;
   trunk?: TrunkStyle;
   branch?: boolean;
   node?: boolean;
   strong?: boolean;
+  labelSize?: string;
+  minWidth?: string;
 }) {
   const trunkPos =
     trunk === "full"
@@ -151,7 +155,7 @@ function TreeCell({
           : "hidden";
 
   return (
-    <div className="relative h-full flex items-center pl-1 min-w-[160px]">
+    <div className={`relative h-full flex items-center pl-1 ${minWidth}`}>
       <div
         className={`absolute left-1 w-px bg-(--color-border-strong) ${trunkPos}`}
       />
@@ -163,7 +167,7 @@ function TreeCell({
       )}
       {label && (
         <span
-          className={`font-mono text-[11px] pl-5 whitespace-nowrap ${
+          className={`font-mono ${labelSize} pl-5 whitespace-nowrap ${
             strong
               ? "text-(--color-text-primary) font-medium"
               : "text-(--color-text-secondary)"
@@ -243,7 +247,7 @@ const SPAN_ROWS: SpanRow[] = [
 
 function ScoreText({ value }: { value: string }) {
   return (
-    <span className="text-xs font-medium font-mono text-(--color-text-secondary)">
+    <span className="text-lg font-medium font-mono text-(--color-text-secondary)">
       Score:{" "}
       <span className="text-(--color-text-primary)">{value}</span>
     </span>
@@ -252,7 +256,7 @@ function ScoreText({ value }: { value: string }) {
 
 function WorkflowPill() {
   return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-[6px] border border-(--color-accent-500) text-(--color-accent-500) text-xs font-medium font-mono bg-(--color-accent-50)">
+    <span className="inline-flex items-center px-3 py-1.5 rounded-[8px] border-2 border-(--color-accent-500) text-(--color-accent-500) text-lg font-medium font-mono bg-(--color-accent-50)">
       turnEvalWorkflow()
     </span>
   );
@@ -261,8 +265,8 @@ function WorkflowPill() {
 function ChainArrow() {
   return (
     <svg
-      width="16"
-      height="8"
+      width="22"
+      height="11"
       viewBox="0 0 16 8"
       className="shrink-0 text-(--color-text-tertiary)"
       aria-hidden
@@ -293,13 +297,14 @@ export function TraceScoringSlide({ step }: { step: number }) {
           const idx = row.score ? spanIndex++ : -1;
           const baseDelay = showSpans && !reduceMotion ? idx * 0.18 : 0;
           return (
-            <div key={i} className="h-12 flex items-center gap-3">
+            <div key={i} className="h-16 flex items-center gap-4">
               <TreeCell
                 label={row.label}
                 trunk={row.trunk}
                 branch={row.branch}
                 node={row.node}
                 strong={row.strong}
+                minWidth="min-w-[220px]"
               />
               {row.score && (
                 <>
@@ -354,12 +359,12 @@ export function TraceScoringSlide({ step }: { step: number }) {
                 ease: EASE_OUT,
                 delay: reduceMotion ? 0 : 0.6,
               }}
-              className="text-xs font-medium flex items-center gap-2"
+              className="text-lg font-medium flex items-center gap-3"
             >
               <span className="text-(--color-text-secondary)">
                 Conversation health:
               </span>
-              <span className="px-2 py-0.5 rounded-[6px] border border-(--color-success-500) text-(--color-success-500) bg-(--color-success-500)/10 font-mono">
+              <span className="px-3 py-1 rounded-[8px] border-2 border-(--color-success-500) text-(--color-success-500) bg-(--color-success-500)/10 font-mono">
                 0.83
               </span>
             </motion.div>

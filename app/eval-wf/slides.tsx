@@ -26,8 +26,8 @@ function KeyChip({
 }) {
   return (
     <span
-      className={`inline-flex items-center justify-center bg-(--color-text-primary) text-white rounded-md h-7 text-xs font-medium ${
-        square ? "w-7" : "px-3"
+      className={`inline-flex items-center justify-center bg-(--color-text-primary) text-white rounded-md h-8 text-sm font-medium ${
+        square ? "w-8" : "px-3"
       }`}
     >
       {children}
@@ -39,8 +39,8 @@ function ArrowKey({ dir }: { dir: ArrowDir }) {
   return (
     <KeyChip square>
       <svg
-        width="14"
-        height="14"
+        width="16"
+        height="16"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -72,7 +72,7 @@ export const slides: SlideContent[] = [
           A walkthrough of how Reforge Build evaluates the performance of
           chat-based agents using Workflows.
         </p>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-medium text-(--color-text-tertiary)">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-base font-medium text-(--color-text-tertiary)">
           <span className="flex items-center gap-2">
             <span className="flex items-center gap-1">
               <ArrowKey dir="down" />
@@ -129,8 +129,8 @@ export const slides: SlideContent[] = [
               className="w-full h-auto block"
             />
           </a>
-          <div className="flex flex-col gap-2 text-sm md:text-base max-w-prose">
-            <p className="text-(--color-text-tertiary) text-xs uppercase tracking-wide font-medium">
+          <div className="flex flex-col gap-2 text-base md:text-lg max-w-prose">
+            <p className="text-(--color-text-tertiary) text-sm uppercase tracking-wide font-medium">
               Generating evals
             </p>
             <p className="text-(--color-text-secondary)">

@@ -28,7 +28,7 @@ function MediaFrame({
   return (
     <div className="relative w-full h-full rounded-xl overflow-hidden bg-(--color-surface-muted) border border-(--color-border) shadow-md">
       {reduceMotion ? (
-        <div className="w-full h-full flex items-center justify-center text-xs text-(--color-text-tertiary)">
+        <div className="w-full h-full flex items-center justify-center text-sm text-(--color-text-tertiary)">
           {label}
         </div>
       ) : (
@@ -79,7 +79,7 @@ export function DemoSlide({ step }: { step: number }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: EASE_OUT }}
-            className="text-sm md:text-base text-(--color-text-secondary) font-medium leading-relaxed"
+            className="text-base md:text-lg text-(--color-text-secondary) leading-relaxed"
           >
             {captions[step] ?? captions[0]}
           </motion.p>

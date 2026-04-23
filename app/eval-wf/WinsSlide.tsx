@@ -34,7 +34,7 @@ export function WinsSlide({ step }: { step: number }) {
         const revealed = step >= i;
         return (
           <div key={i} className="flex flex-col gap-3">
-            <div className="text-xs font-medium uppercase tracking-wide text-(--color-text-tertiary)">
+            <div className="text-sm font-medium uppercase tracking-wide text-(--color-text-tertiary)">
               {win.title}
             </div>
             <motion.p
@@ -47,7 +47,7 @@ export function WinsSlide({ step }: { step: number }) {
                 duration: reduceMotion ? 0 : 0.35,
                 ease: EASE_OUT,
               }}
-              className="text-sm text-(--color-text-secondary) leading-relaxed"
+              className="text-base text-(--color-text-secondary) leading-relaxed"
             >
               {win.body}
             </motion.p>

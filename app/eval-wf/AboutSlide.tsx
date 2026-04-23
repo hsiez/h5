@@ -30,7 +30,7 @@ export function AboutSlide() {
           </span>
           , a prototyping tool.
         </p>
-        <div className="flex items-center gap-3 text-sm pt-2">
+        <div className="flex items-center gap-3 text-base pt-2">
           <a
             href="https://x.com/hadasie"
             target="_blank"

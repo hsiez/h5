@@ -137,8 +137,8 @@ export function FlowSlide() {
         </svg>
       </div>
 
-      <div className="text-sm text-(--color-text-secondary) max-w-content w-full">
-        <div className="text-xs font-medium uppercase tracking-wide text-(--color-text-tertiary) mb-2">
+      <div className="text-base text-(--color-text-secondary) max-w-content w-full">
+        <div className="text-sm font-medium uppercase tracking-wide text-(--color-text-tertiary) mb-2">
           Span by span
         </div>
         <p className="max-w-prose">

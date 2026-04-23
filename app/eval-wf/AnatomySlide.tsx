@@ -141,7 +141,7 @@ export function AnatomySlide({ step }: { step: number }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: EASE_OUT }}
-            className="text-sm md:text-base text-(--color-text-secondary) font-medium leading-relaxed"
+            className="text-base md:text-lg text-(--color-text-secondary) leading-relaxed"
           >
             {captions[step] ?? captions[0]}
           </motion.p>
@@ -169,7 +169,7 @@ export function AnatomySlide({ step }: { step: number }) {
           <div className="flex justify-end">
             <div
               ref={userMsg1Ref}
-              className="bg-(--color-neutral-100) text-(--color-text-primary) px-4 py-3 rounded-2xl max-w-[75%] text-sm leading-snug"
+              className="bg-(--color-neutral-200) text-(--color-text-primary) px-4 py-3 rounded-2xl max-w-[75%] text-base leading-snug"
             >
               Build me a flashcard app for studying Spanish.
             </div>
@@ -192,7 +192,7 @@ export function AnatomySlide({ step }: { step: number }) {
                 </div>
               </div>
             </div>
-            <p className="text-sm text-(--color-text-primary) px-1">
+            <p className="text-base text-(--color-text-primary) px-1">
               Here is your prototype.
             </p>
           </div>
@@ -208,7 +208,7 @@ export function AnatomySlide({ step }: { step: number }) {
           >
             <motion.div
               ref={followupRef}
-              className="bg-(--color-neutral-100) text-(--color-text-primary) px-4 py-3 rounded-2xl max-w-[75%] text-sm leading-snug"
+              className="bg-(--color-neutral-200) text-(--color-text-primary) px-4 py-3 rounded-2xl max-w-[75%] text-base leading-snug"
               initial={false}
               animate={{
                 backgroundImage: isUnavailable
@@ -249,7 +249,7 @@ export function AnatomySlide({ step }: { step: number }) {
                 </div>
               </div>
             </div>
-            <p className="text-sm text-(--color-text-primary) px-1">
+            <p className="text-base text-(--color-text-primary) px-1">
               Updated — quiz mode with multiple-choice prompts.
             </p>
           </div>

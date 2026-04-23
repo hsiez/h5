@@ -152,7 +152,7 @@ export function ActionsSlide({ step }: { step: number }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: EASE_OUT }}
-            className="text-sm md:text-base text-(--color-text-secondary) font-medium leading-relaxed"
+            className="text-base md:text-lg text-(--color-text-secondary) leading-relaxed"
           >
             {captions[step] ?? captions[0]}
           </motion.p>
