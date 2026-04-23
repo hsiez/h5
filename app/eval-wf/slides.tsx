@@ -102,41 +102,53 @@ export const slides: SlideContent[] = [
   },
   {
     id: "generating-evals",
-    title: "First, let's generate evals",
+    title: "First, what are evals?",
     body: (
-      <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
-        <a
-          href="https://www.colehoffer.ai/articles/evaluating-chat-agents"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block shrink-0 w-full md:w-[340px] rounded-xl overflow-hidden border border-(--color-border) shadow-md transition-shadow hover:shadow-lg"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://www.colehoffer.ai/imgs/alaskaFull.png"
-            alt="Evaluating LLM Chat Agents with Real World Signals"
-            width={1200}
-            height={630}
-            className="w-full h-auto block"
-          />
-        </a>
-        <div className="flex flex-col gap-4 text-sm md:text-base">
-          <p className="text-(--color-text-secondary)">
-            <a
-              href="https://www.colehoffer.ai/articles/evaluating-chat-agents"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-(--color-text-primary) font-medium underline underline-offset-4 decoration-(--color-border-strong) hover:decoration-(--color-text-primary)"
-            >
-              Evaluating LLM Chat Agents with Real World Signals
-            </a>{" "}
-            — Cole Hoffer.
-          </p>
-          <p className="text-(--color-text-secondary) max-w-prose">
-            The principles behind how we generate evals come from this post —
-            using human follow-up behavior as ground truth and scoring against
-            specific instruction adherence instead of vague relevance.
-          </p>
+      <div className="flex flex-col gap-8">
+        <p className="max-w-prose">
+          An{" "}
+          <span className="text-(--color-text-primary) font-medium">
+            evaluation (&ldquo;eval&rdquo;)
+          </span>{" "}
+          is a test for an AI system: give an AI an input, then apply grading
+          logic to its output to measure success.
+        </p>
+        <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
+          <a
+            href="https://www.colehoffer.ai/articles/evaluating-chat-agents"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block shrink-0 w-full md:w-[260px] rounded-xl overflow-hidden border border-(--color-border) shadow-md transition-shadow hover:shadow-lg"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://www.colehoffer.ai/imgs/alaskaFull.png"
+              alt="Evaluating LLM Chat Agents with Real World Signals"
+              width={1200}
+              height={630}
+              className="w-full h-auto block"
+            />
+          </a>
+          <div className="flex flex-col gap-2 text-sm md:text-base max-w-prose">
+            <p className="text-(--color-text-tertiary) text-xs uppercase tracking-wide font-medium">
+              Generating evals
+            </p>
+            <p className="text-(--color-text-secondary)">
+              For generating evals that measure something meaningful, we lean
+              on{" "}
+              <a
+                href="https://www.colehoffer.ai/articles/evaluating-chat-agents"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-(--color-text-primary) font-medium underline underline-offset-4 decoration-(--color-border-strong) hover:decoration-(--color-text-primary)"
+              >
+                this post by Cole Hoffer
+              </a>{" "}
+              — using human follow-up behavior as ground truth and scoring
+              against specific instruction adherence instead of vague
+              relevance.
+            </p>
+          </div>
         </div>
       </div>
     ),

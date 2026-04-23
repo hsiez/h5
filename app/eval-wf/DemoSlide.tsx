@@ -152,7 +152,7 @@ export function DemoSlide({ step }: { step: number }) {
               loop
               muted
               playsInline
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               aria-label="Feedback → Slack → synthetic user → Linear ticket"
             />
           </MediaFrame>
