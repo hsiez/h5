@@ -173,11 +173,14 @@ export function Deck() {
         ))}
       </div>
 
-      <div className="pointer-events-none fixed bottom-4 left-4 text-xs font-medium tracking-wide text-(--color-text-tertiary)/70 select-none">
-        Reforge Build Acq. by Miro · Vercel Workflows
-      </div>
+      <a
+        href="https://h5.codes/eval-wf"
+        className="fixed bottom-4 left-4 text-sm font-mono tracking-wide text-(--color-text-tertiary)/70 hover:text-(--color-text-tertiary) transition-colors"
+      >
+        h5.codes/eval-wf
+      </a>
 
-      <div className="pointer-events-none fixed bottom-4 right-4 text-xs font-mono tabular-nums text-(--color-text-tertiary)/70 select-none">
+      <div className="pointer-events-none fixed bottom-4 right-4 text-sm font-mono tabular-nums text-(--color-text-tertiary)/70 select-none">
         {String(current + 1).padStart(2, "0")} <span className="text-(--color-border-strong)">/</span>{" "}
         {String(slides.length).padStart(2, "0")}
       </div>
