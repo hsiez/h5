@@ -4,18 +4,17 @@ const TOP_NODES = [
   "Trigger",
   "Classify",
   "Score plan",
-  "Stash hook",
   "Score align",
   "Roll up",
   "Wait",
   "Rescore",
 ];
 
-const BOT_NODES = ["Trigger", "Classify", "Score plan", "Stash hook", "..."];
+const BOT_NODES = ["Trigger", "Classify", "Score plan", "..."];
 
 // Index of the column where the follow-up forks: top has "Wait", bottom has
 // "Trigger". They align vertically but are distinct nodes.
-const FORK_INDEX = 6;
+const FORK_INDEX = 5;
 
 const VB_W = 800;
 const VB_H = 320;
@@ -62,9 +61,9 @@ export function FlowSlide() {
                 }
               />
               <text
-                y={-18}
+                y={-22}
                 textAnchor="middle"
-                fontSize="11"
+                fontSize="16"
                 fill="rgba(20,20,20,0.6)"
                 fontWeight={500}
               >
@@ -92,9 +91,9 @@ export function FlowSlide() {
                 }
               />
               <text
-                y={22}
+                y={28}
                 textAnchor="middle"
-                fontSize="11"
+                fontSize="16"
                 fill="rgba(20,20,20,0.6)"
                 fontWeight={500}
               >
@@ -115,19 +114,19 @@ export function FlowSlide() {
 
           <g transform={`translate(${forkX}, ${(ROW_TOP_Y + ROW_BOT_Y) / 2})`}>
             <rect
-              x={-62}
-              y={-12}
-              width={124}
-              height={24}
-              rx={12}
+              x={-80}
+              y={-16}
+              width={160}
+              height={32}
+              rx={16}
               fill="var(--color-background)"
               stroke="var(--color-accent-500)"
-              strokeWidth="1"
+              strokeWidth="2"
             />
             <text
               textAnchor="middle"
-              y={4}
-              fontSize="11"
+              y={5}
+              fontSize="16"
               fill="var(--color-accent-500)"
               fontWeight={500}
             >

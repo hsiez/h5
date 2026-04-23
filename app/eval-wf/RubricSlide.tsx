@@ -57,7 +57,7 @@ export function RubricSlide() {
             <div className="font-mono text-(--color-text-primary) break-all">
               {step}
             </div>
-            <div className="hidden md:block font-mono text-sm text-(--color-text-tertiary) md:self-center">
+            <div className="hidden md:block font-mono text-base text-(--color-text-tertiary) md:self-center">
               {model}
             </div>
             <div className="text-(--color-text-secondary)">{purpose}</div>
