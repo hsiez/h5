@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useOrientation } from "./orientation";
 
 type Bounds = { x: number; y: number; width: number; height: number };
 
@@ -61,6 +62,7 @@ function relativeBounds(child: HTMLElement, parent: HTMLElement): Bounds {
 
 export function AnatomySlide({ step }: { step: number }) {
   const reduceMotion = useReducedMotion();
+  const isPortrait = useOrientation() === "portrait";
   const viewportRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const userMsg1Ref = useRef<HTMLDivElement>(null);
@@ -132,7 +134,7 @@ export function AnatomySlide({ step }: { step: number }) {
   }, [step, followupText, showNewTurn]);
 
   return (
-    <div className="flex flex-col gap-2 md:gap-4">
+    <div className={`flex flex-col ${isPortrait ? "gap-2" : "gap-4"}`}>
       <div className="max-w-prose w-full h-20 flex items-center">
         <AnimatePresence mode="wait">
           <motion.p
@@ -141,7 +143,9 @@ export function AnatomySlide({ step }: { step: number }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: EASE_OUT }}
-            className="text-base md:text-lg text-(--color-text-secondary) leading-relaxed"
+            className={`${
+              isPortrait ? "text-base" : "text-lg"
+            } text-(--color-text-secondary) leading-relaxed`}
           >
             {captions[step] ?? captions[0]}
           </motion.p>
@@ -150,7 +154,7 @@ export function AnatomySlide({ step }: { step: number }) {
 
       <div
         ref={viewportRef}
-        className="relative w-full max-w-content overflow-hidden py-8 -mx-2 md:-mx-4 px-2 md:px-4"
+        className="relative w-full max-w-content overflow-hidden py-8 -mx-4 px-4"
         style={{
           height: viewportHeight,
           WebkitMaskImage:
@@ -164,7 +168,7 @@ export function AnatomySlide({ step }: { step: number }) {
           initial={false}
           animate={{ y: scrollOffset }}
           transition={{ duration: reduceMotion ? 0 : 0.8, ease: EASE_OUT_EXPO }}
-          className="relative flex flex-col gap-5"
+          className="relative flex flex-col gap-8"
         >
           <div className="flex justify-end">
             <div

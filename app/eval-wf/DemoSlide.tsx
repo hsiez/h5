@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useOrientation } from "./orientation";
 
 const EASE_OUT = [0.2, 0.8, 0.2, 1] as const;
 const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
@@ -40,6 +41,7 @@ function MediaFrame({
 
 export function DemoSlide({ step }: { step: number }) {
   const reduceMotion = useReducedMotion();
+  const isPortrait = useOrientation() === "portrait";
   const handedOff = step >= 1;
   const beforeVideoRef = useRef<HTMLVideoElement>(null);
   const afterVideoRef = useRef<HTMLVideoElement>(null);
@@ -79,7 +81,9 @@ export function DemoSlide({ step }: { step: number }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: EASE_OUT }}
-            className="text-base md:text-lg text-(--color-text-secondary) leading-relaxed"
+            className={`${
+              isPortrait ? "text-base" : "text-lg"
+            } text-(--color-text-secondary) leading-relaxed`}
           >
             {captions[step] ?? captions[0]}
           </motion.p>

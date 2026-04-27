@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
+import { useOrientation } from "./orientation";
 
 const EASE_OUT = [0.2, 0.8, 0.2, 1] as const;
 
@@ -27,9 +28,14 @@ export const WINS_STEPS = wins.length;
 
 export function WinsSlide({ step }: { step: number }) {
   const reduceMotion = useReducedMotion();
+  const isPortrait = useOrientation() === "portrait";
 
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+    <div
+      className={`grid gap-x-8 gap-y-8 ${
+        isPortrait ? "grid-cols-1" : "grid-cols-2 lg:grid-cols-3"
+      }`}
+    >
       {wins.map((win, i) => {
         const revealed = step >= i;
         return (

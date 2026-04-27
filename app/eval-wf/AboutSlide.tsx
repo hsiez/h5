@@ -4,8 +4,8 @@ const PHOTO_SRC = "/about.jpg";
 
 export function AboutSlide() {
   return (
-    <div className="flex flex-col md:flex-row gap-10 items-start">
-      <div className="shrink-0 w-[280px] h-[280px] rounded-2xl overflow-hidden bg-(--color-surface-muted) border border-(--color-border) shadow-md">
+    <div className="flex flex-row gap-10 items-start">
+      <div className="shrink-0 rounded-2xl overflow-hidden bg-(--color-surface-muted) border border-(--color-border) shadow-md w-[280px] h-[280px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={PHOTO_SRC}

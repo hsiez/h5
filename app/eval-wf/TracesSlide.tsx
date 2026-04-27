@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useOrientation } from "./orientation";
 
 const EASE_OUT = [0.2, 0.8, 0.2, 1] as const;
 
@@ -181,8 +182,13 @@ function TreeCell({
 }
 
 export function TracesSlide() {
+  const isPortrait = useOrientation() === "portrait";
   return (
-    <div className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 md:gap-x-8 w-full max-w-content">
+    <div
+      className={`grid grid-cols-[max-content_minmax(0,1fr)] w-full max-w-content ${
+        isPortrait ? "gap-x-3" : "gap-x-8"
+      }`}
+    >
       <TreeCell label="conversation trace" trunk="bottom-half" node strong />
       <div className="bg-(--color-surface-muted) rounded-t-lg pt-3 px-4" />
 
@@ -216,6 +222,7 @@ export function TracesSlide() {
 
 type SpanRow = {
   label?: string;
+  shortLabel?: string;
   trunk: TrunkStyle;
   branch?: boolean;
   node?: boolean;
@@ -224,21 +231,30 @@ type SpanRow = {
 };
 
 const SPAN_ROWS: SpanRow[] = [
-  { label: "conversation trace", trunk: "bottom-half", node: true, strong: true },
+  {
+    label: "conversation trace",
+    shortLabel: "conversation trace",
+    trunk: "bottom-half",
+    node: true,
+    strong: true,
+  },
   {
     label: "Span 1 · Discovery Tool",
+    shortLabel: "Span 1",
     trunk: "full",
     branch: true,
     score: { value: "0.89", tone: "success" },
   },
   {
     label: "Span 2 · Plan Tool",
+    shortLabel: "Span 2",
     trunk: "full",
     branch: true,
     score: { value: "0.74", tone: "warning" },
   },
   {
     label: "Span 3 · Coding Subagent",
+    shortLabel: "Span 3",
     trunk: "top-half",
     branch: true,
     score: { value: "0.86", tone: "success" },
@@ -247,7 +263,7 @@ const SPAN_ROWS: SpanRow[] = [
 
 function ScoreText({ value }: { value: string }) {
   return (
-    <span className="text-lg font-medium font-mono text-(--color-text-secondary)">
+    <span className="text-base font-medium font-mono text-(--color-text-secondary)">
       Score:{" "}
       <span className="text-(--color-text-primary)">{value}</span>
     </span>
@@ -256,7 +272,7 @@ function ScoreText({ value }: { value: string }) {
 
 function WorkflowPill() {
   return (
-    <span className="inline-flex items-center px-3 py-1.5 rounded-[8px] border-2 border-(--color-accent-500) text-(--color-accent-500) text-lg font-medium font-mono bg-(--color-accent-50)">
+    <span className="inline-flex items-center px-3 py-1.5 rounded-[8px] border-2 border-(--color-accent-500) text-(--color-accent-500) text-base font-medium font-mono bg-(--color-accent-50)">
       turnEvalWorkflow()
     </span>
   );
@@ -285,31 +301,39 @@ function ChainArrow() {
 
 export function TraceScoringSlide({ step }: { step: number }) {
   const reduceMotion = useReducedMotion();
+  const isPortrait = useOrientation() === "portrait";
   const showSpans = step >= 1;
   const showHealth = step >= 2;
 
   let spanIndex = 0;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={`flex flex-col ${isPortrait ? "gap-12" : "gap-6"}`}>
       <div className="flex flex-col w-full">
         {SPAN_ROWS.map((row, i) => {
           const idx = row.score ? spanIndex++ : -1;
           const baseDelay = showSpans && !reduceMotion ? idx * 0.18 : 0;
           return (
-            <div key={i} className="h-16 flex items-center gap-4">
+            <div
+              key={i}
+              className={`flex items-center ${
+                isPortrait ? "h-24 gap-2" : "h-16 gap-4"
+              }`}
+            >
               <TreeCell
-                label={row.label}
+                label={isPortrait ? row.shortLabel : row.label}
                 trunk={row.trunk}
                 branch={row.branch}
                 node={row.node}
                 strong={row.strong}
-                minWidth="min-w-[220px]"
+                minWidth={isPortrait ? "min-w-[80px]" : "min-w-[220px]"}
               />
               {row.score && (
                 <>
                   <motion.div
-                    className="flex items-center gap-3"
+                    className={`flex items-center ${
+                      isPortrait ? "gap-2" : "gap-3"
+                    }`}
                     initial={false}
                     animate={{
                       opacity: showSpans ? 1 : 0,
@@ -325,7 +349,9 @@ export function TraceScoringSlide({ step }: { step: number }) {
                     <WorkflowPill />
                   </motion.div>
                   <motion.div
-                    className="flex items-center gap-3"
+                    className={`flex items-center ${
+                      isPortrait ? "gap-2" : "gap-3"
+                    }`}
                     initial={false}
                     animate={{
                       opacity: showSpans ? 1 : 0,
@@ -359,7 +385,7 @@ export function TraceScoringSlide({ step }: { step: number }) {
                 ease: EASE_OUT,
                 delay: reduceMotion ? 0 : 0.6,
               }}
-              className="text-lg font-medium flex items-center gap-3"
+              className="text-base font-medium flex items-center gap-3"
             >
               <span className="text-(--color-text-secondary)">
                 Conversation health:
