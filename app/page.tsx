@@ -37,8 +37,8 @@ export default function Home() {
             </span>
             .
           </p>
-          <p className="text-sm text-(--color-text-tertiary) leading-relaxed">
-            Previously{" "}
+          <p className="text-base text-(--color-text-tertiary) leading-relaxed">
+            <span className="mr-2">Previously</span>
             {PAST_COMPANIES.map((name, i) => (
               <span key={name}>
                 <span className="text-(--color-text-secondary)">{name}</span>
@@ -47,9 +47,8 @@ export default function Home() {
                 )}
               </span>
             ))}
-            .
           </p>
-          <div className="flex items-center gap-3 text-sm pt-2">
+          <div className="flex items-center gap-3 text-base pt-2">
             <a
               href="https://x.com/hadasie"
               target="_blank"
