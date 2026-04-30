@@ -12,22 +12,32 @@ export default function Resume() {
       <object
         data={PDF_SRC}
         type="application/pdf"
-        className="flex-1 w-full min-h-[80vh]"
+        className="hidden md:block flex-1 w-full min-h-[80vh]"
         aria-label="Harley Siezar resume"
-      >
-        <div className="flex flex-col items-center justify-center gap-3 p-12 text-center">
-          <p className="text-base text-(--color-text-secondary)">
-            Your browser can&apos;t display this PDF inline.
-          </p>
+      />
+      <div className="md:hidden flex flex-1 flex-col items-center justify-center gap-4 p-12 text-center">
+        <p className="text-base text-(--color-text-secondary)">
+          PDFs don&apos;t preview reliably on mobile.
+        </p>
+        <div className="flex items-center gap-3 text-base">
+          <a
+            href={PDF_SRC}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-(--color-text-primary) font-medium underline underline-offset-4 decoration-(--color-border-strong) hover:decoration-(--color-text-primary)"
+          >
+            Open
+          </a>
+          <span className="text-(--color-text-tertiary)">·</span>
           <a
             href={PDF_SRC}
             download="harley-siezar-resume.pdf"
-            className="text-sm font-medium text-(--color-text-primary) underline underline-offset-4 decoration-(--color-border-strong) hover:decoration-(--color-text-primary)"
+            className="text-(--color-text-primary) font-medium underline underline-offset-4 decoration-(--color-border-strong) hover:decoration-(--color-text-primary)"
           >
-            Download the resume
+            Download
           </a>
         </div>
-      </object>
+      </div>
     </main>
   );
 }
