@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 const PHOTO_SRC = "/about.jpg";
 
 const PAST_COMPANIES = ["Reforge", "Cobalt", "DataRobot", "Algorithmia"];
@@ -67,12 +65,14 @@ export default function Home() {
               LinkedIn
             </a>
             <span className="text-(--color-text-tertiary)">·</span>
-            <Link
-              href="/resume"
+            <a
+              href="/resume-2026.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-(--color-text-primary) font-medium underline underline-offset-4 decoration-(--color-border-strong) hover:decoration-(--color-text-primary)"
             >
               resume
-            </Link>
+            </a>
           </div>
         </div>
       </div>
