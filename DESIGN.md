@@ -80,8 +80,78 @@ Button height should follow the 4px rule (`h-8` 32, `h-10` 40, `h-12` 48). Paddi
 - When a single column feels cramped, **split into columns before shrinking type**.
 - On small screens, flatten the size hierarchy — large things shrink faster than small things.
 
+## Primitives — checklist
+
+Primitives live in `app/_components/`, one file per primitive.
+
+### Structural rules
+
+- **Semantic root.** `<button>` for buttons, `<a>` for links, real heading levels. Never `<div onClick>`.
+- **`className` passthrough.** Merge via `cn()` so callers can extend without overriding intent.
+- **Spread `...props`** to the root element so native attributes (`aria-*`, `data-*`, `onClick`) just work.
+- **No layout opinions on the outside.** Primitives don't set `margin`, `position`, or `width: 100%`. Parent decides placement.
+- **Add `forwardRef` only when a consumer actually needs the ref** (focus management, form libraries, measurement). Don't sprinkle it preemptively.
+
+### Variant pattern — lookup objects (no library)
+
+```tsx
+const base = "inline-flex items-center justify-center font-medium";
+
+const intents = {
+  primary:   "bg-accent-500 text-text-on-accent hover:bg-accent-600",
+  secondary: "border border-[--color-border-strong] text-text-primary hover:bg-surface-muted",
+  ghost:     "text-text-primary hover:bg-surface-muted",
+};
+
+const sizes = {
+  sm: "h-8 px-3 text-sm",
+  md: "h-10 px-4 text-base",
+  lg: "h-12 px-6 text-base",
+};
+
+type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  intent?: keyof typeof intents;
+  size?: keyof typeof sizes;
+};
+
+export function Button({ intent = "primary", size = "md", className, ...props }: Props) {
+  return <button className={cn(base, intents[intent], sizes[size], className)} {...props} />;
+}
+```
+
+Each axis of variation is a plain object. `keyof typeof` gives autocomplete. Defaults live on the destructured props. No library needed — swap to CVA the day you need compound variants.
+
+### Styling rules
+
+- **Tokens only.** No raw hex, no arbitrary px outside the 4px scale, no magic radii. If you reach for `[#hexvalue]` or `p-[7px]`, the token system is missing something — fix `globals.css`, not the component.
+- **Borders always alpha-blended.** Use `--color-border`, `--color-border-strong`, or `--color-border-subtle`. Never solid grey.
+
+### Accessibility rules
+
+- **Focus-visible** styled explicitly using `--color-border-strong` or `--color-accent-500` ring. Never rely on the browser default.
+- **`prefers-reduced-motion`** respected on any animation longer than a hover color change.
+- **Touch target ≥ 32px** for anything interactive (matches `--icon-bound`).
+- **Disabled** state must be visually distinct *and* set `aria-disabled` or native `disabled`. No click handler fires when disabled.
+- **Loading** state (where relevant) blocks interaction and announces via `aria-busy`.
+- **Controlled + uncontrolled** for stateful primitives (e.g. audio player). Accept `value`/`defaultValue` + `onChange`. Don't force one mode.
+- **Keyboard parity.** Anything you can do with a mouse must work with the keyboard. Tab to reach, Space/Enter to activate, Esc to dismiss.
+
+### Reusing styles without a component
+
+Export the variant lookup so callers can apply styles to any element:
+
+```tsx
+// A Next.js Link that looks like a primary button
+<Link href="/papers/foo" className={cn(base, intents.primary, sizes.md)}>
+  Read paper
+</Link>
+```
+
+When a component and a bare style application are both common, export both the component and the lookup objects.
+
 ## Where things live
 
 - Tokens: `app/globals.css` (`@theme` block).
 - Geist fonts: `app/layout.tsx` (already wired via `next/font/google`).
 - Body defaults (font, color, background): bottom of `app/globals.css`.
+- Primitives: `app/_components/`, one file per component.
