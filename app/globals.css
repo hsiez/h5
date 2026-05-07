@@ -19,8 +19,8 @@
   --spacing: 4px;
 
   /* ---- Type scale (rems anchored at 16px root) ---- */
-  --text-xs: 0.75rem;     /* 12px — captions, badges, micro-meta */
-  --text-xs--line-height: 1rem;
+  --text-xs: 0.875rem;    /* 14px — captions, badges, micro-meta */
+  --text-xs--line-height: 1.25rem;
   --text-sm: 0.875rem;    /* 14px — secondary body, labels */
   --text-sm--line-height: 1.25rem;
   --text-base: 1rem;      /* 16px — body */
