@@ -2,7 +2,7 @@ import { fetchTopPapers } from "@/lib/scraper";
 import { fetchPaperSource } from "@/lib/source";
 import { rewritePaper } from "@/lib/rewriter";
 import { generateAudio } from "@/lib/tts";
-import { uploadAudio, uploadDailyIndex } from "@/lib/storage";
+import { uploadAudio, uploadDailyIndex, uploadLatestPointer } from "@/lib/storage";
 import type { PaperResult, DailyIndex } from "@/lib/types";
 
 export async function dailyPapersWorkflow(date: string) {
@@ -49,6 +49,7 @@ export async function dailyPapersWorkflow(date: string) {
   };
 
   const indexUrl = await writeIndex(date, index);
+  await writeLatestPointer(date);
 
   return { date, status: "ok" as const, count: results.length, indexUrl };
 }
@@ -66,4 +67,9 @@ async function generateAndUploadAudio(
 async function writeIndex(date: string, index: DailyIndex): Promise<string> {
   "use step";
   return uploadDailyIndex(date, index);
+}
+
+async function writeLatestPointer(date: string): Promise<string> {
+  "use step";
+  return uploadLatestPointer(date);
 }

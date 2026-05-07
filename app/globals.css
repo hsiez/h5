@@ -111,6 +111,7 @@
   /* ---- Content widths (max-w-prose, max-w-content, etc.) ---- */
   --container-prose: 65ch;
   --container-content: 768px;
+  --container-reading: 896px;
   --container-wide: 1024px;
   --container-max: 1200px;
 
