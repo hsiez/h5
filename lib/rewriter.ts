@@ -10,8 +10,10 @@ Rules:
 - No jargon without a brief plain-language explanation
 - No citations, URLs, or reference numbers
 - No markdown formatting — output plain text only
+- Do NOT include the paper title — it is displayed separately
 - Start with what the paper does, then why it matters
-- End with the most surprising or important result`;
+- End with the most surprising or important result
+- Output ONLY the script itself — no preamble, no meta-commentary, no "Here is your script" or similar framing`;
 
 export async function rewritePaper(
   paper: PaperInput,

@@ -40,7 +40,7 @@ function ScrollFade({ children }: { children: React.ReactNode }) {
         className="pointer-events-none absolute inset-x-0 top-0 h-16 z-10 transition-opacity duration-200"
         style={{
           background:
-            "linear-gradient(to bottom, var(--color-surface-muted) 0%, rgba(250,250,250,0.8) 30%, rgba(250,250,250,0.3) 60%, transparent 100%)",
+            "linear-gradient(to bottom, var(--color-surface-sunken) 0%, rgba(244,244,244,0.8) 30%, rgba(244,244,244,0.3) 60%, transparent 100%)",
           opacity: canScrollUp ? 1 : 0,
         }}
       />
@@ -55,7 +55,7 @@ function ScrollFade({ children }: { children: React.ReactNode }) {
         className="pointer-events-none absolute inset-x-0 bottom-0 h-16 z-10 transition-opacity duration-200"
         style={{
           background:
-            "linear-gradient(to top, var(--color-surface-muted) 0%, rgba(250,250,250,0.8) 30%, rgba(250,250,250,0.3) 60%, transparent 100%)",
+            "linear-gradient(to top, var(--color-surface-sunken) 0%, rgba(244,244,244,0.8) 30%, rgba(244,244,244,0.3) 60%, transparent 100%)",
           opacity: canScrollDown ? 1 : 0,
         }}
       />
@@ -277,10 +277,10 @@ function CarouselCard({
 }) {
   return (
     <article
-      className="flex flex-col gap-6 p-8 rounded-lg bg-(--color-surface-muted) overflow-hidden"
+      className="flex flex-col gap-6 p-8 rounded-lg bg-(--color-surface-sunken) overflow-hidden"
       style={{ boxShadow: cardShadow }}
     >
-      <div className="flex flex-col gap-2 max-w-prose">
+      <div className="flex flex-col gap-4 max-w-prose">
         <div className="flex items-start justify-between gap-4">
           <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-relaxed text-pretty">
             {paper.title}
@@ -295,8 +295,28 @@ function CarouselCard({
         </p>
       </div>
       <ScrollFade>
-        <ExpandableText text={paper.abstract} expanded={true} className="pr-16" />
+        <ExpandableText text={paper.script} expanded={true} className="pr-16" />
       </ScrollFade>
+      <footer className="flex items-center gap-3">
+        <a
+          href={`https://arxiv.org/abs/${paper.arxivId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-colors px-3 py-1.5 rounded-full bg-white/80"
+        >
+          arXiv
+        </a>
+        {paper.githubRepo && (
+          <a
+            href={`https://github.com/${paper.githubRepo}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-colors px-3 py-1.5 rounded-full bg-white/80"
+          >
+            GitHub
+          </a>
+        )}
+      </footer>
     </article>
   );
 }
@@ -380,7 +400,7 @@ export function PaperCarousel({
         <div className="pointer-events-none absolute inset-y-0 right-0 w-24 z-10 bg-gradient-to-l from-(--color-background) to-transparent" />
         <div
           ref={scrollRef}
-          className="flex gap-14 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4"
+          className="flex gap-14 overflow-x-auto snap-x snap-mandatory scroll-smooth pt-4 pb-4"
           style={{
             scrollbarWidth: "none",
             WebkitOverflowScrolling: "touch",
@@ -400,17 +420,7 @@ export function PaperCarousel({
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-center gap-4 mt-6">
-        <button
-          type="button"
-          onClick={() => goTo(active - 1)}
-          disabled={active === 0}
-          aria-label="Previous paper"
-          className="icon rounded-full text-(--color-text-tertiary) hover:text-(--color-text-primary) disabled:opacity-30 disabled:cursor-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500)"
-        >
-          <ArrowLeft />
-        </button>
-
+      <div className="flex items-center justify-center mt-6">
         <div className="flex items-center gap-2">
           {papers.map((_, i) => (
             <button
@@ -431,15 +441,6 @@ export function PaperCarousel({
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={() => goTo(active + 1)}
-          disabled={active === papers.length - 1}
-          aria-label="Next paper"
-          className="icon rounded-full text-(--color-text-tertiary) hover:text-(--color-text-primary) disabled:opacity-30 disabled:cursor-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500)"
-        >
-          <ArrowRight />
-        </button>
       </div>
     </div>
   );

@@ -20,7 +20,7 @@ export async function dailyPapersWorkflow(date: string) {
     try {
       const source = await fetchPaperSource(paper.arxivId);
       const script = await rewritePaper(paper, source);
-      const audioUrl = await generateAndUploadAudio(date, paper.arxivId, script);
+      const audioUrl = await generateAndUploadAudio(date, paper.arxivId, paper.title, script);
 
       results.push({
         arxivId: paper.arxivId,
@@ -57,10 +57,11 @@ export async function dailyPapersWorkflow(date: string) {
 async function generateAndUploadAudio(
   date: string,
   arxivId: string,
+  title: string,
   script: string,
 ): Promise<string> {
   "use step";
-  const mp3 = await generateAudio(script);
+  const mp3 = await generateAudio(`${title}. ${script}`);
   return uploadAudio(date, arxivId, mp3);
 }
 
