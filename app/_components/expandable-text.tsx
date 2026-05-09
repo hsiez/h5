@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 
 function splitIntoParagraphs(text: string): string[] {
   const explicit = text.split(/\n\s*\n/).filter((s) => s.trim());
@@ -23,12 +23,13 @@ function splitIntoParagraphs(text: string): string[] {
 
 export function ExpandableText({
   text,
+  expanded,
   className,
 }: {
   text: string;
+  expanded: boolean;
   className?: string;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const [clamped, setClamped] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const paragraphs = useMemo(() => splitIntoParagraphs(text), [text]);
@@ -43,26 +44,26 @@ export function ExpandableText({
     <div className={className}>
       <div
         ref={ref}
-        className={expanded ? "" : "line-clamp-3"}
+        className={`relative max-w-prose ${expanded ? "" : "line-clamp-3"}`}
       >
         {paragraphs.map((p, i) => (
           <p
             key={i}
-            className={`text-base text-(--color-text-secondary) leading-relaxed ${i > 0 ? "mt-4" : ""}`}
+            className={`font-serif text-base text-(--color-text-secondary) leading-loose ${i > 0 ? "mt-4" : ""}`}
           >
             {p}
           </p>
         ))}
+        {!expanded && clamped && (
+          <div
+            className="absolute inset-x-0 bottom-0 h-12 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(to bottom, transparent, var(--color-surface-muted))",
+            }}
+          />
+        )}
       </div>
-      {clamped && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-3 text-sm font-medium text-(--color-text-tertiary) hover:text-(--color-text-secondary) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500) rounded-sm"
-        >
-          {expanded ? "Show less" : "Show more"}
-        </button>
-      )}
     </div>
   );
 }

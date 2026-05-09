@@ -17,7 +17,7 @@ function PapersDatePage({ date }: { date: string }) {
 
   return (
     <main className="flex flex-1 flex-col items-center px-6 py-16 bg-(--color-background)">
-      <div className="w-full max-w-content flex flex-col gap-12">
+      <div className="w-full max-w-reading flex flex-col gap-12">
         <header className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold tracking-tight text-(--color-text-primary)">
             Papers
@@ -30,7 +30,7 @@ function PapersDatePage({ date }: { date: string }) {
 
         <div className="flex flex-col gap-8">
           {index.papers.map((paper) => (
-            <PaperCard key={paper.arxivId} paper={paper} audioSrc="" />
+            <PaperCard key={paper.arxivId} paper={paper} expanded={false} />
           ))}
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { fetchBlobJson } from "@/lib/storage";
 import type { DailyIndex } from "@/lib/types";
-import { PaperTabs } from "@/app/_components/paper-tabs";
+import { PaperCarousel } from "@/app/_components/paper-carousel";
 
 export default async function PapersDatePage({
   params,
@@ -26,7 +26,7 @@ export default async function PapersDatePage({
           </p>
         </header>
 
-        <PaperTabs papers={index.papers} date={date} />
+        <PaperCarousel papers={index.papers} date={date} />
       </div>
     </main>
   );

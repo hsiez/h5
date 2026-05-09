@@ -24,10 +24,17 @@ const meta: Meta<typeof PaperCard> = {
 export default meta;
 type Story = StoryObj<typeof PaperCard>;
 
-export const Default: Story = {
+export const Collapsed: Story = {
   args: {
     paper: MOCK_PAPER,
-    audioSrc: "https://cdn.freesound.org/previews/612/612095_5674468-lq.mp3",
+    expanded: false,
+  },
+};
+
+export const Expanded: Story = {
+  args: {
+    paper: MOCK_PAPER,
+    expanded: true,
   },
 };
 
@@ -35,7 +42,7 @@ export const Minimal: Story = {
   name: "No GitHub / few authors",
   args: {
     paper: MOCK_PAPER_MINIMAL,
-    audioSrc: "",
+    expanded: false,
   },
 };
 
@@ -43,20 +50,6 @@ export const LongTitle: Story = {
   name: "Long title + many authors",
   args: {
     paper: MOCK_PAPER_LONG_TITLE,
-    audioSrc: "",
+    expanded: true,
   },
-};
-
-export const Stacked: Story = {
-  name: "Multiple cards (feed layout)",
-  render: () => (
-    <div className="flex flex-col gap-8">
-      <PaperCard
-        paper={MOCK_PAPER}
-        audioSrc="https://cdn.freesound.org/previews/612/612095_5674468-lq.mp3"
-      />
-      <PaperCard paper={MOCK_PAPER_MINIMAL} audioSrc="" />
-      <PaperCard paper={MOCK_PAPER_LONG_TITLE} audioSrc="" />
-    </div>
-  ),
 };

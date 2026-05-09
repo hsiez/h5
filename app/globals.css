@@ -11,6 +11,7 @@
   /* ---- Fonts (Geist is loaded via next/font in layout.tsx) ---- */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-serif: var(--font-serif), "Source Serif 4", Georgia, "Times New Roman", serif;
 
   /* ---- Spacing — strict 4px rule ----
      Tailwind v4 multiplies --spacing by the utility number.
@@ -158,4 +159,22 @@ body {
   font-weight: var(--font-weight-normal);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(20, 20, 20, 0.12) transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(20, 20, 20, 0.12);
+  border-radius: 2px;
 }
