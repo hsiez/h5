@@ -14,7 +14,7 @@ export default async function PapersDatePage({
   if (!index) notFound();
 
   return (
-    <main className="flex flex-1 flex-col items-center px-6 pt-32 pb-16 bg-(--color-background)">
+    <main className="flex flex-1 flex-col items-center justify-center px-6 py-8 bg-(--color-background) min-h-dvh">
       <div className="w-full max-w-reading flex flex-col gap-12">
         <header className="flex flex-col gap-2" style={{ paddingLeft: "calc(50% - 320px)" }}>
           <h1 className="text-2xl font-semibold tracking-tight text-(--color-text-primary)">
