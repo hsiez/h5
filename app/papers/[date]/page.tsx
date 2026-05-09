@@ -14,15 +14,14 @@ export default async function PapersDatePage({
   if (!index) notFound();
 
   return (
-    <main className="flex flex-1 flex-col items-center px-6 py-16 bg-(--color-background)">
+    <main className="flex flex-1 flex-col items-center px-6 pt-32 pb-16 bg-(--color-background)">
       <div className="w-full max-w-reading flex flex-col gap-12">
         <header className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold tracking-tight text-(--color-text-primary)">
-            Papers
+            Top Rated Papers on 🤗
           </h1>
           <p className="text-sm text-(--color-text-tertiary)">
-            {formatDate(date)} &middot; {index.papers.length} paper
-            {index.papers.length !== 1 && "s"}
+            {formatDate(date)}
           </p>
         </header>
 

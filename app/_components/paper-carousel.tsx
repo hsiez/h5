@@ -277,7 +277,7 @@ function CarouselCard({
 }) {
   return (
     <article
-      className="flex flex-col gap-6 p-8 rounded-lg bg-(--color-surface-muted)"
+      className="flex flex-col gap-6 p-8 rounded-lg bg-(--color-surface-muted) overflow-hidden"
       style={{ boxShadow: cardShadow }}
     >
       <div className="flex flex-col gap-2 max-w-prose">
@@ -354,10 +354,8 @@ export function PaperCarousel({
     }
 
     el.addEventListener("scrollend", onScroll);
-    el.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       el.removeEventListener("scrollend", onScroll);
-      el.removeEventListener("scroll", onScroll);
     };
   }, []);
 
@@ -420,11 +418,15 @@ export function PaperCarousel({
               type="button"
               onClick={() => goTo(i)}
               aria-label={`Go to paper ${i + 1}`}
-              className={`rounded-full transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500) ${
-                i === active
-                  ? "w-6 h-2 bg-(--color-text-primary)"
-                  : "w-2 h-2 bg-(--color-border-strong) hover:bg-(--color-text-tertiary)"
-              }`}
+              className="h-2 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500)"
+              style={{
+                width: i === active ? 24 : 8,
+                backgroundColor: i === active
+                  ? "var(--color-text-primary)"
+                  : "rgba(20,20,20,0.16)",
+                transition: "width 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 200ms ease",
+                willChange: "width",
+              }}
             />
           ))}
         </div>
