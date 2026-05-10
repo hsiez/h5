@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { fetchBlobJson } from "@/lib/storage";
 import type { DailyIndex } from "@/lib/types";
 import { PaperCarousel } from "@/app/_components/paper-carousel";
+import { MobilePaperList } from "@/app/_components/mobile-paper-list";
 
 export default async function PapersDatePage({
   params,
@@ -25,7 +26,10 @@ export default async function PapersDatePage({
           </p>
         </header>
 
-        <PaperCarousel papers={index.papers} date={date} />
+        <PaperCarousel papers={index.papers} date={date} className="hidden md:block" />
+        <div className="md:hidden">
+          <MobilePaperList papers={index.papers} date={date} />
+        </div>
       </div>
     </main>
   );
