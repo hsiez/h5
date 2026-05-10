@@ -210,7 +210,7 @@ export function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
           onFocus={() => setHover(true)}
           onBlur={() => setHover(false)}
           aria-label={playing ? "Pause audio" : "Listen to paper summary"}
-          className="inline-flex items-center justify-center text-(--color-text-tertiary) hover:text-(--color-text-secondary) transition-colors cursor-pointer rounded-full p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500)"
+          className="inline-flex items-center justify-center text-(--color-text-primary) transition-colors cursor-pointer rounded-full p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500)"
         >
           <svg viewBox="0 0 44 40" fill="currentColor" aria-hidden="true" className="w-8 h-8">
             {[
@@ -242,7 +242,7 @@ export function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
 
       {hover && !playing && (
         <div
-          className="fixed z-50 pointer-events-none whitespace-nowrap rounded-md bg-(--color-text-primary) text-(--color-text-on-accent) text-xs px-2 py-1 -translate-x-1/2 -translate-y-full"
+          className="fixed z-50 pointer-events-none whitespace-nowrap rounded-md bg-(--color-text-primary) text-(--color-text-on-accent) text-xs px-2 py-1 -translate-x-1/2 -translate-y-full hidden md:block"
           style={{ left: pos.x, top: pos.y }}
         >
           Listen
