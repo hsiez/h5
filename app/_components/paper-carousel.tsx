@@ -12,7 +12,7 @@ const ELLIPSE_BINS = [12, 8, 4, 1, 4, 8, 12];
 const MAX_VISIBLE = 4;
 const CARD_HEIGHT = 640;
 
-function ScrollFade({ children }: { children: React.ReactNode }) {
+export function ScrollFade({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
@@ -66,7 +66,7 @@ function ScrollFade({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
+export function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
   const btnRef = useRef<HTMLButtonElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
@@ -210,7 +210,7 @@ function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
           onFocus={() => setHover(true)}
           onBlur={() => setHover(false)}
           aria-label={playing ? "Pause audio" : "Listen to paper summary"}
-          className="inline-flex items-center justify-center text-(--color-text-tertiary) hover:text-(--color-text-secondary) transition-colors cursor-pointer rounded-full p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500)"
+          className="inline-flex items-center justify-center text-(--color-text-primary) transition-colors cursor-pointer rounded-full p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500)"
         >
           <svg viewBox="0 0 44 40" fill="currentColor" aria-hidden="true" className="w-8 h-8">
             {[
@@ -242,7 +242,7 @@ function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
 
       {hover && !playing && (
         <div
-          className="fixed z-50 pointer-events-none whitespace-nowrap rounded-md bg-(--color-text-primary) text-(--color-text-on-accent) text-xs px-2 py-1 -translate-x-1/2 -translate-y-full"
+          className="fixed z-50 pointer-events-none whitespace-nowrap rounded-md bg-(--color-text-primary) text-(--color-text-on-accent) text-xs px-2 py-1 -translate-x-1/2 -translate-y-full hidden md:block"
           style={{ left: pos.x, top: pos.y }}
         >
           Listen
@@ -252,7 +252,7 @@ function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
   );
 }
 
-const cardShadow =
+export const cardShadow =
   "0 4px 8px -2px rgba(20,20,20,0.06), 0 2px 4px -2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.04), inset 0 0 0 1px rgba(255,255,255,1)";
 
 function CarouselCard({
