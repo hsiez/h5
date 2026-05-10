@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { PaperResult } from "@/lib/types";
 import { ExpandableText } from "@/app/_components/expandable-text";
 
@@ -8,6 +9,8 @@ const CARD_WIDTH = 640;
 const RING_R = 20;
 const RING_CIRC = 2 * Math.PI * RING_R;
 const ELLIPSE_BINS = [12, 8, 4, 1, 4, 8, 12];
+const MAX_VISIBLE = 4;
+const CARD_HEIGHT = 640;
 
 function ScrollFade({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -35,7 +38,7 @@ function ScrollFade({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="relative">
+    <div className="relative flex-1 min-h-0">
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-16 z-10 transition-opacity duration-200"
         style={{
@@ -46,8 +49,8 @@ function ScrollFade({ children }: { children: React.ReactNode }) {
       />
       <div
         ref={ref}
-        className="overflow-y-auto"
-        style={{ maxHeight: "40vh", scrollbarWidth: "none" }}
+        className="overflow-y-auto h-full"
+        style={{ scrollbarWidth: "none" }}
       >
         {children}
       </div>
@@ -249,22 +252,6 @@ function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
   );
 }
 
-function ArrowLeft() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
-      <path d="M12 4l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ArrowRight() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true">
-      <path d="M8 4l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 const cardShadow =
   "0 4px 8px -2px rgba(20,20,20,0.06), 0 2px 4px -2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.04), inset 0 0 0 1px rgba(255,255,255,1)";
 
@@ -276,48 +263,50 @@ function CarouselCard({
   date: string;
 }) {
   return (
-    <article
-      className="flex flex-col gap-6 p-8 rounded-lg bg-(--color-surface-sunken) overflow-hidden"
-      style={{ boxShadow: cardShadow }}
-    >
-      <div className="flex flex-col gap-4 max-w-prose">
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-relaxed text-pretty">
+    <div className="relative">
+      <article
+        className="flex flex-col gap-6 p-8 rounded-lg bg-(--color-surface-sunken) overflow-hidden"
+        style={{ boxShadow: cardShadow, height: CARD_HEIGHT }}
+      >
+        <div className="flex flex-col gap-4 max-w-prose pr-12">
+          <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-snug line-clamp-2">
             {paper.title}
           </h2>
-          <SoundwaveButton
-            audioSrc={`/api/papers/${date}/${paper.arxivId}/audio`}
-          />
+          <p className="font-serif text-sm text-(--color-text-tertiary)">
+            {paper.authors.slice(0, 4).join(", ")}
+            {paper.authors.length > 4 && ` +${paper.authors.length - 4}`}
+          </p>
         </div>
-        <p className="font-serif text-sm text-(--color-text-tertiary)">
-          {paper.authors.slice(0, 4).join(", ")}
-          {paper.authors.length > 4 && ` +${paper.authors.length - 4}`}
-        </p>
-      </div>
-      <ScrollFade>
-        <ExpandableText text={paper.script} expanded={true} className="pr-16" />
-      </ScrollFade>
-      <footer className="flex items-center gap-3">
-        <a
-          href={`https://arxiv.org/abs/${paper.arxivId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-colors px-3 py-1.5 rounded-full bg-white/80"
-        >
-          arXiv
-        </a>
-        {paper.githubRepo && (
+        <ScrollFade>
+          <ExpandableText text={paper.script} expanded={true} className="pr-16" />
+        </ScrollFade>
+        <footer className="flex items-center gap-3">
           <a
-            href={`https://github.com/${paper.githubRepo}`}
+            href={`https://arxiv.org/abs/${paper.arxivId}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-colors px-3 py-1.5 rounded-full bg-white/80"
           >
-            GitHub
+            arXiv
           </a>
-        )}
-      </footer>
-    </article>
+          {paper.githubRepo && (
+            <a
+              href={`https://github.com/${paper.githubRepo}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-colors px-3 py-1.5 rounded-full bg-white/80"
+            >
+              GitHub
+            </a>
+          )}
+        </footer>
+      </article>
+      <div className="absolute top-8 right-8">
+        <SoundwaveButton
+          audioSrc={`/api/papers/${date}/${paper.arxivId}/audio`}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -330,54 +319,15 @@ export function PaperCarousel({
   date: string;
   className?: string;
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
-
-  const scrollTo = useCallback((index: number) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const child = el.children[index] as HTMLElement | undefined;
-    if (!child) return;
-    const scrollLeft =
-      child.offsetLeft - el.offsetWidth / 2 + child.offsetWidth / 2;
-    el.scrollTo({ left: scrollLeft, behavior: "smooth" });
-  }, []);
+  const shouldReduceMotion = useReducedMotion();
 
   const goTo = useCallback(
     (index: number) => {
-      const clamped = Math.max(0, Math.min(papers.length - 1, index));
-      setActive(clamped);
-      scrollTo(clamped);
+      setActive(Math.max(0, Math.min(papers.length - 1, index)));
     },
-    [papers.length, scrollTo],
+    [papers.length],
   );
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    function onScroll() {
-      if (!el) return;
-      const center = el.scrollLeft + el.offsetWidth / 2;
-      let closest = 0;
-      let minDist = Infinity;
-      for (let i = 0; i < el.children.length; i++) {
-        const child = el.children[i] as HTMLElement;
-        const childCenter = child.offsetLeft + child.offsetWidth / 2;
-        const dist = Math.abs(center - childCenter);
-        if (dist < minDist) {
-          minDist = dist;
-          closest = i;
-        }
-      }
-      setActive(closest);
-    }
-
-    el.addEventListener("scrollend", onScroll);
-    return () => {
-      el.removeEventListener("scrollend", onScroll);
-    };
-  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -395,53 +345,64 @@ export function PaperCarousel({
 
   return (
     <div className={className}>
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 z-10 bg-gradient-to-r from-(--color-background) to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-24 z-10 bg-gradient-to-l from-(--color-background) to-transparent" />
-        <div
-          ref={scrollRef}
-          className="flex gap-14 overflow-x-auto snap-x snap-mandatory scroll-smooth pt-4 pb-4"
-          style={{
-            scrollbarWidth: "none",
-            WebkitOverflowScrolling: "touch",
-            paddingInline: `calc(50% - ${CARD_WIDTH / 2}px)`,
-          }}
-        >
-          {papers.map((paper) => (
-            <div
+      <div className="relative w-full">
+        <div className="invisible pointer-events-none" aria-hidden="true">
+          <CarouselCard paper={papers[active]} date={date} />
+        </div>
+
+        {papers.map((paper, i) => {
+          const stackPos = i - active;
+          if (stackPos < -1 || stackPos >= MAX_VISIBLE) return null;
+
+          const isDealt = stackPos < 0;
+
+          return (
+            <motion.div
               key={paper.arxivId}
-              className="snap-center shrink-0"
-              style={{ width: `min(100%, ${CARD_WIDTH}px)` }}
+              initial={false}
+              animate={{
+                x: isDealt ? 700 : stackPos * -16,
+                y: isDealt ? -20 : stackPos * 6,
+                scale: isDealt ? 0.95 : 1 - stackPos * 0.035,
+                rotateZ: isDealt ? 4 : stackPos * -2,
+                opacity: isDealt ? 0 : 1,
+              }}
+              drag={stackPos === 0 ? "x" : false}
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.7}
+              onDragEnd={(_, info) => {
+                if (stackPos !== 0) return;
+                if (info.offset.x > 100 || info.velocity.x > 500) {
+                  goTo(active + 1);
+                } else if (info.offset.x < -100 || info.velocity.x < -500) {
+                  goTo(active - 1);
+                }
+              }}
+              whileDrag={{ cursor: "grabbing" }}
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : isDealt
+                    ? { type: "spring", duration: 0.5, bounce: 0.12 }
+                    : { type: "spring", duration: 0.5, bounce: 0.12 }
+              }
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                zIndex: isDealt ? papers.length + 10 : papers.length - stackPos,
+                transformOrigin: "left center",
+                pointerEvents: stackPos === 0 ? "auto" : "none",
+                cursor: stackPos === 0 ? "grab" : "default",
+              }}
             >
               <CarouselCard paper={paper} date={date} />
-            </div>
-          ))}
-        </div>
+            </motion.div>
+          );
+        })}
       </div>
 
-      {/* Navigation */}
-      <div className="flex items-center justify-center mt-6">
-        <div className="flex items-center gap-2">
-          {papers.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => goTo(i)}
-              aria-label={`Go to paper ${i + 1}`}
-              className="h-2 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500)"
-              style={{
-                width: i === active ? 24 : 8,
-                backgroundColor: i === active
-                  ? "var(--color-text-primary)"
-                  : "rgba(20,20,20,0.16)",
-                transition: "width 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 200ms ease",
-                willChange: "width",
-              }}
-            />
-          ))}
-        </div>
-
-      </div>
     </div>
   );
 }
