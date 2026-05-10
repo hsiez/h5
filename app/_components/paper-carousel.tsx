@@ -13,18 +13,28 @@ const MAX_VISIBLE = 4;
 const CARD_HEIGHT = 640;
 
 export function ScrollFade({ children }: { children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [canScrollUp, setCanScrollUp] = useState(false);
-  const [canScrollDown, setCanScrollDown] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const topFadeRef = useRef<HTMLDivElement>(null);
+  const bottomFadeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const el = scrollRef.current;
+    const topFade = topFadeRef.current;
+    const bottomFade = bottomFadeRef.current;
+    if (!el || !topFade || !bottomFade) return;
+
+    const easeOut = "cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+
+    function setFade(fade: HTMLDivElement, show: boolean) {
+      const duration = show ? "150ms" : "200ms";
+      fade.style.transition = `opacity ${duration} ${easeOut}`;
+      fade.style.opacity = show ? "1" : "0";
+    }
 
     function update() {
-      if (!el) return;
-      setCanScrollUp(el.scrollTop > 2);
-      setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 2);
+      if (!el || !topFade || !bottomFade) return;
+      setFade(topFade, el.scrollTop > 2);
+      setFade(bottomFade, el.scrollTop + el.clientHeight < el.scrollHeight - 2);
     }
 
     update();
@@ -40,26 +50,30 @@ export function ScrollFade({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative flex-1 min-h-0">
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-16 z-10 transition-opacity duration-200"
+        ref={topFadeRef}
+        className="pointer-events-none absolute inset-x-0 top-0 h-16 z-10"
         style={{
           background:
             "linear-gradient(to bottom, var(--color-surface-sunken) 0%, rgba(244,244,244,0.8) 30%, rgba(244,244,244,0.3) 60%, transparent 100%)",
-          opacity: canScrollUp ? 1 : 0,
+          opacity: 0,
+          willChange: "opacity",
         }}
       />
       <div
-        ref={ref}
+        ref={scrollRef}
         className="overflow-y-auto h-full"
         style={{ scrollbarWidth: "none" }}
       >
         {children}
       </div>
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-16 z-10 transition-opacity duration-200"
+        ref={bottomFadeRef}
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-16 z-10"
         style={{
           background:
             "linear-gradient(to top, var(--color-surface-sunken) 0%, rgba(244,244,244,0.8) 30%, rgba(244,244,244,0.3) 60%, transparent 100%)",
-          opacity: canScrollDown ? 1 : 0,
+          opacity: 0,
+          willChange: "opacity",
         }}
       />
     </div>
@@ -278,7 +292,7 @@ function CarouselCard({
           </p>
         </div>
         <ScrollFade>
-          <ExpandableText text={paper.script} expanded={true} className="pr-16" />
+          <ExpandableText text={paper.script} expanded={true} glossary={paper.glossary} className="pr-16" />
         </ScrollFade>
         <footer className="flex items-center gap-3">
           <a

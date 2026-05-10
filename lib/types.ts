@@ -31,12 +31,18 @@ export interface PaperSource {
   bibEntries: string | null;
 }
 
+export interface GlossaryTerm {
+  term: string;
+  definition: string;
+}
+
 export interface PaperResult {
   arxivId: string;
   title: string;
   authors: string[];
   abstract: string;
   script: string;
+  glossary: GlossaryTerm[];
   audioUrl: string;
   upvotes: number;
   githubRepo?: string;

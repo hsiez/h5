@@ -19,7 +19,7 @@ export async function dailyPapersWorkflow(date: string) {
   for (const paper of papers) {
     try {
       const source = await fetchPaperSource(paper.arxivId);
-      const script = await rewritePaper(paper, source);
+      const { script, glossary } = await rewritePaper(paper, source);
       const audioUrl = await generateAndUploadAudio(date, paper.arxivId, paper.title, script);
 
       results.push({
@@ -28,6 +28,7 @@ export async function dailyPapersWorkflow(date: string) {
         authors: paper.authors,
         abstract: paper.abstract,
         script,
+        glossary,
         audioUrl,
         upvotes: paper.upvotes,
         githubRepo: paper.githubRepo,
