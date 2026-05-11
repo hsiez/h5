@@ -15,6 +15,10 @@ export const MOCK_PAPER: PaperResult = {
     "We present a method for training sparse autoencoders (SAEs) that scales to frontier language models. Our approach identifies interpretable features in GPT-4 class models, revealing structure in how these models represent concepts. We find that feature geometry becomes increasingly organized at scale, with clear clusters corresponding to semantic categories. The resulting dictionary of 32,000 features provides a new lens for understanding model behavior and enables targeted interventions for alignment research.",
   script:
     "Today's top paper tackles one of the biggest mysteries in AI — what's actually going on inside large language models. The researchers trained what's called a sparse autoencoder on a GPT-4 class model, essentially building a dictionary of the concepts the model has learned. They found over thirty-two thousand interpretable features, organized into neat semantic clusters. This is a big deal for AI safety because it means we might actually be able to understand and steer these models from the inside.",
+  glossary: [
+    { term: "sparse autoencoder", definition: "A neural network that learns to represent data using only a few active neurons at a time, revealing interpretable features." },
+    { term: "SAEs", definition: "Sparse autoencoders — networks that decompose model activations into a dictionary of interpretable features." },
+  ],
   audioUrl: "",
   upvotes: 142,
   githubRepo: "openai/sparse-autoencoders",
@@ -28,6 +32,7 @@ export const MOCK_PAPER_MINIMAL: PaperResult = {
   abstract:
     "We fix a longstanding bug in Adam when combined with L2 regularization and show that decoupled weight decay provides substantially better generalization across tasks.",
   script: "A short script about Adam optimizer fixes.",
+  glossary: [],
   audioUrl: "",
   upvotes: 38,
 };
@@ -48,6 +53,9 @@ export const MOCK_PAPER_LONG_TITLE: PaperResult = {
   abstract:
     "This survey covers the rapidly evolving landscape of RAG systems, examining chunking, embedding, retrieval, reranking, and generation stages. We evaluate 47 recent methods across standardized benchmarks and identify key architectural patterns that consistently improve factual accuracy while reducing hallucination rates.",
   script: "A deep dive into the state of retrieval-augmented generation.",
+  glossary: [
+    { term: "RAG", definition: "Retrieval-augmented generation — combining search with LLMs to ground answers in retrieved documents." },
+  ],
   audioUrl: "",
   upvotes: 89,
   githubRepo: "awesome-rag/survey-2026",
