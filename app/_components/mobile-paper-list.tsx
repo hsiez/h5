@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PaperResult } from "@/lib/types";
 import { ExpandableText } from "./expandable-text";
@@ -19,6 +19,13 @@ export function MobilePaperList({
   const selected = selectedId
     ? (papers.find((p) => p.arxivId === selectedId) ?? null)
     : null;
+  const modalRef = useRef<HTMLElement>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  const close = useCallback(() => {
+    setSelectedId(null);
+    triggerRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (!selected) return;
@@ -28,6 +35,37 @@ export function MobilePaperList({
     };
   }, [selected]);
 
+  useEffect(() => {
+    if (!selected || !modalRef.current) return;
+    const modal = modalRef.current;
+
+    function trapFocus(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        close();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const focusable = modal.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", trapFocus);
+    const closeBtn = modal.querySelector<HTMLElement>("button");
+    closeBtn?.focus();
+    return () => document.removeEventListener("keydown", trapFocus);
+  }, [selected, close]);
+
   return (
     <>
       <div className="flex flex-col gap-3">
@@ -35,7 +73,8 @@ export function MobilePaperList({
           <motion.button
             key={paper.arxivId}
             layoutId={paper.arxivId}
-            onClick={() => setSelectedId(paper.arxivId)}
+            ref={(el) => { if (selectedId === paper.arxivId) triggerRef.current = el; }}
+            onClick={() => { triggerRef.current = document.activeElement as HTMLButtonElement; setSelectedId(paper.arxivId); }}
             className="text-left p-5 rounded-lg bg-(--color-surface-sunken) flex flex-col gap-2"
             style={{
               boxShadow: cardShadow,
@@ -58,7 +97,10 @@ export function MobilePaperList({
         {selected && (
           <motion.article
             key="expanded"
+            ref={modalRef}
             layoutId={selected.arxivId}
+            role="dialog"
+            aria-label={selected.title}
             className="fixed inset-0 z-50 bg-(--color-surface-sunken) flex flex-col overflow-hidden"
             transition={spring}
             style={{
@@ -68,8 +110,8 @@ export function MobilePaperList({
           >
             <div className="flex items-center px-5 pt-3">
               <button
-                onClick={() => setSelectedId(null)}
-                className="p-2 -ml-2 text-(--color-text-tertiary) active:text-(--color-text-primary)"
+                onClick={close}
+                className="p-3 -ml-3 text-(--color-text-tertiary) active:text-(--color-text-primary)"
                 aria-label="Close"
               >
                 <svg
@@ -81,6 +123,7 @@ export function MobilePaperList({
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  aria-hidden="true"
                 >
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
