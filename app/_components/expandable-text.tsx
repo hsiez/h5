@@ -38,7 +38,7 @@ function annotateToHtml(text: string, glossary: GlossaryTerm[]): string {
     );
     if (idx === -1) return matched;
     const h = heights[idx % heights.length];
-    return `<span data-term-idx="${idx}" role="term" tabindex="0" class="term-highlight" style="background-size:100% ${h}%">${matched}</span>`;
+    return `<span data-term-idx="${idx}" tabindex="0" class="term-highlight" aria-describedby="glossary-tooltip" style="background-size:100% ${h}%">${matched}</span>`;
   });
 }
 
@@ -112,6 +112,61 @@ export function ExpandableText({
     setTooltip(null);
   }, []);
 
+  const handleFocus = useCallback(
+    (e: React.FocusEvent) => {
+      const target = (e.target as HTMLElement).closest("[data-term-idx]");
+      if (!target) return;
+      const idx = Number(target.getAttribute("data-term-idx"));
+      const term = glossary[idx];
+      if (!term) return;
+      const rect = target.getBoundingClientRect();
+      const below = rect.top < 100;
+      setTooltip({
+        term,
+        x: rect.left + rect.width / 2,
+        y: below ? rect.bottom + 8 : rect.top - 8,
+        below,
+      });
+    },
+    [glossary],
+  );
+
+  const handleBlur = useCallback(
+    (e: React.FocusEvent) => {
+      const related = e.relatedTarget as HTMLElement | null;
+      if (!related || !related.closest("[data-term-idx]")) {
+        setTooltip(null);
+      }
+    },
+    [],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const target = (e.target as HTMLElement).closest("[data-term-idx]");
+      if (!target) return;
+      e.preventDefault();
+      const idx = Number(target.getAttribute("data-term-idx"));
+      const term = glossary[idx];
+      if (!term) return;
+      if (tooltip?.term === term) {
+        setTooltip(null);
+      } else {
+        const rect = target.getBoundingClientRect();
+        const below = rect.top < 100;
+        setTooltip({
+          term,
+          x: rect.left + rect.width / 2,
+          y: below ? rect.bottom + 8 : rect.top - 8,
+          below,
+        });
+      }
+    },
+    [glossary, tooltip],
+  );
+
+
   return (
     <div className={className}>
       <style dangerouslySetInnerHTML={{ __html: HIGHLIGHT_STYLE }} />
@@ -120,6 +175,9 @@ export function ExpandableText({
         className={`relative max-w-prose ${expanded ? "" : "line-clamp-3"}`}
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
       >
         {paragraphsHtml.map((html, i) => (
           <p
@@ -140,6 +198,8 @@ export function ExpandableText({
       </div>
       {tooltip && (
         <span
+          id="glossary-tooltip"
+          role="tooltip"
           className="fixed z-[9999] w-56 px-3 py-2 rounded-lg bg-(--color-text-primary) text-(--color-text-on-accent) text-xs leading-relaxed pointer-events-none -translate-x-1/2"
           style={{
             left: tooltip.x,

@@ -358,7 +358,10 @@ export function PaperCarousel({
   }, [active, goTo]);
 
   return (
-    <div className={className}>
+    <div className={className} role="region" aria-roledescription="carousel" aria-label="Research papers">
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        Paper {active + 1} of {papers.length}: {papers[active].title}
+      </div>
       <div className="relative w-full">
         <div className="invisible pointer-events-none" aria-hidden="true">
           <CarouselCard paper={papers[active]} date={date} />
