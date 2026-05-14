@@ -15,17 +15,8 @@ export default async function PapersDatePage({
   if (!index) notFound();
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-8 bg-(--color-background) min-h-dvh overflow-x-clip">
-      <div className="flex flex-col gap-12" style={{ width: "min(100%, 640px)" }}>
-        <header className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-(--color-text-primary)">
-            Top Rated Papers on 🤗
-          </h1>
-          <p className="text-sm text-(--color-text-tertiary)">
-            {formatDate(date)}
-          </p>
-        </header>
-
+    <main className="flex flex-1 flex-col items-center px-6 py-8 bg-(--color-background) h-dvh overflow-hidden">
+      <div className="flex flex-col gap-12" style={{ width: "min(100%, 800px)" }}>
         <PaperCarousel papers={index.papers} date={date} className="hidden md:block" />
         <div className="md:hidden">
           <MobilePaperList papers={index.papers} date={date} />

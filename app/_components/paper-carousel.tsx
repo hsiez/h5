@@ -5,12 +5,10 @@ import { motion, useReducedMotion } from "framer-motion";
 import type { PaperResult } from "@/lib/types";
 import { ExpandableText } from "@/app/_components/expandable-text";
 
-const CARD_WIDTH = 640;
-const RING_R = 20;
-const RING_CIRC = 2 * Math.PI * RING_R;
+const CARD_WIDTH = 720;
 const ELLIPSE_BINS = [12, 8, 4, 1, 4, 8, 12];
-const MAX_VISIBLE = 4;
-const CARD_HEIGHT = 640;
+const MAX_VISIBLE = 1;
+const CARD_HEIGHT = "calc(100dvh - 4rem)";
 
 export function ScrollFade({ children }: { children: React.ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -86,13 +84,10 @@ export function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
   const ctxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const ellipseRefs = useRef<(SVGEllipseElement | null)[]>([]);
-  const ringRef = useRef<SVGCircleElement | null>(null);
   const rafRef = useRef<number>(0);
   const connectedRef = useRef(false);
 
   const [playing, setPlaying] = useState(false);
-  const [hover, setHover] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
 
   const animate = useCallback(() => {
     const analyser = analyserRef.current;
@@ -108,11 +103,6 @@ export function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
         const scale = 0.3 + value * 0.7;
         el.style.transform = `scaleY(${scale})`;
       });
-    }
-
-    if (audio && ringRef.current && audio.duration) {
-      const progress = audio.currentTime / audio.duration;
-      ringRef.current.style.strokeDashoffset = `${RING_CIRC * (1 - progress)}`;
     }
 
     rafRef.current = requestAnimationFrame(animate);
@@ -170,99 +160,52 @@ export function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!hover || !btnRef.current) return;
-    const rect = btnRef.current.getBoundingClientRect();
-    setPos({ x: rect.left + rect.width / 2, y: rect.top - 8 });
-  }, [hover]);
 
   return (
-    <>
-      <div className="relative shrink-0">
-        {/* Progress ring */}
-        <svg
-          className="absolute pointer-events-none"
-          viewBox="0 0 44 44"
-          style={{
-            inset: -2,
-            width: 44,
-            height: 44,
-            transform: "rotate(-90deg)",
-            opacity: playing ? 1 : 0,
-            transition: "opacity 150ms ease",
-          }}
-        >
-          <circle
-            cx="22"
-            cy="22"
-            r={RING_R}
-            fill="none"
-            stroke="rgba(20,20,20,0.08)"
-            strokeWidth="2"
-          />
-          <circle
-            ref={(el) => { ringRef.current = el; }}
-            cx="22"
-            cy="22"
-            r={RING_R}
-            fill="none"
-            stroke="var(--color-text-primary)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeDasharray={RING_CIRC}
-            strokeDashoffset={RING_CIRC}
-            style={{ willChange: "stroke-dashoffset" }}
-          />
-        </svg>
-
-        <button
-          ref={btnRef}
-          type="button"
-          onClick={toggle}
-          onMouseEnter={() => setHover(true)}
-          onMouseLeave={() => setHover(false)}
-          onFocus={() => setHover(true)}
-          onBlur={() => setHover(false)}
-          aria-label={playing ? "Pause audio" : "Listen to paper summary"}
-          className="inline-flex items-center justify-center text-(--color-text-primary) transition-colors cursor-pointer rounded-full p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500)"
-        >
-          <svg viewBox="0 0 44 40" fill="currentColor" aria-hidden="true" className="w-8 h-8">
-            {[
-              { cx: 4, rx: 1.5, ry: 6 },
-              { cx: 10, rx: 2, ry: 12 },
-              { cx: 16, rx: 2, ry: 17 },
-              { cx: 22, rx: 2, ry: 19 },
-              { cx: 28, rx: 2, ry: 17 },
-              { cx: 34, rx: 2, ry: 12 },
-              { cx: 40, rx: 1.5, ry: 6 },
-            ].map((e, i) => (
-              <ellipse
-                key={i}
-                ref={(el) => { ellipseRefs.current[i] = el; }}
-                cx={e.cx}
-                cy="20"
-                rx={e.rx}
-                ry={e.ry}
-                style={{
-                  transformBox: "fill-box",
-                  transformOrigin: "center",
-                  willChange: playing ? "transform" : "auto",
-                }}
-              />
-            ))}
-          </svg>
-        </button>
-      </div>
-
-      {hover && !playing && (
-        <div
-          className="fixed z-50 pointer-events-none whitespace-nowrap rounded-md bg-(--color-text-primary) text-(--color-text-on-accent) text-xs px-2 py-1 -translate-x-1/2 -translate-y-full hidden md:block"
-          style={{ left: pos.x, top: pos.y }}
-        >
+    <button
+      ref={btnRef}
+      type="button"
+      onClick={toggle}
+      aria-label={playing ? "Pause audio" : "Listen to paper summary"}
+      className="relative inline-flex items-center justify-center text-xs cursor-pointer rounded-lg px-3 py-1.5 text-white hover:brightness-110 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500) before:absolute before:inset-[-8px] before:content-['']"
+      style={{
+        minWidth: 62,
+        height: 28,
+        background: "linear-gradient(to bottom, #323137, #201E25)",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.10), 0 0 0 1px #4B4951, inset 0 1px 0 rgba(255,255,255,0.06)",
+      }}
+    >
+      <span className="grid place-items-center" style={{ width: 38, height: 16 }}>
+        <span className="col-start-1 row-start-1 leading-none transition-opacity" style={{ opacity: playing ? 0 : 1 }}>
           Listen
-        </div>
-      )}
-    </>
+        </span>
+        <svg viewBox="0 0 44 40" fill="currentColor" aria-hidden="true" className="col-start-1 row-start-1 w-6 h-4 leading-none transition-opacity" style={{ opacity: playing ? 1 : 0 }}>
+          {[
+            { cx: 4, rx: 1.5, ry: 6 },
+            { cx: 10, rx: 2, ry: 12 },
+            { cx: 16, rx: 2, ry: 17 },
+            { cx: 22, rx: 2, ry: 19 },
+            { cx: 28, rx: 2, ry: 17 },
+            { cx: 34, rx: 2, ry: 12 },
+            { cx: 40, rx: 1.5, ry: 6 },
+          ].map((e, i) => (
+            <ellipse
+              key={i}
+              ref={(el) => { ellipseRefs.current[i] = el; }}
+              cx={e.cx}
+              cy="20"
+              rx={e.rx}
+              ry={e.ry}
+              style={{
+                transformBox: "fill-box",
+                transformOrigin: "center",
+                willChange: playing ? "transform" : "auto",
+              }}
+            />
+          ))}
+        </svg>
+      </span>
+    </button>
   );
 }
 
@@ -277,50 +220,46 @@ function CarouselCard({
   date: string;
 }) {
   return (
-    <div className="relative">
-      <article
-        className="flex flex-col gap-6 p-8 rounded-lg bg-(--color-surface-sunken) overflow-hidden"
-        style={{ boxShadow: cardShadow, height: CARD_HEIGHT }}
-      >
-        <div className="flex flex-col gap-4 max-w-prose pr-12">
-          <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-snug line-clamp-2">
-            {paper.title}
-          </h2>
-          <p className="font-serif text-sm text-(--color-text-tertiary)">
-            {paper.authors.slice(0, 4).join(", ")}
-            {paper.authors.length > 4 && ` +${paper.authors.length - 4}`}
-          </p>
-        </div>
-        <ScrollFade>
-          <ExpandableText text={paper.script} expanded={true} glossary={paper.glossary} className="pr-16" />
-        </ScrollFade>
-        <footer className="flex items-center gap-3">
+    <article
+      className="flex flex-col gap-6 p-10 rounded-lg bg-(--color-surface-sunken) overflow-hidden"
+      style={{ boxShadow: cardShadow, height: CARD_HEIGHT }}
+    >
+      <div className="flex flex-col gap-4 max-w-prose">
+        <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-snug line-clamp-2">
+          {paper.title}
+        </h2>
+        <p className="font-serif text-sm text-(--color-text-tertiary)">
+          {paper.authors.slice(0, 4).join(", ")}
+          {paper.authors.length > 4 && ` +${paper.authors.length - 4}`}
+        </p>
+      </div>
+      <ScrollFade>
+        <ExpandableText text={paper.script} expanded={true} glossary={paper.glossary} />
+      </ScrollFade>
+      <footer className="flex items-center gap-3">
+        <a
+          href={`https://arxiv.org/abs/${paper.arxivId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-(--color-text-tertiary) hover:text-(--color-text-primary) underline transition-colors"
+        >
+          arXiv
+        </a>
+        {paper.githubRepo && (
           <a
-            href={`https://arxiv.org/abs/${paper.arxivId}`}
+            href={`https://github.com/${paper.githubRepo}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-colors px-3 py-1.5 rounded-full bg-white/80"
+            className="text-xs text-(--color-text-tertiary) hover:text-(--color-text-primary) underline transition-colors"
           >
-            arXiv
+            GitHub
           </a>
-          {paper.githubRepo && (
-            <a
-              href={`https://github.com/${paper.githubRepo}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-colors px-3 py-1.5 rounded-full bg-white/80"
-            >
-              GitHub
-            </a>
-          )}
-        </footer>
-      </article>
-      <div className="absolute top-8 right-8">
-        <SoundwaveButton
-          audioSrc={`/api/papers/${date}/${paper.arxivId}/audio`}
-        />
-      </div>
-    </div>
+        )}
+        <div className="ml-auto">
+          <SoundwaveButton audioSrc={`/api/papers/${date}/${paper.arxivId}/audio`} />
+        </div>
+      </footer>
+    </article>
   );
 }
 
@@ -334,13 +273,16 @@ export function PaperCarousel({
   className?: string;
 }) {
   const [active, setActive] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
   const shouldReduceMotion = useReducedMotion();
 
   const goTo = useCallback(
     (index: number) => {
-      setActive(Math.max(0, Math.min(papers.length - 1, index)));
+      const clamped = Math.max(0, Math.min(papers.length - 1, index));
+      setDirection(clamped >= active ? 1 : -1);
+      setActive(clamped);
     },
-    [papers.length],
+    [papers.length, active],
   );
 
   useEffect(() => {
@@ -357,69 +299,86 @@ export function PaperCarousel({
     return () => window.removeEventListener("keydown", onKey);
   }, [active, goTo]);
 
+  const hasPrev = active > 0;
+  const hasNext = active < papers.length - 1;
+
   return (
     <div className={className} role="region" aria-roledescription="carousel" aria-label="Research papers">
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         Paper {active + 1} of {papers.length}: {papers[active].title}
       </div>
-      <div className="relative w-full">
-        <div className="invisible pointer-events-none" aria-hidden="true">
-          <CarouselCard paper={papers[active]} date={date} />
+      <div className="flex items-center gap-8">
+        <button
+          type="button"
+          onClick={() => goTo(active - 1)}
+          disabled={!hasPrev}
+          aria-label="Previous paper"
+          className="shrink-0 w-8 h-14 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none"
+          style={{ boxShadow: cardShadow }}
+        >
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3L4 10l8 7M4 10h14" />
+          </svg>
+        </button>
+
+        <div className="relative flex-1">
+          <div className="invisible pointer-events-none" aria-hidden="true">
+            <CarouselCard paper={papers[active]} date={date} />
+          </div>
+
+          {papers.map((paper, i) => {
+            const stackPos = i - active;
+            if (stackPos < -1 || stackPos > MAX_VISIBLE) return null;
+
+            const isDealt = stackPos < 0;
+            const isEntering = stackPos === 0 && direction === -1;
+            const isExitingBelow = stackPos === MAX_VISIBLE;
+
+            return (
+              <motion.div
+                key={paper.arxivId}
+                initial={isEntering ? { x: 700, rotateZ: 4, opacity: 1, scale: 0.95, y: -20 } : false}
+                animate={{
+                  x: isDealt ? 700 : 0,
+                  y: isDealt ? -20 : 0,
+                  scale: isDealt ? 0.95 : 1,
+                  rotateZ: isDealt ? 4 : 0,
+                  opacity: isDealt || isExitingBelow ? 0 : 1,
+                }}
+                transition={
+                  shouldReduceMotion
+                    ? { duration: 0 }
+                    : { type: "spring", duration: 0.5, bounce: 0.12 }
+                }
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  zIndex: isEntering ? papers.length + 20 : isDealt ? papers.length + 10 : papers.length - stackPos,
+                  transformOrigin: "left center",
+                  pointerEvents: stackPos === 0 ? "auto" : "none",
+                }}
+              >
+                <CarouselCard paper={paper} date={date} />
+              </motion.div>
+            );
+          })}
         </div>
 
-        {papers.map((paper, i) => {
-          const stackPos = i - active;
-          if (stackPos < -1 || stackPos >= MAX_VISIBLE) return null;
-
-          const isDealt = stackPos < 0;
-
-          return (
-            <motion.div
-              key={paper.arxivId}
-              initial={false}
-              animate={{
-                x: isDealt ? 700 : stackPos * -16,
-                y: isDealt ? -20 : stackPos * 6,
-                scale: isDealt ? 0.95 : 1 - stackPos * 0.035,
-                rotateZ: isDealt ? 4 : stackPos * -2,
-                opacity: isDealt ? 0 : 1,
-              }}
-              drag={stackPos === 0 ? "x" : false}
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.7}
-              onDragEnd={(_, info) => {
-                if (stackPos !== 0) return;
-                if (info.offset.x > 100 || info.velocity.x > 500) {
-                  goTo(active + 1);
-                } else if (info.offset.x < -100 || info.velocity.x < -500) {
-                  goTo(active - 1);
-                }
-              }}
-              whileDrag={{ cursor: "grabbing" }}
-              transition={
-                shouldReduceMotion
-                  ? { duration: 0 }
-                  : isDealt
-                    ? { type: "spring", duration: 0.5, bounce: 0.12 }
-                    : { type: "spring", duration: 0.5, bounce: 0.12 }
-              }
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                zIndex: isDealt ? papers.length + 10 : papers.length - stackPos,
-                transformOrigin: "left center",
-                pointerEvents: stackPos === 0 ? "auto" : "none",
-                cursor: stackPos === 0 ? "grab" : "default",
-              }}
-            >
-              <CarouselCard paper={paper} date={date} />
-            </motion.div>
-          );
-        })}
+        <button
+          type="button"
+          onClick={() => goTo(active + 1)}
+          disabled={!hasNext}
+          aria-label="Next paper"
+          className="shrink-0 w-8 h-14 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none"
+          style={{ boxShadow: cardShadow }}
+        >
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 3l8 7-8 7M16 10H2" />
+          </svg>
+        </button>
       </div>
-
     </div>
   );
 }
