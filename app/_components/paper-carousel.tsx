@@ -1,9 +1,15 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { motion, useReducedMotion } from "framer-motion";
 import type { PaperResult } from "@/lib/types";
 import { ExpandableText } from "@/app/_components/expandable-text";
+
+const DitheredImage = dynamic(
+  () => import("@/app/_components/dithered-image").then((m) => m.DitheredImage),
+  { ssr: false },
+);
 
 const CARD_WIDTH = 720;
 const ELLIPSE_BINS = [12, 8, 4, 1, 4, 8, 12];
@@ -263,26 +269,57 @@ function CarouselCard({
   );
 }
 
+function EndCard({ previousDate }: { previousDate: string | null }) {
+  return (
+    <article
+      className="flex flex-col items-center justify-center gap-6 p-10 rounded-lg bg-(--color-surface-sunken) overflow-hidden"
+      style={{ boxShadow: cardShadow, height: CARD_HEIGHT }}
+    >
+      <p className="font-serif text-base text-(--color-text-tertiary) text-center max-w-xs">
+        You sharpened your sword today, <span className="whitespace-nowrap">good work!</span>
+      </p>
+      <DitheredImage
+        src="/swordy.png"
+        width={320}
+        height={320}
+        className="rounded-lg"
+      />
+      {previousDate && (
+        <a
+          href={`/papers/${previousDate}`}
+          className="text-xs text-(--color-text-tertiary) hover:text-(--color-text-primary) underline transition-colors"
+        >
+          See previous research papers
+        </a>
+      )}
+    </article>
+  );
+}
+
 export function PaperCarousel({
   papers,
   date,
+  previousDate,
   className,
 }: {
   papers: PaperResult[];
   date: string;
+  previousDate: string | null;
   className?: string;
 }) {
   const [active, setActive] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
   const shouldReduceMotion = useReducedMotion();
 
+  const totalSlides = papers.length + 1;
+
   const goTo = useCallback(
     (index: number) => {
-      const clamped = Math.max(0, Math.min(papers.length - 1, index));
+      const clamped = Math.max(0, Math.min(totalSlides - 1, index));
       setDirection(clamped >= active ? 1 : -1);
       setActive(clamped);
     },
-    [papers.length, active],
+    [totalSlides, active],
   );
 
   useEffect(() => {
@@ -300,12 +337,15 @@ export function PaperCarousel({
   }, [active, goTo]);
 
   const hasPrev = active > 0;
-  const hasNext = active < papers.length - 1;
+  const hasNext = active < totalSlides - 1;
+  const isOnEndCard = active === papers.length;
 
   return (
     <div className={className} role="region" aria-roledescription="carousel" aria-label="Research papers">
       <div className="sr-only" aria-live="polite" aria-atomic="true">
-        Paper {active + 1} of {papers.length}: {papers[active].title}
+        {isOnEndCard
+          ? "End of papers"
+          : `Paper ${active + 1} of ${papers.length}: ${papers[active].title}`}
       </div>
       <div className="flex items-center gap-8">
         <button
@@ -323,10 +363,12 @@ export function PaperCarousel({
 
         <div className="relative flex-1">
           <div className="invisible pointer-events-none" aria-hidden="true">
-            <CarouselCard paper={papers[active]} date={date} />
+            {isOnEndCard ? <EndCard previousDate={previousDate} /> : <CarouselCard paper={papers[active]} date={date} />}
           </div>
 
-          {papers.map((paper, i) => {
+          {[...papers.map((paper, i) => ({ key: paper.arxivId, i, type: "paper" as const, paper })),
+            { key: "__end__", i: papers.length, type: "end" as const, paper: null },
+          ].map(({ key, i, type, paper }) => {
             const stackPos = i - active;
             if (stackPos < -1 || stackPos > MAX_VISIBLE) return null;
 
@@ -336,7 +378,7 @@ export function PaperCarousel({
 
             return (
               <motion.div
-                key={paper.arxivId}
+                key={key}
                 initial={isEntering ? { x: 700, rotateZ: 4, opacity: 1, scale: 0.95, y: -20 } : false}
                 animate={{
                   x: isDealt ? 700 : 0,
@@ -355,12 +397,12 @@ export function PaperCarousel({
                   top: 0,
                   left: 0,
                   width: "100%",
-                  zIndex: isEntering ? papers.length + 20 : isDealt ? papers.length + 10 : papers.length - stackPos,
+                  zIndex: isEntering ? totalSlides + 20 : isDealt ? totalSlides + 10 : totalSlides - stackPos,
                   transformOrigin: "left center",
                   pointerEvents: stackPos === 0 ? "auto" : "none",
                 }}
               >
-                <CarouselCard paper={paper} date={date} />
+                {type === "end" ? <EndCard previousDate={previousDate} /> : <CarouselCard paper={paper!} date={date} />}
               </motion.div>
             );
           })}

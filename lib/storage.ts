@@ -1,4 +1,4 @@
-import { put, get } from "@vercel/blob";
+import { put, get, list } from "@vercel/blob";
 import type { DailyIndex } from "@/lib/types";
 
 export async function uploadAudio(
@@ -51,6 +51,21 @@ export async function fetchBlobJson<T>(pathname: string): Promise<T | null> {
   if (!result || result.statusCode !== 200) return null;
   const text = await new Response(result.stream).text();
   return JSON.parse(text) as T;
+}
+
+export async function fetchPreviousDate(
+  currentDate: string,
+): Promise<string | null> {
+  const result = await list({
+    prefix: "papers/",
+    mode: "folded",
+  });
+  const dates = result.folders
+    .map((f) => f.replace("papers/", "").replace("/", ""))
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d < currentDate)
+    .sort()
+    .reverse();
+  return dates[0] ?? null;
 }
 
 export async function fetchBlobStream(
