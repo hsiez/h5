@@ -18,7 +18,7 @@ export function DitheredImage({
       <HalftoneDots
         style={{ width: "100%", height: "100%" }}
         image={src}
-        colorBack="#f4f4f4"
+        colorBack="#ffffff"
         colorFront="#2b2b2b"
         originalColors={false}
         type="gooey"

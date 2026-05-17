@@ -18,13 +18,31 @@ export default async function PapersDatePage({
   if (!index) notFound();
 
   return (
-    <main className="flex flex-1 flex-col items-center px-6 py-8 bg-(--color-background) h-dvh overflow-hidden">
-      <div className="flex flex-col gap-12" style={{ width: "min(100%, 800px)" }}>
-        <PaperCarousel papers={index.papers} date={date} previousDate={previousDate} className="hidden md:block" />
-        <div className="md:hidden">
-          <MobilePaperList papers={index.papers} date={date} />
+    <main className="h-dvh overflow-y-auto snap-y snap-proximity bg-(--color-background)">
+      <header
+        className="flex flex-col justify-center px-6"
+        style={{ height: "60dvh" }}
+      >
+        <div className="mx-auto w-full pl-8" style={{ maxWidth: 800 }}>
+          <h1 className="font-serif text-3xl font-semibold text-(--color-text-primary)">
+            Calm Papers
+          </h1>
+          <p className="mt-2 text-sm text-(--color-text-tertiary)">
+            Summaries of the top 5 research papers on 🤗
+          </p>
         </div>
-      </div>
+      </header>
+
+      <section
+        className="snap-start min-h-dvh flex flex-col items-center px-6 py-8"
+      >
+        <div className="w-full" style={{ maxWidth: 800 }}>
+          <PaperCarousel papers={index.papers} date={date} previousDate={previousDate} className="hidden md:block" />
+          <div className="md:hidden">
+            <MobilePaperList papers={index.papers} date={date} />
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
