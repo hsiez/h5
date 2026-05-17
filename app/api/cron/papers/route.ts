@@ -3,11 +3,9 @@ import { start } from "workflow/api";
 import { dailyPapersWorkflow } from "@/workflows/daily-papers";
 
 export async function GET(request: NextRequest) {
-  if (process.env.CRON_SECRET) {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const secret = process.env.CRON_SECRET;
+  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
