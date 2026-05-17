@@ -10,9 +10,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const date =
-    request.nextUrl.searchParams.get("date") ??
-    new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  const date = request.nextUrl.searchParams.get("date") ?? yesterday;
 
   const run = await start(dailyPapersWorkflow, [date]);
 
