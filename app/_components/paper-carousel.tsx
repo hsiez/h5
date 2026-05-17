@@ -272,8 +272,8 @@ function CarouselCard({
 function EndCard({ previousDate }: { previousDate: string | null }) {
   return (
     <article
-      className="flex flex-col items-center justify-center gap-6 p-10 rounded-lg bg-(--color-surface-sunken) overflow-hidden"
-      style={{ boxShadow: cardShadow, height: CARD_HEIGHT }}
+      className="flex flex-col items-center justify-center gap-6 p-10 overflow-hidden"
+      style={{ height: CARD_HEIGHT }}
     >
       <p className="font-serif text-base text-(--color-text-tertiary) text-center max-w-xs">
         You sharpened your sword today, <span className="whitespace-nowrap">good work!</span>
@@ -282,7 +282,7 @@ function EndCard({ previousDate }: { previousDate: string | null }) {
         src="/swordy.png"
         width={320}
         height={320}
-        className="rounded-lg"
+        className="rounded-lg bg-white"
       />
       {previousDate && (
         <a
@@ -353,7 +353,7 @@ export function PaperCarousel({
           onClick={() => goTo(active - 1)}
           disabled={!hasPrev}
           aria-label="Previous paper"
-          className="shrink-0 w-8 h-14 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none"
+          className="shrink-0 w-8 h-14 -ml-8 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none"
           style={{ boxShadow: cardShadow }}
         >
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -413,7 +413,7 @@ export function PaperCarousel({
           onClick={() => goTo(active + 1)}
           disabled={!hasNext}
           aria-label="Next paper"
-          className="shrink-0 w-8 h-14 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none"
+          className="shrink-0 w-8 h-14 -mr-8 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none"
           style={{ boxShadow: cardShadow }}
         >
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
