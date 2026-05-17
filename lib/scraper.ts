@@ -6,9 +6,18 @@ const TOP_N = 5;
 export async function fetchTopPapers(date: string): Promise<PaperInput[]> {
   "use step";
 
-  const res = await fetch(`${HF_API_BASE}?date=${date}`);
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "User-Agent": "h5-daily-papers/1.0",
+  };
+  if (process.env.HF_TOKEN) {
+    headers.Authorization = `Bearer ${process.env.HF_TOKEN}`;
+  }
+
+  const res = await fetch(`${HF_API_BASE}?date=${date}`, { headers });
   if (!res.ok) {
-    throw new Error(`HF API returned ${res.status}`);
+    const body = await res.text().catch(() => "");
+    throw new Error(`HF API returned ${res.status}: ${body}`);
   }
 
   const items: HFDailyPaperItem[] = await res.json();
