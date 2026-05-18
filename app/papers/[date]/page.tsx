@@ -1,9 +1,27 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchBlobJson, fetchPreviousDate } from "@/lib/storage";
 import type { DailyIndex } from "@/lib/types";
 import { PaperCarousel } from "@/app/_components/paper-carousel";
 import { MobilePaperList } from "@/app/_components/mobile-paper-list";
 import { DateStamp } from "@/app/_components/date-stamp";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ date: string }>;
+}): Promise<Metadata> {
+  const { date } = await params;
+  const title = `Calm Papers — ${date}`;
+  const description = "Summaries of the top 5 research papers on HuggingFace";
+
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "article" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
 export default async function PapersDatePage({
   params,
