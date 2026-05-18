@@ -31,7 +31,8 @@ export default async function PapersDatePage({
               Calm Papers
             </h1>
             <p className="mt-1 text-sm text-(--color-text-tertiary)">
-              Summaries of the top 5 research papers on 🤗
+              <span className="md:hidden">Top 5 research papers on 🤗</span>
+              <span className="hidden md:inline">Summaries of the top 5 research papers on 🤗</span>
             </p>
           </div>
         </div>
