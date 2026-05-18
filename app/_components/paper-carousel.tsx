@@ -173,10 +173,10 @@ export function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
       type="button"
       onClick={toggle}
       aria-label={playing ? "Pause audio" : "Listen to paper summary"}
-      className="relative inline-flex items-center justify-center text-xs cursor-pointer rounded-lg px-3 py-1.5 text-white hover:brightness-110 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500) before:absolute before:inset-[-8px] before:content-['']"
+      className="relative inline-flex items-center justify-center text-sm cursor-pointer rounded-lg px-4 text-white hover:brightness-110 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500)"
       style={{
         minWidth: 62,
-        height: 28,
+        height: 44,
         background: "linear-gradient(to bottom, #323137, #201E25)",
         boxShadow: "0 2px 4px rgba(0,0,0,0.10), 0 0 0 1px #4B4951, inset 0 1px 0 rgba(255,255,255,0.06)",
       }}

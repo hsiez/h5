@@ -1,9 +1,29 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchBlobJson, fetchPreviousDate } from "@/lib/storage";
 import type { DailyIndex } from "@/lib/types";
 import { PaperCarousel } from "@/app/_components/paper-carousel";
 import { MobilePaperList } from "@/app/_components/mobile-paper-list";
 import { DateStamp } from "@/app/_components/date-stamp";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ date: string }>;
+}): Promise<Metadata> {
+  const { date } = await params;
+  const title = `Calm Papers — ${date}`;
+  const description = "Summaries of the top 5 research papers on HuggingFace";
+
+  const image = "/og-papers.png";
+
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "article", images: [image] },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
+  };
+}
 
 export default async function PapersDatePage({
   params,
@@ -31,7 +51,8 @@ export default async function PapersDatePage({
               Calm Papers
             </h1>
             <p className="mt-1 text-sm text-(--color-text-tertiary)">
-              Summaries of the top 5 research papers on 🤗
+              <span className="md:hidden">Top 5 research papers on 🤗</span>
+              <span className="hidden md:inline">Summaries of the top 5 research papers on 🤗</span>
             </p>
           </div>
         </div>

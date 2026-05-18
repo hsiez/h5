@@ -68,19 +68,14 @@ export function MobilePaperList({
 
   return (
     <>
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-6">
         {papers.map((paper) => (
-          <motion.button
+          <button
             key={paper.arxivId}
-            layoutId={paper.arxivId}
             ref={(el) => { if (selectedId === paper.arxivId) triggerRef.current = el; }}
             onClick={() => { triggerRef.current = document.activeElement as HTMLButtonElement; setSelectedId(paper.arxivId); }}
             className="text-left p-5 rounded-lg bg-(--color-surface-sunken) flex flex-col gap-2"
-            style={{
-              boxShadow: cardShadow,
-              opacity: selectedId === paper.arxivId ? 0 : 1,
-            }}
-            transition={spring}
+            style={{ boxShadow: cardShadow }}
           >
             <h2 className="font-serif text-lg font-semibold text-(--color-text-primary) leading-snug line-clamp-2">
               {paper.title}
@@ -89,7 +84,7 @@ export function MobilePaperList({
               {paper.authors.slice(0, 3).join(", ")}
               {paper.authors.length > 3 && ` +${paper.authors.length - 3}`}
             </p>
-          </motion.button>
+          </button>
         ))}
       </div>
 
@@ -98,45 +93,19 @@ export function MobilePaperList({
           <motion.article
             key="expanded"
             ref={modalRef}
-            layoutId={selected.arxivId}
             role="dialog"
             aria-label={selected.title}
-            className="fixed inset-0 z-50 bg-(--color-surface-sunken) flex flex-col overflow-hidden"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
             transition={spring}
+            className="fixed inset-0 z-50 bg-(--color-surface-sunken) flex flex-col overflow-hidden"
             style={{
               paddingTop: "env(safe-area-inset-top)",
               paddingBottom: "env(safe-area-inset-bottom)",
             }}
           >
-            <div className="flex items-center px-5 pt-3">
-              <button
-                onClick={close}
-                className="p-3 -ml-3 text-(--color-text-tertiary) active:text-(--color-text-primary)"
-                aria-label="Close"
-              >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M15 18l-6-6 6-6" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="absolute bottom-4 right-4 z-[2]" style={{ bottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
-              <SoundwaveButton
-                audioSrc={`/api/papers/${date}/${selected.arxivId}/audio`}
-              />
-            </div>
-
-            <div className="flex flex-col gap-3 px-6 pt-4 pb-2">
+            <div className="flex flex-col gap-3 px-6 pt-5 pb-6">
               <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-snug">
                 {selected.title}
               </h2>
@@ -159,11 +128,31 @@ export function MobilePaperList({
             </motion.div>
 
             <footer className="flex items-center gap-3 px-6 py-4 shrink-0">
+              <button
+                onClick={close}
+                className="p-3 text-(--color-text-tertiary) active:text-(--color-text-primary)"
+                aria-label="Close"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+              <div className="h-6 w-px bg-(--color-text-tertiary)/20" />
               <a
                 href={`https://arxiv.org/abs/${selected.arxivId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-(--color-text-tertiary) px-3 py-1.5 rounded-full bg-white/80"
+                className="text-sm text-(--color-text-tertiary) underline transition-colors"
               >
                 arXiv
               </a>
@@ -172,11 +161,16 @@ export function MobilePaperList({
                   href={`https://github.com/${selected.githubRepo}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-(--color-text-tertiary) px-3 py-1.5 rounded-full bg-white/80"
+                  className="text-sm text-(--color-text-tertiary) underline transition-colors"
                 >
                   GitHub
                 </a>
               )}
+              <div className="ml-auto">
+                <SoundwaveButton
+                  audioSrc={`/api/papers/${date}/${selected.arxivId}/audio`}
+                />
+              </div>
             </footer>
           </motion.article>
         )}
