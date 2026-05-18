@@ -123,7 +123,7 @@ export function MobilePaperList({
               transition={{ delay: 0.2, duration: 0.2 }}
             >
               <ScrollFade>
-                <ExpandableText text={selected.script} expanded glossary={selected.glossary} className="px-6" />
+                <ExpandableText text={selected.script} expanded glossary={selected.glossary} definitionStyle="bottom-panel" className="px-6" />
               </ScrollFade>
             </motion.div>
 

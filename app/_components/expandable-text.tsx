@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { GlossaryTerm } from "@/lib/types";
 
 function splitIntoParagraphs(text: string): string[] {
@@ -58,11 +59,13 @@ export function ExpandableText({
   text,
   expanded,
   glossary = [],
+  definitionStyle = "tooltip",
   className,
 }: {
   text: string;
   expanded: boolean;
   glossary?: GlossaryTerm[];
+  definitionStyle?: "tooltip" | "bottom-panel";
   className?: string;
 }) {
   const [clamped, setClamped] = useState(false);
@@ -73,6 +76,7 @@ export function ExpandableText({
     y: number;
     below: boolean;
   } | null>(null);
+  const [activeTerm, setActiveTerm] = useState<GlossaryTerm | null>(null);
 
   const paragraphs = useMemo(() => splitIntoParagraphs(text), [text]);
   const paragraphsHtml = useMemo(
@@ -88,6 +92,7 @@ export function ExpandableText({
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
+      if (definitionStyle === "bottom-panel") return;
       const target = (e.target as HTMLElement).closest("[data-term-idx]");
       if (!target) {
         setTooltip(null);
@@ -105,15 +110,17 @@ export function ExpandableText({
         below,
       });
     },
-    [glossary],
+    [glossary, definitionStyle],
   );
 
   const handlePointerLeave = useCallback(() => {
+    if (definitionStyle === "bottom-panel") return;
     setTooltip(null);
-  }, []);
+  }, [definitionStyle]);
 
   const handleFocus = useCallback(
     (e: React.FocusEvent) => {
+      if (definitionStyle === "bottom-panel") return;
       const target = (e.target as HTMLElement).closest("[data-term-idx]");
       if (!target) return;
       const idx = Number(target.getAttribute("data-term-idx"));
@@ -128,17 +135,18 @@ export function ExpandableText({
         below,
       });
     },
-    [glossary],
+    [glossary, definitionStyle],
   );
 
   const handleBlur = useCallback(
     (e: React.FocusEvent) => {
+      if (definitionStyle === "bottom-panel") return;
       const related = e.relatedTarget as HTMLElement | null;
       if (!related || !related.closest("[data-term-idx]")) {
         setTooltip(null);
       }
     },
-    [],
+    [definitionStyle],
   );
 
   const handleKeyDown = useCallback(
@@ -150,22 +158,42 @@ export function ExpandableText({
       const idx = Number(target.getAttribute("data-term-idx"));
       const term = glossary[idx];
       if (!term) return;
-      if (tooltip?.term === term) {
-        setTooltip(null);
+
+      if (definitionStyle === "bottom-panel") {
+        setActiveTerm((prev) => (prev === term ? null : term));
       } else {
-        const rect = target.getBoundingClientRect();
-        const below = rect.top < 100;
-        setTooltip({
-          term,
-          x: rect.left + rect.width / 2,
-          y: below ? rect.bottom + 8 : rect.top - 8,
-          below,
-        });
+        if (tooltip?.term === term) {
+          setTooltip(null);
+        } else {
+          const rect = target.getBoundingClientRect();
+          const below = rect.top < 100;
+          setTooltip({
+            term,
+            x: rect.left + rect.width / 2,
+            y: below ? rect.bottom + 8 : rect.top - 8,
+            below,
+          });
+        }
       }
     },
-    [glossary, tooltip],
+    [glossary, tooltip, definitionStyle],
   );
 
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (definitionStyle !== "bottom-panel") return;
+      const target = (e.target as HTMLElement).closest("[data-term-idx]");
+      if (!target) {
+        setActiveTerm(null);
+        return;
+      }
+      const idx = Number(target.getAttribute("data-term-idx"));
+      const term = glossary[idx];
+      if (!term) return;
+      setActiveTerm((prev) => (prev === term ? null : term));
+    },
+    [glossary, definitionStyle],
+  );
 
   return (
     <div className={className}>
@@ -175,6 +203,7 @@ export function ExpandableText({
         className={`relative max-w-prose ${expanded ? "" : "line-clamp-3"}`}
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
+        onClick={handleClick}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
@@ -196,7 +225,8 @@ export function ExpandableText({
           />
         )}
       </div>
-      {tooltip && (
+
+      {definitionStyle === "tooltip" && tooltip && (
         <span
           id="glossary-tooltip"
           role="tooltip"
@@ -216,6 +246,41 @@ export function ExpandableText({
           <span>{tooltip.term.definition}</span>
         </span>
       )}
+
+      <AnimatePresence>
+        {definitionStyle === "bottom-panel" && activeTerm && (
+          <motion.div
+            key="definition-panel"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-0 left-0 right-0 z-[9999] pointer-events-none"
+            style={{
+              height: "40dvh",
+              background:
+                "linear-gradient(to bottom, transparent 0%, var(--color-surface-sunken) 40%)",
+            }}
+          >
+            <div className="absolute bottom-0 left-0 right-0 pointer-events-auto px-6 pb-6">
+              <AnimatePresence mode="popLayout">
+                <motion.p
+                  key={activeTerm.term}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="font-serif text-base leading-relaxed text-(--color-text-secondary)"
+                >
+                  <span className="font-semibold text-(--color-text-primary)">{activeTerm.term}</span>
+                  <span className="mx-1.5">—</span>
+                  <span>{activeTerm.definition}</span>
+                </motion.p>
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
