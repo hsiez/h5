@@ -16,10 +16,13 @@ const ELLIPSE_BINS = [12, 8, 4, 1, 4, 8, 12];
 const MAX_VISIBLE = 1;
 const CARD_HEIGHT = "calc(100dvh - 4rem)";
 
-export function ScrollFade({ children }: { children: React.ReactNode }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+export function ScrollFade({ children, onScroll: onScrollProp, scrollRef: externalScrollRef }: { children: React.ReactNode; onScroll?: (scrollTop: number) => void; scrollRef?: React.RefObject<HTMLDivElement | null> }) {
+  const internalScrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = externalScrollRef || internalScrollRef;
   const topFadeRef = useRef<HTMLDivElement>(null);
   const bottomFadeRef = useRef<HTMLDivElement>(null);
+  const onScrollRef = useRef(onScrollProp);
+  onScrollRef.current = onScrollProp;
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -39,6 +42,7 @@ export function ScrollFade({ children }: { children: React.ReactNode }) {
       if (!el || !topFade || !bottomFade) return;
       setFade(topFade, el.scrollTop > 2);
       setFade(bottomFade, el.scrollTop + el.clientHeight < el.scrollHeight - 2);
+      onScrollRef.current?.(el.scrollTop);
     }
 
     update();
