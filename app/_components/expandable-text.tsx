@@ -200,10 +200,11 @@ export function ExpandableText({
   );
 
   return (
-    <div className={className}>
+    <div className={className} role="presentation">
       <style dangerouslySetInnerHTML={{ __html: HIGHLIGHT_STYLE }} />
       <div
         ref={containerRef}
+        role="presentation"
         className={`relative max-w-prose ${expanded ? "" : "line-clamp-3"}`}
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
@@ -212,13 +213,14 @@ export function ExpandableText({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
       >
-        {paragraphsHtml.map((html, i) => (
-          <p
-            key={i}
-            className={`font-serif text-base text-(--color-text-secondary) leading-loose ${i > 0 ? "mt-4" : ""}`}
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-        ))}
+        <div
+          role="region"
+          aria-label="Summary"
+          className="font-serif text-base text-(--color-text-secondary) leading-loose"
+          dangerouslySetInnerHTML={{
+            __html: paragraphsHtml.join('<span class="block mt-4" aria-hidden="true"></span>'),
+          }}
+        />
         {!expanded && clamped && (
           <div
             className="absolute inset-x-0 bottom-0 h-12 pointer-events-none"

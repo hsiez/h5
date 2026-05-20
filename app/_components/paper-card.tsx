@@ -32,7 +32,7 @@ export function PaperCard({
           </span>
         </div>
 
-        <p className="font-serif text-sm text-(--color-text-tertiary)">
+        <p className="font-serif text-sm text-(--color-text-tertiary)" aria-label="Authors">
           {paper.authors.slice(0, 4).join(", ")}
           {paper.authors.length > 4 && ` +${paper.authors.length - 4}`}
         </p>

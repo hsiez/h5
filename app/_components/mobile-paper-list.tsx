@@ -91,7 +91,7 @@ export function MobilePaperList({
             <h2 className="font-serif text-lg font-semibold text-(--color-text-primary) leading-snug line-clamp-2">
               {paper.title}
             </h2>
-            <p className="font-serif text-sm text-(--color-text-tertiary)">
+            <p className="font-serif text-sm text-(--color-text-tertiary)" aria-label="Authors">
               {paper.authors.slice(0, 3).join(", ")}
               {paper.authors.length > 3 && ` +${paper.authors.length - 3}`}
             </p>
@@ -118,6 +118,7 @@ export function MobilePaperList({
           >
             <motion.div
               className="flex-1 min-h-0 flex flex-col"
+              role="presentation"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.2 }}
@@ -130,12 +131,13 @@ export function MobilePaperList({
                     y: headerVisible ? 0 : -12,
                   }}
                   transition={headerSpring}
+                  role="presentation"
                   className="flex flex-col gap-3 px-6 pt-5 pb-4"
                 >
                   <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-snug">
                     {selected.title}
                   </h2>
-                  <p className="font-serif text-sm text-(--color-text-tertiary)">
+                  <p className="font-serif text-sm text-(--color-text-tertiary)" aria-label="Authors">
                     {selected.authors.slice(0, 4).join(", ")}
                     {selected.authors.length > 4 &&
                       ` +${selected.authors.length - 4}`}
