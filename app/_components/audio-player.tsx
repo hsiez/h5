@@ -84,6 +84,16 @@ export function AudioPlayer({
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    setPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+  }, [src]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
     const onPlay = () => { setPlaying(true); setLoading(false); };
     const onPause = () => setPlaying(false);
     const onTime = () => setCurrentTime(audio.currentTime);

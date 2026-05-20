@@ -70,20 +70,28 @@ function parseRewriteResponse(text: string): RewriteResult {
   const scriptMatch = text.match(/<script>\s*([\s\S]*?)\s*<\/script>/);
   const glossaryMatch = text.match(/<glossary>\s*([\s\S]*?)\s*<\/glossary>/);
 
-  const script = scriptMatch ? scriptMatch[1].trim() : text.trim();
+  const script = (scriptMatch ? scriptMatch[1].trim() : text.trim())
+    .replace(/^[""“]+|[""”]+$/g, "")
+    .trim();
 
   let glossary: GlossaryTerm[] = [];
   if (glossaryMatch) {
     try {
       const parsed = JSON.parse(glossaryMatch[1].trim());
       if (Array.isArray(parsed)) {
-        glossary = parsed.filter(
-          (t: unknown): t is GlossaryTerm =>
-            typeof t === "object" &&
-            t !== null &&
-            typeof (t as GlossaryTerm).term === "string" &&
-            typeof (t as GlossaryTerm).definition === "string",
-        );
+        const seen = new Set<string>();
+        glossary = parsed.filter((t: unknown): t is GlossaryTerm => {
+          if (
+            typeof t !== "object" ||
+            t === null ||
+            typeof (t as GlossaryTerm).term !== "string" ||
+            typeof (t as GlossaryTerm).definition !== "string"
+          ) return false;
+          const key = (t as GlossaryTerm).term.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
       }
     } catch {
       // Malformed glossary — continue without it
