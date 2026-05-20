@@ -10,7 +10,7 @@ export async function generateAudio(text: string): Promise<ArrayBuffer> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, voice: DEFAULT_VOICE }),
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(180_000),
   });
 
   if (!res.ok) {

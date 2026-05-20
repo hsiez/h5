@@ -62,7 +62,7 @@ async function generateAndUploadAudio(
   script: string,
 ): Promise<string> {
   "use step";
-  const mp3 = await generateAudio(`${title}. ${script}`);
+  const mp3 = await generateAudio(script);
   return uploadAudio(date, arxivId, mp3);
 }
 

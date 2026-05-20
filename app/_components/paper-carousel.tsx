@@ -88,7 +88,7 @@ export function ScrollFade({ children, onScroll: onScrollProp, scrollRef: extern
   );
 }
 
-export function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
+export function SoundwaveButton({ audioSrc, active = true }: { audioSrc: string; active?: boolean }) {
   const btnRef = useRef<HTMLButtonElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
@@ -164,6 +164,15 @@ export function SoundwaveButton({ audioSrc }: { audioSrc: string }) {
   }, [audioSrc, animate, resetEllipses]);
 
   useEffect(() => {
+    if (!active && audioRef.current && !audioRef.current.paused) {
+      audioRef.current.pause();
+      setPlaying(false);
+      cancelAnimationFrame(rafRef.current);
+      resetEllipses();
+    }
+  }, [active, resetEllipses]);
+
+  useEffect(() => {
     return () => {
       cancelAnimationFrame(rafRef.current);
       audioRef.current?.pause();
@@ -225,9 +234,11 @@ export const cardShadow =
 function CarouselCard({
   paper,
   date,
+  active,
 }: {
   paper: PaperResult;
   date: string;
+  active: boolean;
 }) {
   return (
     <article
@@ -266,7 +277,7 @@ function CarouselCard({
           </a>
         )}
         <div className="ml-auto">
-          <SoundwaveButton audioSrc={`/api/papers/${date}/${paper.arxivId}/audio`} />
+          <SoundwaveButton audioSrc={`/api/papers/${date}/${paper.arxivId}/audio`} active={active} />
         </div>
       </footer>
     </article>
@@ -355,7 +366,7 @@ export function PaperCarousel({
         <button
           type="button"
           onClick={() => goTo(active - 1)}
-          disabled={!hasPrev}
+          disabled={hasPrev ? undefined : true}
           aria-label="Previous paper"
           className="shrink-0 w-8 h-14 -ml-8 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none"
           style={{ boxShadow: cardShadow }}
@@ -367,7 +378,7 @@ export function PaperCarousel({
 
         <div className="relative flex-1">
           <div className="invisible pointer-events-none" aria-hidden="true">
-            {isOnEndCard ? <EndCard previousDate={previousDate} /> : <CarouselCard paper={papers[active]} date={date} />}
+            {isOnEndCard ? <EndCard previousDate={previousDate} /> : <CarouselCard paper={papers[active]} date={date} active={true} />}
           </div>
 
           {[...papers.map((paper, i) => ({ key: paper.arxivId, i, type: "paper" as const, paper })),
@@ -406,7 +417,7 @@ export function PaperCarousel({
                   pointerEvents: stackPos === 0 ? "auto" : "none",
                 }}
               >
-                {type === "end" ? <EndCard previousDate={previousDate} /> : <CarouselCard paper={paper!} date={date} />}
+                {type === "end" ? <EndCard previousDate={previousDate} /> : <CarouselCard paper={paper!} date={date} active={stackPos === 0} />}
               </motion.div>
             );
           })}
@@ -415,7 +426,7 @@ export function PaperCarousel({
         <button
           type="button"
           onClick={() => goTo(active + 1)}
-          disabled={!hasNext}
+          disabled={hasNext ? undefined : true}
           aria-label="Next paper"
           className="shrink-0 w-8 h-14 -mr-8 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none"
           style={{ boxShadow: cardShadow }}

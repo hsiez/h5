@@ -23,6 +23,7 @@ class KokoroTTS:
     def synthesize(self, request: dict):
         import soundfile as sf
         from fastapi.responses import Response
+        import numpy as np
 
         text = request.get("text", "")
         voice = request.get("voice", "af_heart")
@@ -30,12 +31,14 @@ class KokoroTTS:
         if not text:
             return Response(content="text is required", status_code=400)
 
-        generator = self.pipeline(text, voice=voice)
+        generator = self.pipeline(text, voice=voice, split_pattern=r'(?<=[.!?])\s+')
         audio_segments = []
         for _, _, audio in generator:
-            audio_segments.append(audio)
+            if audio is not None:
+                audio_segments.append(audio.cpu().numpy() if hasattr(audio, 'cpu') else audio)
 
-        import numpy as np
+        if not audio_segments:
+            return Response(content="no audio generated", status_code=500)
 
         full_audio = np.concatenate(audio_segments)
 

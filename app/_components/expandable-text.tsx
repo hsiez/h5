@@ -23,8 +23,8 @@ function splitIntoParagraphs(text: string): string[] {
   return paragraphs;
 }
 
-function annotateToHtml(text: string, glossary: GlossaryTerm[]): string {
-  if (glossary.length === 0) return text;
+function annotateAllParagraphs(paragraphs: string[], glossary: GlossaryTerm[]): string[] {
+  if (glossary.length === 0) return paragraphs;
 
   const pattern = glossary
     .map((t) => t.term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
@@ -32,15 +32,19 @@ function annotateToHtml(text: string, glossary: GlossaryTerm[]): string {
   const regex = new RegExp(`(${pattern})`, "gi");
 
   const heights = [60, 72, 85, 68, 92, 78, 100, 65];
+  const seen = new Set<number>();
 
-  return text.replace(regex, (matched) => {
-    const idx = glossary.findIndex(
-      (t) => t.term.toLowerCase() === matched.toLowerCase(),
-    );
-    if (idx === -1) return matched;
-    const h = heights[idx % heights.length];
-    return `<span data-term-idx="${idx}" tabindex="0" class="term-highlight" aria-describedby="glossary-tooltip" style="background-size:100% ${h}%">${matched}</span>`;
-  });
+  return paragraphs.map((text) =>
+    text.replace(regex, (matched) => {
+      const idx = glossary.findIndex(
+        (t) => t.term.toLowerCase() === matched.toLowerCase(),
+      );
+      if (idx === -1 || seen.has(idx)) return matched;
+      seen.add(idx);
+      const h = heights[idx % heights.length];
+      return `<span data-term-idx="${idx}" tabindex="0" class="term-highlight" aria-describedby="glossary-tooltip" style="background-size:100% ${h}%">${matched}</span>`;
+    }),
+  );
 }
 
 const HIGHLIGHT_STYLE = `
@@ -80,7 +84,7 @@ export function ExpandableText({
 
   const paragraphs = useMemo(() => splitIntoParagraphs(text), [text]);
   const paragraphsHtml = useMemo(
-    () => paragraphs.map((p) => annotateToHtml(p, glossary)),
+    () => annotateAllParagraphs(paragraphs, glossary),
     [paragraphs, glossary],
   );
 
