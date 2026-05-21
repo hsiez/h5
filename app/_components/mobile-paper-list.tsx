@@ -174,12 +174,12 @@ export function MobilePaperList({
             className="text-left p-5 rounded-lg bg-(--color-surface-sunken) flex flex-col gap-2"
             style={{ boxShadow: cardShadow }}
           >
-            <h2 className="font-serif text-lg font-semibold text-(--color-text-primary) leading-snug line-clamp-2">
+            <h2 className="font-serif text-lg font-semibold text-(--color-text-primary) leading-snug line-clamp-2 text-pretty">
               {paper.title}
             </h2>
             <p className="font-serif text-sm text-(--color-text-tertiary)" aria-label="Authors">
               {paper.authors.slice(0, 3).join(", ")}
-              {paper.authors.length > 3 && ` +${paper.authors.length - 3}`}
+              {paper.authors.length > 3 && ` +${paper.authors.length - 3}`}
             </p>
           </button>
         ))}
@@ -220,13 +220,13 @@ export function MobilePaperList({
                   role="presentation"
                   className="flex flex-col gap-3 px-6 pt-5 pb-4"
                 >
-                  <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-snug">
+                  <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-snug text-pretty">
                     {selected.title}
                   </h2>
                   <p className="font-serif text-sm text-(--color-text-tertiary)" aria-label="Authors">
                     {selected.authors.slice(0, 4).join(", ")}
                     {selected.authors.length > 4 &&
-                      ` +${selected.authors.length - 4}`}
+                      ` +${selected.authors.length - 4}`}
                   </p>
                 </motion.div>
                 <ExpandableText text={selected.script} expanded glossary={selected.glossary} definitionStyle="bottom-panel" className="px-6" />
@@ -236,7 +236,7 @@ export function MobilePaperList({
             <footer className="flex items-center gap-3 px-6 py-4 shrink-0">
               <button
                 onClick={close}
-                className="shrink-0 p-3 text-(--color-text-tertiary) active:text-(--color-text-primary)"
+                className="shrink-0 py-3 pl-3 -ml-3 text-(--color-text-tertiary) active:text-(--color-text-primary)"
                 aria-label="Close"
               >
                 <svg
@@ -253,66 +253,82 @@ export function MobilePaperList({
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </button>
-              {audioActive ? (
-                <>
-                  <span className="text-sm text-(--color-text-tertiary) tabular-nums shrink-0">
-                    {formatTime(audioTime)}
-                  </span>
-                  <div
-                    ref={progressBarRef}
-                    role="slider"
-                    tabIndex={0}
-                    aria-label="Seek"
-                    aria-valuemin={0}
-                    aria-valuemax={Math.round(audioDuration)}
-                    aria-valuenow={Math.round(audioTime)}
-                    onPointerDown={(e) => { seekingRef.current = true; e.currentTarget.setPointerCapture(e.pointerId); seekAudio(e); }}
-                    onPointerMove={(e) => { if (seekingRef.current) seekAudio(e); }}
-                    onPointerUp={() => { seekingRef.current = false; }}
-                    className="flex-1 h-8 flex items-center cursor-pointer group"
+              <div className="h-6 w-px bg-(--color-text-tertiary)/20" />
+              <AnimatePresence mode="wait" initial={false}>
+                {audioActive ? (
+                  <motion.div
+                    key="audio"
+                    className="flex items-center gap-3 flex-1 min-w-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.12, ease: [0.25, 0.46, 0.45, 0.94] }}
                   >
-                    <div className="w-full h-1 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(20,20,20,0.08)" }}>
-                      <div
-                        className="h-full bg-(--color-text-tertiary) rounded-full transition-colors"
-                        style={{ width: `${audioProgress}%` }}
-                      />
+                    <span className="text-sm text-(--color-text-tertiary) tabular-nums shrink-0">
+                      {formatTime(audioTime)}
+                    </span>
+                    <div
+                      ref={progressBarRef}
+                      role="slider"
+                      tabIndex={0}
+                      aria-label="Seek"
+                      aria-valuemin={0}
+                      aria-valuemax={Math.round(audioDuration)}
+                      aria-valuenow={Math.round(audioTime)}
+                      onPointerDown={(e) => { seekingRef.current = true; e.currentTarget.setPointerCapture(e.pointerId); seekAudio(e); }}
+                      onPointerMove={(e) => { if (seekingRef.current) seekAudio(e); }}
+                      onPointerUp={() => { seekingRef.current = false; }}
+                      className="flex-1 h-8 flex items-center cursor-pointer group"
+                    >
+                      <div className="w-full h-1 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(20,20,20,0.08)" }}>
+                        <div
+                          className="h-full bg-(--color-text-tertiary) rounded-full transition-colors"
+                          style={{ width: `${audioProgress}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <span className="text-sm text-(--color-text-tertiary) tabular-nums shrink-0">
-                    {Number.isFinite(audioDuration) && audioDuration > 0 ? formatTime(audioDuration) : "--:--"}
-                  </span>
-                  <button
-                    onClick={cycleAudioSpeed}
-                    aria-label={`Playback speed ${audioSpeed}×`}
-                    className="shrink-0 text-sm tabular-nums text-(--color-text-tertiary) text-center"
-                    style={{ width: 44 }}
+                    <span className="text-sm text-(--color-text-tertiary) tabular-nums shrink-0">
+                      {Number.isFinite(audioDuration) && audioDuration > 0 ? formatTime(audioDuration) : "--:--"}
+                    </span>
+                    <button
+                      onClick={cycleAudioSpeed}
+                      aria-label={`Playback speed ${audioSpeed}×`}
+                      className="shrink-0 text-sm tabular-nums text-(--color-text-tertiary) text-center"
+                      style={{ width: 44 }}
+                    >
+                      {audioSpeed}×
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="links"
+                    className="flex items-center gap-3"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.12, ease: [0.25, 0.46, 0.45, 0.94] }}
                   >
-                    {audioSpeed}×
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="h-6 w-px bg-(--color-text-tertiary)/20" />
-                  <a
-                    href={`https://arxiv.org/abs/${selected.arxivId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-(--color-text-tertiary) underline transition-colors"
-                  >
-                    arXiv
-                  </a>
-                  {selected.githubRepo && (
                     <a
-                      href={`https://github.com/${selected.githubRepo}`}
+                      href={`https://arxiv.org/abs/${selected.arxivId}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-(--color-text-tertiary) underline transition-colors"
                     >
-                      GitHub
+                      arXiv
                     </a>
-                  )}
-                </>
-              )}
+                    {selected.githubRepo && (
+                      <a
+                        href={`https://github.com/${selected.githubRepo}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-(--color-text-tertiary) underline transition-colors"
+                      >
+                        GitHub
+                      </a>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
               <button
                 onClick={audioActive ? toggleAudio : startAudio}
                 aria-label={audioPlaying ? "Pause audio" : "Play audio"}
