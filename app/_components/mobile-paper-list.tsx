@@ -11,6 +11,7 @@ const headerSpring = { type: "spring" as const, duration: 0.45, bounce: 0.12 };
 const SPEEDS = [1, 1.25, 1.5, 2] as const;
 
 function formatTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
@@ -278,7 +279,7 @@ export function MobilePaperList({
                     </div>
                   </div>
                   <span className="text-sm text-(--color-text-tertiary) tabular-nums shrink-0">
-                    {audioDuration > 0 ? formatTime(audioDuration) : "--:--"}
+                    {Number.isFinite(audioDuration) && audioDuration > 0 ? formatTime(audioDuration) : "--:--"}
                   </span>
                   <button
                     onClick={cycleAudioSpeed}

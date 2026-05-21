@@ -5,6 +5,7 @@ import { useRef, useState, useCallback, useEffect } from "react";
 const SPEEDS = [1, 1.25, 1.5, 2] as const;
 
 function formatTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
@@ -188,7 +189,7 @@ export function AudioPlayer({
       if (!durationResolved) {
         const dur = Number.isFinite(audio.duration) ? audio.duration
           : audio.seekable.length > 0 ? audio.seekable.end(audio.seekable.length - 1) : 0;
-        if (dur > 0) { setDuration(dur); durationResolved = true; }
+        if (Number.isFinite(dur) && dur > 0) { setDuration(dur); durationResolved = true; }
       }
     };
     const onMeta = () => { if (Number.isFinite(audio.duration)) setDuration(audio.duration); };
@@ -199,7 +200,7 @@ export function AudioPlayer({
       if (!durationResolved) {
         const dur = Number.isFinite(audio.duration) ? audio.duration
           : audio.seekable.length > 0 ? audio.seekable.end(audio.seekable.length - 1) : 0;
-        if (dur > 0) { setDuration(dur); durationResolved = true; }
+        if (Number.isFinite(dur) && dur > 0) { setDuration(dur); durationResolved = true; }
       }
     };
 
@@ -264,7 +265,7 @@ export function AudioPlayer({
       </div>
 
       <span className="text-sm text-(--color-text-tertiary) tabular-nums w-10 shrink-0 text-right">
-        {duration > 0 ? formatTime(duration) : "--:--"}
+        {Number.isFinite(duration) && duration > 0 ? formatTime(duration) : "--:--"}
       </span>
 
       <button
