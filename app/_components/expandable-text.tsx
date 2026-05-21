@@ -29,7 +29,7 @@ function annotateAllParagraphs(paragraphs: string[], glossary: GlossaryTerm[]): 
   const pattern = glossary
     .map((t) => t.term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
     .join("|");
-  const regex = new RegExp(`(${pattern})`, "gi");
+  const regex = new RegExp(`\\b(${pattern})\\b`, "gi");
 
   const heights = [60, 72, 85, 68, 92, 78, 100, 65];
   const seen = new Set<number>();

@@ -33,6 +33,11 @@ export async function uploadDailyIndex(
 }
 
 export async function uploadLatestPointer(date: string): Promise<string> {
+  const current = await fetchBlobJson<{ date: string }>("papers/latest.json");
+  if (current && current.date >= date) {
+    return "";
+  }
+
   const blob = await put(
     "papers/latest.json",
     JSON.stringify({ date }),
