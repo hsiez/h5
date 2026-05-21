@@ -242,12 +242,12 @@ function CarouselCard({
       style={{ boxShadow: cardShadow, height: CARD_HEIGHT }}
     >
       <div className="flex flex-col gap-4 max-w-prose" role="presentation">
-        <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-snug line-clamp-2">
+        <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-snug line-clamp-2 text-pretty">
           {paper.title}
         </h2>
         <p className="font-serif text-sm text-(--color-text-tertiary)" aria-label="Authors">
           {paper.authors.slice(0, 4).join(", ")}
-          {paper.authors.length > 4 && ` +${paper.authors.length - 4}`}
+          {paper.authors.length > 4 && ` +${paper.authors.length - 4}`}
         </p>
       </div>
       <ScrollFade>
