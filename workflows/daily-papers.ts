@@ -2,6 +2,7 @@ import { fetchTopPapers } from "@/lib/scraper";
 import { fetchPaperSource } from "@/lib/source";
 import { rewritePaper } from "@/lib/rewriter";
 import { generateAudio } from "@/lib/tts";
+import { mp3Duration } from "@/lib/mp3-duration";
 import { uploadAudio, uploadDailyIndex, uploadLatestPointer } from "@/lib/storage";
 import type { PaperResult, DailyIndex } from "@/lib/types";
 
@@ -20,7 +21,7 @@ export async function dailyPapersWorkflow(date: string) {
     try {
       const source = await fetchPaperSource(paper.arxivId);
       const { script, glossary } = await rewritePaper(paper, source);
-      const audioUrl = await generateAndUploadAudio(date, paper.arxivId, paper.title, script);
+      const { audioUrl, audioDuration } = await generateAndUploadAudio(date, paper.arxivId, paper.title, script);
 
       results.push({
         arxivId: paper.arxivId,
@@ -30,6 +31,7 @@ export async function dailyPapersWorkflow(date: string) {
         script,
         glossary,
         audioUrl,
+        audioDuration,
         upvotes: paper.upvotes,
         githubRepo: paper.githubRepo,
         githubStars: paper.githubStars,
@@ -60,10 +62,12 @@ async function generateAndUploadAudio(
   arxivId: string,
   title: string,
   script: string,
-): Promise<string> {
+): Promise<{ audioUrl: string; audioDuration: number }> {
   "use step";
   const mp3 = await generateAudio(script);
-  return uploadAudio(date, arxivId, mp3);
+  const audioDuration = Math.round(mp3Duration(mp3));
+  const audioUrl = await uploadAudio(date, arxivId, mp3);
+  return { audioUrl, audioDuration };
 }
 
 async function writeIndex(date: string, index: DailyIndex): Promise<string> {

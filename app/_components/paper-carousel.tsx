@@ -4,11 +4,12 @@ import { useRef, useState, useCallback, useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { PaperResult } from "@/lib/types";
 import { ExpandableText } from "@/app/_components/expandable-text";
+import { AudioPlayer } from "@/app/_components/audio-player";
 
 const CARD_WIDTH = 720;
 const ELLIPSE_BINS = [12, 8, 4, 1, 4, 8, 12];
 const MAX_VISIBLE = 1;
-const CARD_HEIGHT = "calc(100dvh - 4rem)";
+const CARD_HEIGHT = "calc(100dvh - 7.5rem)";
 
 export function ScrollFade({ children, onScroll: onScrollProp, scrollRef: externalScrollRef }: { children: React.ReactNode; onScroll?: (scrollTop: number) => void; scrollRef?: React.RefObject<HTMLDivElement | null> }) {
   const internalScrollRef = useRef<HTMLDivElement>(null);
@@ -230,11 +231,9 @@ export const cardShadow =
 
 function CarouselCard({
   paper,
-  date,
   active,
 }: {
   paper: PaperResult;
-  date: string;
   active: boolean;
 }) {
   return (
@@ -273,9 +272,6 @@ function CarouselCard({
             GitHub
           </a>
         )}
-        <div className="ml-auto">
-          <SoundwaveButton audioSrc={`/api/papers/${date}/${paper.arxivId}/audio`} active={active} />
-        </div>
       </footer>
     </article>
   );
@@ -338,6 +334,7 @@ export function PaperCarousel({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      if ((e.target as HTMLElement).closest?.("[role='slider']")) return;
       if (e.key === "ArrowLeft") {
         goTo(active - 1);
         e.preventDefault();
@@ -362,9 +359,10 @@ export function PaperCarousel({
           : `Paper ${active + 1} of ${papers.length}: ${papers[active].title}`}
       </div>
       <div className="flex items-center gap-8">
-        <div className="relative flex-1 order-2">
+        <div className="flex-1 order-2 flex flex-col gap-3">
+          <div className="relative">
           <div className="invisible pointer-events-none" aria-hidden="true">
-            {isOnEndCard ? <EndCard previousDate={previousDate} /> : <CarouselCard paper={papers[active]} date={date} active={true} />}
+            {isOnEndCard ? <EndCard previousDate={previousDate} /> : <CarouselCard paper={papers[active]} active={true} />}
           </div>
 
           {[...papers.map((paper, i) => ({ key: paper.arxivId, i, type: "paper" as const, paper })),
@@ -403,10 +401,17 @@ export function PaperCarousel({
                   pointerEvents: stackPos === 0 ? "auto" : "none",
                 }}
               >
-                {type === "end" ? <EndCard previousDate={previousDate} /> : <CarouselCard paper={paper!} date={date} active={stackPos === 0} />}
+                {type === "end" ? <EndCard previousDate={previousDate} /> : <CarouselCard paper={paper!} active={stackPos === 0} />}
               </motion.div>
             );
           })}
+          </div>
+          {!isOnEndCard && (
+            <AudioPlayer
+              src={`/api/papers/${date}/${papers[active].arxivId}/audio`}
+              knownDuration={papers[active].audioDuration}
+            />
+          )}
         </div>
 
         <button
