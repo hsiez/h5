@@ -13,6 +13,7 @@ interface LogEntry {
 export default function AdminPage() {
   const [token, setToken] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
+  const [authError, setAuthError] = useState("");
 
   const [date, setDate] = useState(() => {
     const d = new Date(Date.now() - 86_400_000);
@@ -51,10 +52,22 @@ export default function AdminPage() {
     [],
   );
 
-  const handleAuth = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (token.trim()) {
-      setAuthenticated(true);
+    setAuthError("");
+    if (!token.trim()) return;
+    try {
+      const res = await fetch("/api/admin/verify", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setAuthenticated(true);
+      } else {
+        setAuthError("Invalid token");
+      }
+    } catch {
+      setAuthError("Connection failed");
     }
   };
 
@@ -117,6 +130,9 @@ export default function AdminPage() {
             className="w-full px-4 py-3 rounded-md border border-[rgba(20,20,20,0.08)] bg-neutral-50 text-base focus:outline-none focus:border-[rgba(20,20,20,0.16)]"
             autoFocus
           />
+          {authError && (
+            <p className="text-sm text-red-600">{authError}</p>
+          )}
           <button
             type="submit"
             className="w-full px-4 py-3 rounded-md bg-neutral-900 text-white font-medium text-sm"
