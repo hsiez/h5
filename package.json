@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.75",
-    "@paper-design/shaders-react": "^0.0.76",
     "@vercel/blob": "^2.3.3",
     "ai": "^6.0.175",
     "framer-motion": "^12.38.0",
@@ -39,7 +38,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "eslint-plugin-storybook": "^10.3.6",
-    "playwright": "^1.59.1",
     "storybook": "^10.3.6",
     "tailwindcss": "^4",
     "typescript": "^5",

@@ -1,15 +1,9 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import dynamic from "next/dynamic";
 import { motion, useReducedMotion } from "framer-motion";
 import type { PaperResult } from "@/lib/types";
 import { ExpandableText } from "@/app/_components/expandable-text";
-
-const DitheredImage = dynamic(
-  () => import("@/app/_components/dithered-image").then((m) => m.DitheredImage),
-  { ssr: false },
-);
 
 const CARD_WIDTH = 720;
 const ELLIPSE_BINS = [12, 8, 4, 1, 4, 8, 12];
@@ -260,7 +254,7 @@ function CarouselCard({
       <ScrollFade>
         <ExpandableText text={paper.script} expanded={true} glossary={paper.glossary} />
       </ScrollFade>
-      <footer className="flex items-center gap-3">
+      <footer className="flex items-end gap-3">
         <a
           href={`https://arxiv.org/abs/${paper.arxivId}`}
           target="_blank"
@@ -296,9 +290,11 @@ function EndCard({ previousDate }: { previousDate: string | null }) {
       <p className="font-serif text-base text-(--color-text-tertiary) text-center max-w-xs">
         You sharpened your sword today, <span className="whitespace-nowrap">good work!</span>
       </p>
-      <DitheredImage
-        src="/swordy.png"
-        width={320}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/swordy-halftone.svg"
+        alt="Sword"
+        width={173}
         height={320}
         className="rounded-lg bg-white"
       />

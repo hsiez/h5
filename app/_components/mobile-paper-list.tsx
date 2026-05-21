@@ -147,7 +147,7 @@ export function MobilePaperList({
               </ScrollFade>
             </motion.div>
 
-            <footer className="flex items-center gap-3 px-6 py-4 shrink-0">
+            <footer className="flex items-end gap-3 px-6 py-4 shrink-0">
               <button
                 onClick={close}
                 className="p-3 text-(--color-text-tertiary) active:text-(--color-text-primary)"
