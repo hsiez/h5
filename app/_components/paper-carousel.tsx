@@ -56,10 +56,11 @@ export function ScrollFade({ children, onScroll: onScrollProp, scrollRef: extern
   }, []);
 
   return (
-    <div className="relative flex-1 min-h-0">
+    <div className="relative flex-1 min-h-0" role="presentation">
       <div
         ref={topFadeRef}
         className="pointer-events-none absolute inset-x-0 top-0 h-16 z-10"
+        aria-hidden="true"
         style={{
           background:
             "linear-gradient(to bottom, var(--color-surface-sunken) 0%, rgba(244,244,244,0.8) 30%, rgba(244,244,244,0.3) 60%, transparent 100%)",
@@ -70,6 +71,7 @@ export function ScrollFade({ children, onScroll: onScrollProp, scrollRef: extern
       <div
         ref={scrollRef}
         className="overflow-y-auto h-full"
+        role="presentation"
         style={{ scrollbarWidth: "none" }}
       >
         {children}
@@ -77,6 +79,7 @@ export function ScrollFade({ children, onScroll: onScrollProp, scrollRef: extern
       <div
         ref={bottomFadeRef}
         className="pointer-events-none absolute inset-x-0 bottom-0 h-16 z-10"
+        aria-hidden="true"
         style={{
           background:
             "linear-gradient(to top, var(--color-surface-sunken) 0%, rgba(244,244,244,0.8) 30%, rgba(244,244,244,0.3) 60%, transparent 100%)",
@@ -245,11 +248,11 @@ function CarouselCard({
       className="flex flex-col gap-6 p-10 rounded-lg bg-(--color-surface-sunken) overflow-hidden"
       style={{ boxShadow: cardShadow, height: CARD_HEIGHT }}
     >
-      <div className="flex flex-col gap-4 max-w-prose">
+      <div className="flex flex-col gap-4 max-w-prose" role="presentation">
         <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-snug line-clamp-2">
           {paper.title}
         </h2>
-        <p className="font-serif text-sm text-(--color-text-tertiary)">
+        <p className="font-serif text-sm text-(--color-text-tertiary)" aria-label="Authors">
           {paper.authors.slice(0, 4).join(", ")}
           {paper.authors.length > 4 && ` +${paper.authors.length - 4}`}
         </p>
@@ -363,20 +366,7 @@ export function PaperCarousel({
           : `Paper ${active + 1} of ${papers.length}: ${papers[active].title}`}
       </div>
       <div className="flex items-center gap-8">
-        <button
-          type="button"
-          onClick={() => goTo(active - 1)}
-          disabled={hasPrev ? undefined : true}
-          aria-label="Previous paper"
-          className="shrink-0 w-8 h-14 -ml-8 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none"
-          style={{ boxShadow: cardShadow }}
-        >
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 3L4 10l8 7M4 10h14" />
-          </svg>
-        </button>
-
-        <div className="relative flex-1">
+        <div className="relative flex-1 order-2">
           <div className="invisible pointer-events-none" aria-hidden="true">
             {isOnEndCard ? <EndCard previousDate={previousDate} /> : <CarouselCard paper={papers[active]} date={date} active={true} />}
           </div>
@@ -425,10 +415,23 @@ export function PaperCarousel({
 
         <button
           type="button"
+          onClick={() => goTo(active - 1)}
+          disabled={hasPrev ? undefined : true}
+          aria-label="Previous paper"
+          className="shrink-0 w-8 h-14 -ml-8 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none order-1"
+          style={{ boxShadow: cardShadow }}
+        >
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3L4 10l8 7M4 10h14" />
+          </svg>
+        </button>
+
+        <button
+          type="button"
           onClick={() => goTo(active + 1)}
           disabled={hasNext ? undefined : true}
           aria-label="Next paper"
-          className="shrink-0 w-8 h-14 -mr-8 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none"
+          className="shrink-0 w-8 h-14 -mr-8 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none order-3"
           style={{ boxShadow: cardShadow }}
         >
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

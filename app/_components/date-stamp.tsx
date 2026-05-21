@@ -19,6 +19,14 @@ function SpreadChars({
   );
 }
 
+function formatSpoken(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export function DateStamp({
   date,
   className,
@@ -31,10 +39,12 @@ export function DateStamp({
   const year = String(date.getFullYear());
 
   return (
-    <div
+    <time
+      dateTime={`${year}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`}
+      aria-label={formatSpoken(date)}
       className={`flex items-center justify-center ${className ?? ""}`}
     >
-      <div className="inline-flex flex-col items-center leading-none gap-1">
+      <div className="inline-flex flex-col items-center leading-none gap-1" aria-hidden="true">
         <SpreadChars
           text={month}
           className="text-sm text-(--color-text-tertiary)"
@@ -47,6 +57,6 @@ export function DateStamp({
           className="text-sm text-(--color-text-tertiary)"
         />
       </div>
-    </div>
+    </time>
   );
 }
