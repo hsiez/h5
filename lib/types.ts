@@ -44,6 +44,7 @@ export interface PaperResult {
   script: string;
   glossary: GlossaryTerm[];
   audioUrl: string;
+  audioDuration?: number;
   upvotes: number;
   githubRepo?: string;
   githubStars?: number;

@@ -2,6 +2,8 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 
+const SPEEDS = [1, 1.25, 1.5, 2] as const;
+
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
@@ -26,17 +28,26 @@ function PauseIcon() {
 
 export function AudioPlayer({
   src,
+  active = true,
+  autoPlay = false,
+  knownDuration,
   className,
 }: {
   src: string;
+  active?: boolean;
+  autoPlay?: boolean;
+  knownDuration?: number;
   className?: string;
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const seekingRef = useRef(false);
+  const speedRef = useRef(1);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState(knownDuration ?? 0);
   const [loading, setLoading] = useState(false);
+  const [speed, setSpeed] = useState(1);
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -50,20 +61,84 @@ export function AudioPlayer({
     }
   }, []);
 
-  const seek = useCallback(
-    (e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) => {
-      const audio = audioRef.current;
-      const bar = progressRef.current;
-      if (!audio || !bar || duration === 0) return;
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const speedBtnRef = useRef<HTMLButtonElement>(null);
+  const speedMenuRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState<{ bottom: number; right: number; tailRight: number } | null>(null);
 
-      if ("clientX" in e) {
-        const rect = bar.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        audio.currentTime = ratio * duration;
+  const openSpeedMenu = useCallback(() => {
+    const btn = speedBtnRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const menuRight = window.innerWidth - rect.right;
+    const btnCenterFromRight = window.innerWidth - (rect.left + rect.width / 2);
+    setMenuPos({ bottom: window.innerHeight - rect.top + 6, right: menuRight, tailRight: btnCenterFromRight - menuRight - 6 });
+    setSpeedOpen(true);
+  }, []);
+
+  const pickSpeed = useCallback((value: number) => {
+    setSpeed(value);
+    speedRef.current = value;
+    if (audioRef.current) audioRef.current.playbackRate = value;
+    setSpeedOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!speedOpen) return;
+    function close(e: PointerEvent) {
+      if (
+        speedMenuRef.current && !speedMenuRef.current.contains(e.target as Node) &&
+        speedBtnRef.current && !speedBtnRef.current.contains(e.target as Node)
+      ) {
+        setSpeedOpen(false);
       }
+    }
+    window.addEventListener("pointerdown", close);
+    return () => window.removeEventListener("pointerdown", close);
+  }, [speedOpen]);
+
+  const getSeekableDuration = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return 0;
+    if (Number.isFinite(audio.duration) && audio.duration > 0) return audio.duration;
+    if (audio.seekable.length > 0) return audio.seekable.end(audio.seekable.length - 1);
+    return 0;
+  }, []);
+
+  const seekTo = useCallback(
+    (clientX: number) => {
+      const bar = progressRef.current;
+      const audio = audioRef.current;
+      if (!bar || !audio) return;
+      const dur = getSeekableDuration();
+      if (dur === 0) return;
+      const rect = bar.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      audio.currentTime = ratio * dur;
     },
-    [duration],
+    [getSeekableDuration],
   );
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      seekingRef.current = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      seekTo(e.clientX);
+    },
+    [seekTo],
+  );
+
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!seekingRef.current) return;
+      seekTo(e.clientX);
+    },
+    [seekTo],
+  );
+
+  const onPointerUp = useCallback(() => {
+    seekingRef.current = false;
+  }, []);
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -82,29 +157,58 @@ export function AudioPlayer({
   );
 
   useEffect(() => {
+    if (!active && audioRef.current && !audioRef.current.paused) {
+      audioRef.current.pause();
+    }
+  }, [active]);
+
+  useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     audio.pause();
     audio.currentTime = 0;
+    audio.playbackRate = speedRef.current;
     setPlaying(false);
     setCurrentTime(0);
-    setDuration(0);
-  }, [src]);
+    setDuration(knownDuration ?? 0);
+  }, [src, knownDuration]);
+
+  useEffect(() => {
+    if (autoPlay && audioRef.current) audioRef.current.play();
+  }, [autoPlay]);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     const onPlay = () => { setPlaying(true); setLoading(false); };
     const onPause = () => setPlaying(false);
-    const onTime = () => setCurrentTime(audio.currentTime);
-    const onMeta = () => setDuration(audio.duration);
+    let durationResolved = false;
+    const onTime = () => {
+      setCurrentTime(audio.currentTime);
+      if (!durationResolved) {
+        const dur = Number.isFinite(audio.duration) ? audio.duration
+          : audio.seekable.length > 0 ? audio.seekable.end(audio.seekable.length - 1) : 0;
+        if (dur > 0) { setDuration(dur); durationResolved = true; }
+      }
+    };
+    const onMeta = () => { if (Number.isFinite(audio.duration)) setDuration(audio.duration); };
+    const onDurationChange = () => { if (Number.isFinite(audio.duration)) setDuration(audio.duration); };
     const onWaiting = () => setLoading(true);
     const onCanPlay = () => setLoading(false);
+    const onProgress = () => {
+      if (!durationResolved) {
+        const dur = Number.isFinite(audio.duration) ? audio.duration
+          : audio.seekable.length > 0 ? audio.seekable.end(audio.seekable.length - 1) : 0;
+        if (dur > 0) { setDuration(dur); durationResolved = true; }
+      }
+    };
 
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onMeta);
+    audio.addEventListener("durationchange", onDurationChange);
+    audio.addEventListener("progress", onProgress);
     audio.addEventListener("waiting", onWaiting);
     audio.addEventListener("canplay", onCanPlay);
     return () => {
@@ -112,6 +216,8 @@ export function AudioPlayer({
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onMeta);
+      audio.removeEventListener("durationchange", onDurationChange);
+      audio.removeEventListener("progress", onProgress);
       audio.removeEventListener("waiting", onWaiting);
       audio.removeEventListener("canplay", onCanPlay);
     };
@@ -131,7 +237,7 @@ export function AudioPlayer({
         {playing ? <PauseIcon /> : <PlayIcon />}
       </button>
 
-      <span className="text-xs text-(--color-text-tertiary) tabular-nums w-10 shrink-0">
+      <span className="text-sm text-(--color-text-tertiary) tabular-nums w-10 shrink-0">
         {formatTime(currentTime)}
       </span>
 
@@ -143,11 +249,13 @@ export function AudioPlayer({
         aria-valuemin={0}
         aria-valuemax={Math.round(duration)}
         aria-valuenow={Math.round(currentTime)}
-        onClick={seek}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
         onKeyDown={onKeyDown}
         className="relative flex-1 h-8 flex items-center cursor-pointer group focus-visible:outline-none"
       >
-        <div className="w-full h-1 rounded-full bg-(--color-surface-sunken) overflow-hidden">
+        <div className="w-full h-1 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(20,20,20,0.08)" }}>
           <div
             className="h-full bg-(--color-text-tertiary) group-hover:bg-(--color-text-secondary) rounded-full transition-colors"
             style={{ width: `${progress}%` }}
@@ -155,9 +263,62 @@ export function AudioPlayer({
         </div>
       </div>
 
-      <span className="text-xs text-(--color-text-tertiary) tabular-nums w-10 shrink-0 text-right">
+      <span className="text-sm text-(--color-text-tertiary) tabular-nums w-10 shrink-0 text-right">
         {duration > 0 ? formatTime(duration) : "--:--"}
       </span>
+
+      <button
+        ref={speedBtnRef}
+        type="button"
+        onClick={() => speedOpen ? setSpeedOpen(false) : openSpeedMenu()}
+        aria-haspopup="listbox"
+        aria-expanded={speedOpen}
+        aria-label={`Playback speed ${speed}×`}
+        className="shrink-0 text-sm tabular-nums text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-colors py-0.5 rounded text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--color-accent-500)"
+        style={{ width: 44 }}
+      >
+        {speed}×
+      </button>
+      {speedOpen && menuPos && (
+        <div
+          ref={speedMenuRef}
+          role="listbox"
+          aria-label="Playback speed"
+          className="fixed py-0.5 rounded-md bg-white"
+          style={{
+            bottom: menuPos.bottom,
+            right: menuPos.right,
+            boxShadow: "0 4px 8px -2px rgba(20,20,20,0.06), 0 2px 4px -2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.04), inset 0 0 0 1px rgba(255,255,255,1)",
+            minWidth: 56,
+            zIndex: 50,
+          }}
+        >
+          {SPEEDS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              role="option"
+              aria-selected={s === speed}
+              onClick={() => pickSpeed(s)}
+              className="w-full px-2 py-1 text-sm tabular-nums text-left transition-colors hover:bg-(--color-surface-muted)"
+              style={{ color: s === speed ? "var(--color-text-primary)" : "var(--color-text-tertiary)" }}
+            >
+              {s}×
+            </button>
+          ))}
+          <svg
+            aria-hidden="true"
+            width="12"
+            height="6"
+            viewBox="0 0 12 6"
+            className="absolute"
+            style={{ top: "100%", right: menuPos.tailRight, filter: "drop-shadow(0 1px 1px rgba(20,20,20,0.06))" }}
+          >
+            <path d="M0 0l6 6 6-6z" fill="white" />
+            <path d="M0.5 0l5.5 5.5L11.5 0" fill="none" stroke="rgba(20,20,20,0.04)" strokeWidth="1" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,10 +4,17 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PaperResult } from "@/lib/types";
 import { ExpandableText } from "./expandable-text";
-import { SoundwaveButton, ScrollFade, cardShadow } from "./paper-carousel";
+import { ScrollFade, cardShadow } from "./paper-carousel";
 
 const spring = { type: "spring" as const, duration: 0.5, bounce: 0.1 };
 const headerSpring = { type: "spring" as const, duration: 0.45, bounce: 0.12 };
+const SPEEDS = [1, 1.25, 1.5, 2] as const;
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 export function MobilePaperList({
   papers,
@@ -24,10 +31,88 @@ export function MobilePaperList({
   const modalRef = useRef<HTMLElement>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
+  const [audioActive, setAudioActive] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const seekingRef = useRef(false);
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const [audioTime, setAudioTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [audioSpeed, setAudioSpeed] = useState(1);
+
+  const audioProgress = audioDuration > 0 ? (audioTime / audioDuration) * 100 : 0;
+
   const close = useCallback(() => {
+    audioRef.current?.pause();
     setSelectedId(null);
+    setAudioActive(false);
+    setAudioPlaying(false);
+    setAudioTime(0);
+    setAudioDuration(0);
     triggerRef.current?.focus();
   }, []);
+
+  const startAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.play();
+      setAudioActive(true);
+      return;
+    }
+    const paper = papers.find((p) => p.arxivId === selectedId);
+    if (!paper) return;
+    const audio = new Audio(`/api/papers/${date}/${paper.arxivId}/audio`);
+    audio.addEventListener("play", () => setAudioPlaying(true));
+    audio.addEventListener("pause", () => setAudioPlaying(false));
+    audio.addEventListener("timeupdate", () => setAudioTime(audio.currentTime));
+    audio.addEventListener("loadedmetadata", () => { if (Number.isFinite(audio.duration)) setAudioDuration(audio.duration); });
+    audio.addEventListener("durationchange", () => { if (Number.isFinite(audio.duration)) setAudioDuration(audio.duration); });
+    audio.addEventListener("ended", () => { setAudioActive(false); setAudioPlaying(false); setAudioTime(0); });
+    audioRef.current = audio;
+    audio.play();
+    setAudioActive(true);
+  }, [selectedId, papers, date]);
+
+  const toggleAudio = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) {
+      audio.play();
+      setAudioActive(true);
+    } else {
+      audio.pause();
+      setAudioActive(false);
+    }
+  }, []);
+
+  const seekAudio = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const bar = progressBarRef.current;
+    const audio = audioRef.current;
+    if (!bar || !audio || !Number.isFinite(audioDuration) || audioDuration === 0) return;
+    const rect = bar.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    audio.currentTime = ratio * audioDuration;
+  }, [audioDuration]);
+
+  const cycleAudioSpeed = useCallback(() => {
+    setAudioSpeed((prev) => {
+      const idx = SPEEDS.indexOf(prev as (typeof SPEEDS)[number]);
+      const next = SPEEDS[(idx + 1) % SPEEDS.length];
+      if (audioRef.current) audioRef.current.playbackRate = next;
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!selectedId) {
+      audioRef.current?.pause();
+      audioRef.current = null;
+      setAudioActive(false);
+      setAudioPlaying(false);
+      setAudioTime(0);
+      setAudioDuration(0);
+      setAudioSpeed(1);
+    }
+  }, [selectedId]);
 
   const handleContentScroll = useCallback((scrollTop: number) => {
     if (scrollTop > 30) setHeaderVisible(false);
@@ -147,10 +232,10 @@ export function MobilePaperList({
               </ScrollFade>
             </motion.div>
 
-            <footer className="flex items-end gap-3 px-6 py-4 shrink-0">
+            <footer className="flex items-center gap-3 px-6 py-4 shrink-0">
               <button
                 onClick={close}
-                className="p-3 text-(--color-text-tertiary) active:text-(--color-text-primary)"
+                className="shrink-0 p-3 text-(--color-text-tertiary) active:text-(--color-text-primary)"
                 aria-label="Close"
               >
                 <svg
@@ -167,30 +252,81 @@ export function MobilePaperList({
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </button>
-              <div className="h-6 w-px bg-(--color-text-tertiary)/20" />
-              <a
-                href={`https://arxiv.org/abs/${selected.arxivId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-(--color-text-tertiary) underline transition-colors"
-              >
-                arXiv
-              </a>
-              {selected.githubRepo && (
-                <a
-                  href={`https://github.com/${selected.githubRepo}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-(--color-text-tertiary) underline transition-colors"
-                >
-                  GitHub
-                </a>
+              {audioActive ? (
+                <>
+                  <span className="text-sm text-(--color-text-tertiary) tabular-nums shrink-0">
+                    {formatTime(audioTime)}
+                  </span>
+                  <div
+                    ref={progressBarRef}
+                    role="slider"
+                    tabIndex={0}
+                    aria-label="Seek"
+                    aria-valuemin={0}
+                    aria-valuemax={Math.round(audioDuration)}
+                    aria-valuenow={Math.round(audioTime)}
+                    onPointerDown={(e) => { seekingRef.current = true; e.currentTarget.setPointerCapture(e.pointerId); seekAudio(e); }}
+                    onPointerMove={(e) => { if (seekingRef.current) seekAudio(e); }}
+                    onPointerUp={() => { seekingRef.current = false; }}
+                    className="flex-1 h-8 flex items-center cursor-pointer group"
+                  >
+                    <div className="w-full h-1 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(20,20,20,0.08)" }}>
+                      <div
+                        className="h-full bg-(--color-text-tertiary) rounded-full transition-colors"
+                        style={{ width: `${audioProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                  <span className="text-sm text-(--color-text-tertiary) tabular-nums shrink-0">
+                    {audioDuration > 0 ? formatTime(audioDuration) : "--:--"}
+                  </span>
+                  <button
+                    onClick={cycleAudioSpeed}
+                    aria-label={`Playback speed ${audioSpeed}×`}
+                    className="shrink-0 text-sm tabular-nums text-(--color-text-tertiary) text-center"
+                    style={{ width: 44 }}
+                  >
+                    {audioSpeed}×
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="h-6 w-px bg-(--color-text-tertiary)/20" />
+                  <a
+                    href={`https://arxiv.org/abs/${selected.arxivId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-(--color-text-tertiary) underline transition-colors"
+                  >
+                    arXiv
+                  </a>
+                  {selected.githubRepo && (
+                    <a
+                      href={`https://github.com/${selected.githubRepo}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-(--color-text-tertiary) underline transition-colors"
+                    >
+                      GitHub
+                    </a>
+                  )}
+                </>
               )}
-              <div className="ml-auto">
-                <SoundwaveButton
-                  audioSrc={`/api/papers/${date}/${selected.arxivId}/audio`}
-                />
-              </div>
+              <button
+                onClick={audioActive ? toggleAudio : startAudio}
+                aria-label={audioPlaying ? "Pause audio" : "Play audio"}
+                className="ml-auto shrink-0 p-2 text-(--color-text-primary)"
+              >
+                {audioPlaying ? (
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M5.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75A.75.75 0 0 0 7.25 3h-1.5ZM12.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75a.75.75 0 0 0-.75-.75h-1.5Z" />
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M6.3 3.7a1 1 0 0 0-1.55.83v10.94a1 1 0 0 0 1.55.83l8.5-5.47a1 1 0 0 0 0-1.66l-8.5-5.47Z" />
+                  </svg>
+                )}
+              </button>
             </footer>
           </motion.article>
         )}
