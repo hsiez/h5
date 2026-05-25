@@ -1,0 +1,30 @@
+{
+  "name": "calm-papers-email",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-12-01",
+
+  "workers_dev": true,
+
+  "triggers": {
+    "crons": ["0 8 * * *"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "calm-papers-subscribers",
+      "database_id": "3052598d-1746-4663-b57b-c40b58a1cd12"
+    }
+  ],
+
+  "send_email": [
+    { "name": "EMAIL" }
+  ],
+
+  "vars": {
+    "WORKER_URL": "https://calm-papers-email.harleysiezarcreates.workers.dev",
+    "SITE_URL": "https://h5.codes",
+    "FROM_EMAIL": "papers@h5.codes",
+    "FROM_NAME": "Calm Papers"
+  }
+}

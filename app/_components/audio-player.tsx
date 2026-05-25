@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
+import { Popover } from "@/app/_components/popover";
 
 const SPEEDS = [1, 1.25, 1.5, 2] as const;
 
@@ -64,18 +65,6 @@ export function AudioPlayer({
 
   const [speedOpen, setSpeedOpen] = useState(false);
   const speedBtnRef = useRef<HTMLButtonElement>(null);
-  const speedMenuRef = useRef<HTMLDivElement>(null);
-  const [menuPos, setMenuPos] = useState<{ bottom: number; right: number; tailRight: number } | null>(null);
-
-  const openSpeedMenu = useCallback(() => {
-    const btn = speedBtnRef.current;
-    if (!btn) return;
-    const rect = btn.getBoundingClientRect();
-    const menuRight = window.innerWidth - rect.right;
-    const btnCenterFromRight = window.innerWidth - (rect.left + rect.width / 2);
-    setMenuPos({ bottom: window.innerHeight - rect.top + 6, right: menuRight, tailRight: btnCenterFromRight - menuRight - 6 });
-    setSpeedOpen(true);
-  }, []);
 
   const pickSpeed = useCallback((value: number) => {
     setSpeed(value);
@@ -84,19 +73,7 @@ export function AudioPlayer({
     setSpeedOpen(false);
   }, []);
 
-  useEffect(() => {
-    if (!speedOpen) return;
-    function close(e: PointerEvent) {
-      if (
-        speedMenuRef.current && !speedMenuRef.current.contains(e.target as Node) &&
-        speedBtnRef.current && !speedBtnRef.current.contains(e.target as Node)
-      ) {
-        setSpeedOpen(false);
-      }
-    }
-    window.addEventListener("pointerdown", close);
-    return () => window.removeEventListener("pointerdown", close);
-  }, [speedOpen]);
+  const closeSpeedMenu = useCallback(() => setSpeedOpen(false), []);
 
   const getSeekableDuration = useCallback(() => {
     const audio = audioRef.current;
@@ -271,7 +248,7 @@ export function AudioPlayer({
       <button
         ref={speedBtnRef}
         type="button"
-        onClick={() => speedOpen ? setSpeedOpen(false) : openSpeedMenu()}
+        onClick={() => setSpeedOpen(!speedOpen)}
         aria-haspopup="listbox"
         aria-expanded={speedOpen}
         aria-label={`Playback speed ${speed}×`}
@@ -280,20 +257,8 @@ export function AudioPlayer({
       >
         {speed}×
       </button>
-      {speedOpen && menuPos && (
-        <div
-          ref={speedMenuRef}
-          role="listbox"
-          aria-label="Playback speed"
-          className="fixed py-0.5 rounded-md bg-white"
-          style={{
-            bottom: menuPos.bottom,
-            right: menuPos.right,
-            boxShadow: "0 4px 8px -2px rgba(20,20,20,0.06), 0 2px 4px -2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.04), inset 0 0 0 1px rgba(255,255,255,1)",
-            minWidth: 56,
-            zIndex: 50,
-          }}
-        >
+      <Popover open={speedOpen} onClose={closeSpeedMenu} anchorRef={speedBtnRef} className="py-0.5" style={{ minWidth: 56 }}>
+        <div role="listbox" aria-label="Playback speed">
           {SPEEDS.map((s) => (
             <button
               key={s}
@@ -307,19 +272,8 @@ export function AudioPlayer({
               {s}×
             </button>
           ))}
-          <svg
-            aria-hidden="true"
-            width="12"
-            height="6"
-            viewBox="0 0 12 6"
-            className="absolute"
-            style={{ top: "100%", right: menuPos.tailRight, filter: "drop-shadow(0 1px 1px rgba(20,20,20,0.06))" }}
-          >
-            <path d="M0 0l6 6 6-6z" fill="white" />
-            <path d="M0.5 0l5.5 5.5L11.5 0" fill="none" stroke="rgba(20,20,20,0.04)" strokeWidth="1" />
-          </svg>
         </div>
-      )}
+      </Popover>
     </div>
   );
 }

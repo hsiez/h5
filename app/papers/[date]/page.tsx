@@ -4,7 +4,7 @@ import { fetchBlobJson, fetchPreviousDate } from "@/lib/storage";
 import type { DailyIndex } from "@/lib/types";
 import { PaperCarousel } from "@/app/_components/paper-carousel";
 import { MobilePaperList } from "@/app/_components/mobile-paper-list";
-import { DateStamp } from "@/app/_components/date-stamp";
+import { EmailSignup } from "@/app/_components/email-signup";
 
 export async function generateMetadata({
   params,
@@ -44,16 +44,22 @@ export default async function PapersDatePage({
         className="flex flex-col justify-center px-6"
         style={{ height: "60dvh" }}
       >
-        <div className="mx-auto w-full flex items-end gap-8 pl-8" style={{ maxWidth: 800 }}>
-          <DateStamp date={parseDate(date)} className="shrink-0" />
-          <div>
+        <div className="mx-auto w-full px-8" style={{ maxWidth: 800 }}>
+          <div className="flex items-baseline gap-3">
             <h1 className="font-serif text-3xl font-semibold text-(--color-text-primary)">
               Calm Papers
             </h1>
-            <p className="mt-1 text-sm text-(--color-text-tertiary)">
-              <span className="md:hidden">Top 5 research papers on 🤗</span>
-              <span className="hidden md:inline">Summaries of the top 5 research papers on 🤗</span>
+            <span className="font-serif text-3xl text-(--color-text-tertiary)">·</span>
+            <span className="font-serif text-3xl text-(--color-text-tertiary)">
+              {date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$2-$3-$1")}
+            </span>
+          </div>
+          <div className="mt-1 flex items-center gap-4">
+            <p className="text-base text-(--color-text-tertiary)">
+              <span className="md:hidden">Top 5 research papers on HuggingFace</span>
+              <span className="hidden md:inline">Summaries of the top 5 research papers on HuggingFace</span>
             </p>
+            <EmailSignup />
           </div>
         </div>
       </header>
