@@ -3,9 +3,7 @@
 import { useState, useTransition, useRef, useCallback } from "react";
 import { Popover } from "@/app/_components/popover";
 
-const SUBSCRIBE_URL =
-  process.env.NEXT_PUBLIC_SUBSCRIBE_URL ??
-  "https://calm-papers-email.harleysiezarcreates.workers.dev/api/subscribe";
+const SUBSCRIBE_URL = process.env.NEXT_PUBLIC_SUBSCRIBE_URL!;
 
 type Status = "idle" | "submitting" | "success" | "error";
 
