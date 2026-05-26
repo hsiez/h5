@@ -58,19 +58,28 @@ export async function fetchBlobJson<T>(pathname: string): Promise<T | null> {
   return JSON.parse(text) as T;
 }
 
+export async function fetchLatestDate(): Promise<string | null> {
+  const dates = await listPaperDates();
+  return dates[0] ?? null;
+}
+
 export async function fetchPreviousDate(
   currentDate: string,
 ): Promise<string | null> {
+  const dates = await listPaperDates();
+  return dates.find((d) => d < currentDate) ?? null;
+}
+
+async function listPaperDates(): Promise<string[]> {
   const result = await list({
     prefix: "papers/",
     mode: "folded",
   });
-  const dates = result.folders
+  return result.folders
     .map((f) => f.replace("papers/", "").replace("/", ""))
-    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d < currentDate)
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
     .sort()
     .reverse();
-  return dates[0] ?? null;
 }
 
 export async function fetchBlobStream(

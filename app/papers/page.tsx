@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
-import { fetchBlobJson } from "@/lib/storage";
+import { fetchLatestDate } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export default async function PapersPage() {
-  const latest = await fetchBlobJson<{ date: string }>("papers/latest.json");
+  const date = await fetchLatestDate();
 
-  if (!latest) {
+  if (!date) {
     return (
       <main className="flex flex-1 items-center justify-center px-6 py-16 bg-(--color-background)">
         <p className="text-(--color-text-tertiary)">No papers yet.</p>
@@ -15,5 +15,5 @@ export default async function PapersPage() {
     );
   }
 
-  redirect(`/papers/${latest.date}`);
+  redirect(`/papers/${date}`);
 }
