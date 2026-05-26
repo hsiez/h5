@@ -5,6 +5,7 @@ import type { DailyIndex } from "@/lib/types";
 import { PaperCarousel } from "@/app/_components/paper-carousel";
 import { MobilePaperList } from "@/app/_components/mobile-paper-list";
 import { EmailSignup } from "@/app/_components/email-signup";
+import { InlineDate } from "@/app/_components/inline-date";
 
 export async function generateMetadata({
   params,
@@ -45,19 +46,13 @@ export default async function PapersDatePage({
         style={{ height: "60dvh" }}
       >
         <div className="mx-auto w-full px-8" style={{ maxWidth: 800 }}>
-          <div className="flex items-baseline gap-3">
-            <h1 className="font-serif text-3xl font-semibold text-(--color-text-primary)">
-              Calm Papers
-            </h1>
-            <span className="font-serif text-3xl text-(--color-text-tertiary)">·</span>
-            <span className="font-serif text-3xl text-(--color-text-tertiary)">
-              {date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$2-$3-$1")}
-            </span>
-          </div>
-          <div className="mt-1 flex items-center gap-4">
+          <h1 className="font-serif text-3xl font-semibold text-(--color-text-primary)">
+            Calm Papers
+          </h1>
+          <div className="mt-2 flex items-center justify-between">
             <p className="text-base text-(--color-text-tertiary)">
-              <span className="md:hidden">Top 5 research papers on HuggingFace</span>
-              <span className="hidden md:inline">Summaries of the top 5 research papers on HuggingFace</span>
+              Top research papers on{" "}
+              <InlineDate date={date} />
             </p>
             <EmailSignup />
           </div>

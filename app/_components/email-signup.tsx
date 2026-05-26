@@ -48,24 +48,29 @@ export function EmailSignup({ className }: { className?: string }) {
     });
   }
 
+  const [showTooltip, setShowTooltip] = useState(false);
+
   return (
-    <div className={className}>
+    <div className={`relative ${className ?? ""}`}>
       <button
         ref={buttonRef}
         type="button"
         onClick={() => setOpen(!open)}
-        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium rounded-sm bg-(--color-surface-muted) border border-(--color-border) text-(--color-text-secondary) hover:bg-(--color-surface-sunken) transition-colors cursor-pointer"
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-sm bg-white text-(--color-text-tertiary) hover:text-(--color-text-secondary) transition-colors cursor-pointer shadow-[0_2px_4px_-1px_rgba(20,20,20,0.06),0_1px_2px_-1px_rgba(20,20,20,0.04),0_0_0_1px_rgba(20,20,20,0.04),inset_0_0_0_1px_rgba(255,255,255,1)]"
+        aria-label="Get alerts"
       >
         <svg
-          width="14"
-          height="14"
+          width="16"
+          height="16"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="bell-icon"
+          className="bell-icon pointer-events-none"
         >
           <g className="bell-body">
             <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
@@ -74,8 +79,16 @@ export function EmailSignup({ className }: { className?: string }) {
             <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
           </g>
         </svg>
-        Get alerts
       </button>
+
+      {showTooltip && !open && (
+        <span
+          className="absolute right-0 bottom-full mb-2 whitespace-nowrap px-2.5 py-1 text-sm text-(--color-text-secondary) bg-white rounded-sm shadow-[0_2px_4px_-1px_rgba(20,20,20,0.06),0_1px_2px_-1px_rgba(20,20,20,0.04),0_0_0_1px_rgba(20,20,20,0.04),inset_0_0_0_1px_rgba(255,255,255,1)] pointer-events-none"
+          role="tooltip"
+        >
+          Get alerts
+        </span>
+      )}
 
       <Popover open={open} onClose={onClose} anchorRef={buttonRef} className="w-72 p-4">
         {status === "success" ? (
