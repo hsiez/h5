@@ -406,12 +406,12 @@ export function PaperCarousel({
             );
           })}
           </div>
-          {!isOnEndCard && (
+          <div className={isOnEndCard ? "invisible" : undefined}>
             <AudioPlayer
-              src={`/api/papers/${date}/${papers[active].arxivId}/audio`}
-              knownDuration={papers[active].audioDuration}
+              src={`/api/papers/${date}/${papers[Math.min(active, papers.length - 1)].arxivId}/audio`}
+              knownDuration={papers[Math.min(active, papers.length - 1)].audioDuration}
             />
-          )}
+          </div>
         </div>
 
         <button
