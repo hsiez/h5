@@ -40,7 +40,7 @@ export default async function PapersDatePage({
   if (!index) notFound();
 
   return (
-    <main className="h-dvh overflow-y-auto snap-y snap-proximity bg-(--color-background)">
+    <main className="h-dvh overflow-y-auto overflow-x-hidden snap-y snap-proximity bg-(--color-background)">
       <header
         className="flex flex-col justify-center px-6"
         style={{ height: "60dvh" }}

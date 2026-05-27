@@ -26,7 +26,7 @@ export function InlineDate({
     <time
       dateTime={date}
       aria-label={spoken}
-      className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-sm font-medium tabular-nums text-(--color-text-tertiary) ${className ?? ""}`}
+      className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-sm font-medium tabular-nums text-(--color-text-secondary) ${className ?? ""}`}
       style={{ backgroundColor: fill, border, boxShadow }}
     >
       {MONTHS[month - 1]} {day}, {year}
