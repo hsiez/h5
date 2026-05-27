@@ -209,7 +209,7 @@ export function MobilePaperList({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.2 }}
             >
-              <ScrollFade onScroll={handleContentScroll}>
+              <ScrollFade onScroll={handleContentScroll} fadeColor="#EEEEE6">
                 <motion.div
                   initial={false}
                   animate={{
