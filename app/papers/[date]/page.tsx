@@ -46,14 +46,17 @@ export default async function PapersDatePage({
         style={{ height: "60dvh" }}
       >
         <div className="mx-auto w-full px-8" style={{ maxWidth: 800 }}>
-          <h1 className="font-serif text-3xl font-semibold text-(--color-text-primary)">
-            Calm Papers
-          </h1>
-          <div className="mt-2 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="font-serif text-3xl font-semibold text-(--color-text-primary)">
+              Calm Papers
+            </h1>
+            <InlineDate date={date} />
+          </div>
+          <div className="mt-2 flex items-center gap-2">
             <p className="text-base text-(--color-text-tertiary)">
-              Top research papers on{" "}
-              <InlineDate date={date} />
+              Top research papers on HuggingFace
             </p>
+            <span className="text-xl text-(--color-text-tertiary) ml-1" style={{ opacity: 0.4 }}>·</span>
             <EmailSignup />
           </div>
         </div>

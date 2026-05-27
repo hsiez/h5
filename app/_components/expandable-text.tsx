@@ -53,7 +53,7 @@ const HIGHLIGHT_STYLE = `
   border-radius: 2px;
   padding: 0 2px;
   margin: 0 -2px;
-  background-image: linear-gradient(120deg, rgba(255,130,170,0.35) 0%, rgba(240,90,140,0.25) 100%);
+  background-image: linear-gradient(120deg, #d5e3e8 0%, #c9d7dd 100%);
   background-repeat: no-repeat;
   background-position: 0 85%;
 }
