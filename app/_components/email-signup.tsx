@@ -94,11 +94,11 @@ export function EmailSignup({ className }: { className?: string }) {
             style={{
               width: 8,
               height: 8,
-              backgroundColor: "white",
+              backgroundColor: "var(--color-surface)",
               transform: "rotate(45deg)",
             }}
           />
-          <span className="relative z-10 block whitespace-nowrap px-2.5 py-1 text-sm text-(--color-text-secondary) bg-white rounded-sm">
+          <span className="relative z-10 block whitespace-nowrap px-2.5 py-1 text-sm text-(--color-text-secondary) bg-(--color-surface) rounded-sm">
             Get alerts
           </span>
         </span>

@@ -45,8 +45,8 @@ export default async function PapersDatePage({
         className="flex flex-col justify-center px-6"
         style={{ height: "60dvh" }}
       >
-        <div className="mx-auto w-full px-8" style={{ maxWidth: 800 }}>
-          <div className="flex items-center gap-3">
+        <div className="mx-auto w-full px-2 md:px-8" style={{ maxWidth: 800 }}>
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="font-serif text-3xl font-semibold text-(--color-text-primary)">
               Calm Papers
             </h1>

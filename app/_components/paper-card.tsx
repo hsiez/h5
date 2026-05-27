@@ -12,7 +12,8 @@ export function PaperCard({
 }) {
   return (
     <article
-      className={`flex flex-col gap-6 p-8 rounded-lg bg-(--color-surface-muted) shadow-[0_4px_8px_-2px_rgba(20,20,20,0.06),0_2px_4px_-2px_rgba(20,20,20,0.04),0_0_0_1px_rgba(20,20,20,0.04),inset_0_0_0_1px_rgba(255,255,255,1)] ${className ?? ""}`}
+      className={`flex flex-col gap-6 p-8 rounded-lg backdrop-blur-sm shadow-[0_4px_8px_-2px_rgba(20,20,20,0.04),0_0_0_1px_rgba(20,20,20,0.04)] ${className ?? ""}`}
+      style={{ backgroundColor: "rgba(245,245,237,0.8)" }}
     >
       <div className="flex flex-col gap-2 max-w-prose">
         <div className="flex items-start justify-between gap-4">

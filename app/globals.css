@@ -61,10 +61,10 @@
   --color-neutral-900: #141414;
 
   /* ---- Surfaces ---- */
-  --color-background: var(--color-neutral-0);
-  --color-surface: var(--color-neutral-0);
-  --color-surface-muted: var(--color-neutral-50);
-  --color-surface-sunken: var(--color-neutral-100);
+  --color-background: #fffff7;
+  --color-surface: #fffff7;
+  --color-surface-muted: #f5f5ed;
+  --color-surface-sunken: #eeeeE6;
 
   /* ---- Borders — alpha-blended blacks, not flat neutrals.
      Solid neutrals look pasted-on the moment a surface stops being pure
