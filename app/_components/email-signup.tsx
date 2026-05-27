@@ -58,7 +58,7 @@ export function EmailSignup({ className }: { className?: string }) {
         onClick={() => setOpen(!open)}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
-        className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-sm bg-white text-(--color-text-tertiary) hover:text-(--color-text-secondary) transition-colors cursor-pointer shadow-[0_2px_4px_-1px_rgba(20,20,20,0.06),0_1px_2px_-1px_rgba(20,20,20,0.04),0_0_0_1px_rgba(20,20,20,0.04),inset_0_0_0_1px_rgba(255,255,255,1)]"
+        className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-sm text-(--color-text-tertiary) hover:text-(--color-text-secondary) hover:bg-(--color-surface-muted) transition-colors cursor-pointer"
         aria-label="Get alerts"
       >
         <svg
@@ -83,10 +83,24 @@ export function EmailSignup({ className }: { className?: string }) {
 
       {showTooltip && !open && (
         <span
-          className="absolute right-0 bottom-full mb-2 whitespace-nowrap px-2.5 py-1 text-sm text-(--color-text-secondary) bg-white rounded-sm shadow-[0_2px_4px_-1px_rgba(20,20,20,0.06),0_1px_2px_-1px_rgba(20,20,20,0.04),0_0_0_1px_rgba(20,20,20,0.04),inset_0_0_0_1px_rgba(255,255,255,1)] pointer-events-none"
+          className="absolute top-full left-1/2 -translate-x-1/2 mt-2 pointer-events-none"
+          style={{
+            filter: "drop-shadow(0 2px 4px rgba(20,20,20,0.06)) drop-shadow(0 1px 2px rgba(20,20,20,0.04)) drop-shadow(0 0 0.5px rgba(20,20,20,0.12))",
+          }}
           role="tooltip"
         >
-          Get alerts
+          <span
+            className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            style={{
+              width: 8,
+              height: 8,
+              backgroundColor: "var(--color-surface)",
+              transform: "rotate(45deg)",
+            }}
+          />
+          <span className="relative z-10 block whitespace-nowrap px-2.5 py-1 text-sm text-(--color-text-secondary) bg-(--color-surface) rounded-sm">
+            Get alerts
+          </span>
         </span>
       )}
 

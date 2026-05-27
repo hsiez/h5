@@ -99,7 +99,7 @@ export function Popover({
   return (
     <div
       ref={panelRef}
-      className={`fixed z-50 rounded-sm bg-white ${className ?? ""}`}
+      className={`fixed z-50 rounded-sm bg-(--color-surface) ${className ?? ""}`}
       style={{
         ...(pos?.top != null ? { top: pos.top } : {}),
         ...(pos?.bottom != null ? { bottom: pos.bottom } : {}),

@@ -3,8 +3,9 @@ const MONTHS = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ] as const;
 
-const insetPill =
-  "inline-flex items-center justify-center px-2 py-0.5 rounded-full text-sm font-medium tabular-nums text-(--color-text-tertiary) shadow-[inset_0_2px_4px_rgba(20,20,20,0.07),inset_0_1px_1px_rgba(20,20,20,0.04),0_1px_0_rgba(255,255,255,0.9)]" as const;
+const fill = "#d1e0de";
+const border = "1px solid rgba(20,20,20,0.08)";
+const boxShadow = "0 1px 2px rgba(20,20,20,0.06), 0 1px 0 rgba(255,255,255,0.9)";
 
 export function InlineDate({
   date,
@@ -25,19 +26,10 @@ export function InlineDate({
     <time
       dateTime={date}
       aria-label={spoken}
-      className={`inline-flex items-center gap-0.5 ${className ?? ""}`}
+      className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-sm font-medium tabular-nums text-(--color-text-tertiary) ${className ?? ""}`}
+      style={{ backgroundColor: fill, border, boxShadow }}
     >
-      <span className={insetPill} style={{ backgroundColor: "rgba(20,20,20,0.04)" }}>
-        {MONTHS[month - 1]}
-      </span>
-      <span className="text-sm" style={{ color: "rgba(20,20,20,0.2)" }}>/</span>
-      <span className={insetPill} style={{ backgroundColor: "rgba(20,20,20,0.04)" }}>
-        {String(day).padStart(2, "0")}
-      </span>
-      <span className="text-sm" style={{ color: "rgba(20,20,20,0.2)" }}>/</span>
-      <span className={insetPill} style={{ backgroundColor: "rgba(20,20,20,0.04)" }}>
-        {year}
-      </span>
+      {MONTHS[month - 1]} {day}, {year}
     </time>
   );
 }

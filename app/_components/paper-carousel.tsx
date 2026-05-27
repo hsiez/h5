@@ -58,7 +58,7 @@ export function ScrollFade({ children, onScroll: onScrollProp, scrollRef: extern
         aria-hidden="true"
         style={{
           background:
-            "linear-gradient(to bottom, var(--color-surface-sunken) 0%, rgba(244,244,244,0.8) 30%, rgba(244,244,244,0.3) 60%, transparent 100%)",
+            "linear-gradient(to bottom, rgba(245,245,237,0.8) 0%, rgba(245,245,237,0.6) 30%, rgba(245,245,237,0.2) 60%, transparent 100%)",
           opacity: 0,
           willChange: "opacity",
         }}
@@ -77,7 +77,7 @@ export function ScrollFade({ children, onScroll: onScrollProp, scrollRef: extern
         aria-hidden="true"
         style={{
           background:
-            "linear-gradient(to top, var(--color-surface-sunken) 0%, rgba(244,244,244,0.8) 30%, rgba(244,244,244,0.3) 60%, transparent 100%)",
+            "linear-gradient(to top, rgba(245,245,237,0.8) 0%, rgba(245,245,237,0.6) 30%, rgba(245,245,237,0.2) 60%, transparent 100%)",
           opacity: 0,
           willChange: "opacity",
         }}
@@ -227,7 +227,7 @@ export function SoundwaveButton({ audioSrc, active = true }: { audioSrc: string;
 }
 
 export const cardShadow =
-  "0 4px 8px -2px rgba(20,20,20,0.06), 0 2px 4px -2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.04), inset 0 0 0 1px rgba(255,255,255,1)";
+  "0 4px 8px -2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.04)";
 
 function CarouselCard({
   paper,
@@ -238,8 +238,8 @@ function CarouselCard({
 }) {
   return (
     <article
-      className="flex flex-col gap-6 p-10 rounded-lg bg-(--color-surface-sunken) overflow-hidden"
-      style={{ boxShadow: cardShadow, height: CARD_HEIGHT }}
+      className="flex flex-col gap-6 p-10 rounded-lg backdrop-blur-sm overflow-hidden"
+      style={{ backgroundColor: "rgba(245,245,237,0.8)", boxShadow: cardShadow, height: CARD_HEIGHT }}
     >
       <div className="flex flex-col gap-4 max-w-prose" role="presentation">
         <h2 className="font-serif text-xl font-semibold text-(--color-text-primary) leading-snug line-clamp-2 text-pretty">
@@ -292,7 +292,7 @@ function EndCard({ previousDate }: { previousDate: string | null }) {
         alt="Sword"
         width={173}
         height={320}
-        className="rounded-lg bg-white"
+        className="rounded-lg bg-(--color-surface)"
       />
       {previousDate && (
         <a
@@ -419,7 +419,7 @@ export function PaperCarousel({
           onClick={() => goTo(active - 1)}
           disabled={hasPrev ? undefined : true}
           aria-label="Previous paper"
-          className="shrink-0 w-8 h-14 -ml-8 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none order-1"
+          className="shrink-0 w-8 h-14 -ml-8 inline-flex items-center justify-center rounded-full bg-(--color-surface) text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none order-1"
           style={{ boxShadow: cardShadow }}
         >
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -432,7 +432,7 @@ export function PaperCarousel({
           onClick={() => goTo(active + 1)}
           disabled={hasNext ? undefined : true}
           aria-label="Next paper"
-          className="shrink-0 w-8 h-14 -mr-8 inline-flex items-center justify-center rounded-full bg-white text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none order-3"
+          className="shrink-0 w-8 h-14 -mr-8 inline-flex items-center justify-center rounded-full bg-(--color-surface) text-(--color-text-tertiary) hover:text-(--color-text-primary) transition-all disabled:opacity-0 disabled:pointer-events-none order-3"
           style={{ boxShadow: cardShadow }}
         >
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
