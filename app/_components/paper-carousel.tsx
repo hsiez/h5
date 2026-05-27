@@ -11,7 +11,7 @@ const ELLIPSE_BINS = [12, 8, 4, 1, 4, 8, 12];
 const MAX_VISIBLE = 1;
 const CARD_HEIGHT = "calc(100dvh - 7.5rem)";
 
-export function ScrollFade({ children, onScroll: onScrollProp, scrollRef: externalScrollRef }: { children: React.ReactNode; onScroll?: (scrollTop: number) => void; scrollRef?: React.RefObject<HTMLDivElement | null> }) {
+export function ScrollFade({ children, onScroll: onScrollProp, scrollRef: externalScrollRef, fadeColor = "rgba(245,245,237,0.8)" }: { children: React.ReactNode; onScroll?: (scrollTop: number) => void; scrollRef?: React.RefObject<HTMLDivElement | null>; fadeColor?: string }) {
   const internalScrollRef = useRef<HTMLDivElement>(null);
   const scrollRef = externalScrollRef || internalScrollRef;
   const topFadeRef = useRef<HTMLDivElement>(null);
@@ -58,7 +58,7 @@ export function ScrollFade({ children, onScroll: onScrollProp, scrollRef: extern
         aria-hidden="true"
         style={{
           background:
-            "linear-gradient(to bottom, rgba(245,245,237,0.8) 0%, rgba(245,245,237,0.6) 30%, rgba(245,245,237,0.2) 60%, transparent 100%)",
+            `linear-gradient(to bottom, ${fadeColor} 0%, transparent 100%)`,
           opacity: 0,
           willChange: "opacity",
         }}
@@ -77,7 +77,7 @@ export function ScrollFade({ children, onScroll: onScrollProp, scrollRef: extern
         aria-hidden="true"
         style={{
           background:
-            "linear-gradient(to top, rgba(245,245,237,0.8) 0%, rgba(245,245,237,0.6) 30%, rgba(245,245,237,0.2) 60%, transparent 100%)",
+            `linear-gradient(to top, ${fadeColor} 0%, transparent 100%)`,
           opacity: 0,
           willChange: "opacity",
         }}
