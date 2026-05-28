@@ -3,9 +3,7 @@ const MONTHS = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ] as const;
 
-const fill = "#d1e0de";
-const border = "1px solid rgba(20,20,20,0.08)";
-const boxShadow = "0 1px 2px rgba(20,20,20,0.06), 0 1px 0 rgba(255,255,255,0.9)";
+const border = "1px solid #d1e0de";
 
 export function InlineDate({
   date,
@@ -26,8 +24,8 @@ export function InlineDate({
     <time
       dateTime={date}
       aria-label={spoken}
-      className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-sm font-medium tabular-nums text-(--color-text-secondary) ${className ?? ""}`}
-      style={{ backgroundColor: fill, border, boxShadow }}
+      className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-sm font-medium tabular-nums ${className ?? ""}`}
+      style={{ border, color: "#6e908a" }}
     >
       {MONTHS[month - 1]} {day}, {year}
     </time>

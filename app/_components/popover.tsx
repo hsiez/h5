@@ -120,21 +120,24 @@ export function Popover({
           style={
             pos.direction === "down"
               ? {
-                  bottom: "100%",
+                  bottom: "calc(100% - 1px)",
                   left: pos.tailLeft,
                   transform: "rotate(180deg)",
                   filter:
                     "drop-shadow(0 -1px 1px rgba(20,20,20,0.06))",
                 }
               : {
-                  top: "100%",
+                  top: "calc(100% - 1px)",
                   left: pos.tailLeft,
                   filter:
                     "drop-shadow(0 1px 1px rgba(20,20,20,0.06))",
                 }
           }
         >
-          <path d="M0 0l6 6 6-6z" fill="white" />
+          <path
+            d="M0 0l6 6 6-6z"
+            style={{ fill: "var(--color-surface)" }}
+          />
           <path
             d="M0.5 0l5.5 5.5L11.5 0"
             fill="none"
