@@ -55,8 +55,13 @@ export function EmailSignup({ className }: { className?: string }) {
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => setOpen(!open)}
-        onMouseEnter={() => setShowTooltip(true)}
+        onClick={() => {
+          setShowTooltip(false);
+          setOpen((o) => !o);
+        }}
+        onMouseEnter={() => {
+          if (!open) setShowTooltip(true);
+        }}
         onMouseLeave={() => setShowTooltip(false)}
         className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-sm text-(--color-text-tertiary) hover:text-(--color-text-secondary) hover:bg-(--color-surface-muted) transition-colors cursor-pointer"
         aria-label="Get alerts"
@@ -133,7 +138,11 @@ export function EmailSignup({ className }: { className?: string }) {
               <button
                 type="submit"
                 disabled={status === "submitting"}
-                className="w-full px-4 py-2 text-sm font-medium rounded-sm bg-(--color-accent-500) text-(--color-text-on-accent) hover:bg-(--color-accent-600) active:bg-(--color-accent-700) disabled:opacity-50 transition-colors cursor-pointer"
+                className="w-full px-4 py-2 text-sm font-medium rounded-sm text-(--color-text-secondary) disabled:opacity-50 transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: "#d1e0de",
+                  border: "1px solid rgba(20,20,20,0.08)",
+                }}
               >
                 {status === "submitting" ? "…" : "Subscribe"}
               </button>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import { useRef, useEffect, useLayoutEffect, useState, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import type { GlossaryTerm } from "@/lib/types";
 
@@ -74,11 +75,15 @@ export function ExpandableText({
 }) {
   const [clamped, setClamped] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLSpanElement>(null);
   const [tooltip, setTooltip] = useState<{
     term: GlossaryTerm;
     x: number;
     y: number;
     below: boolean;
+    anchorTop: number;
+    anchorBottom: number;
+    flipped?: boolean;
   } | null>(null);
   const [activeTerm, setActiveTerm] = useState<GlossaryTerm | null>(null);
 
@@ -94,6 +99,56 @@ export function ExpandableText({
     setClamped(el.scrollHeight > el.clientHeight);
   }, [text]);
 
+  useEffect(() => {
+    if (!tooltip) return;
+    const dismiss = () => setTooltip(null);
+    window.addEventListener("scroll", dismiss, { capture: true, passive: true });
+    return () => window.removeEventListener("scroll", dismiss, { capture: true });
+  }, [tooltip]);
+
+  const TOOLTIP_WIDTH = 224;
+  const GAP = 8;
+  const EDGE_PAD = 8;
+
+  useLayoutEffect(() => {
+    const el = tooltipRef.current;
+    if (!el || !tooltip || tooltip.flipped) return;
+    const r = el.getBoundingClientRect();
+    if (!tooltip.below && r.top < EDGE_PAD) {
+      setTooltip((prev) =>
+        prev ? { ...prev, below: true, y: prev.anchorBottom + GAP, flipped: true } : null,
+      );
+    } else if (tooltip.below && r.bottom > window.innerHeight - EDGE_PAD) {
+      setTooltip((prev) =>
+        prev ? { ...prev, below: false, y: prev.anchorTop - GAP, flipped: true } : null,
+      );
+    }
+  }, [tooltip]);
+
+  const positionTooltip = useCallback(
+    (target: Element): typeof tooltip => {
+      const idx = Number(target.getAttribute("data-term-idx"));
+      const term = glossary[idx];
+      if (!term) return null;
+      const rect = target.getBoundingClientRect();
+      const below = rect.top < rect.bottom - rect.top + GAP + EDGE_PAD;
+      const half = TOOLTIP_WIDTH / 2;
+      const x = Math.max(
+        half + EDGE_PAD,
+        Math.min(rect.left + rect.width / 2, window.innerWidth - half - EDGE_PAD),
+      );
+      return {
+        term,
+        x,
+        y: below ? rect.bottom + GAP : rect.top - GAP,
+        below,
+        anchorTop: rect.top,
+        anchorBottom: rect.bottom,
+      };
+    },
+    [glossary],
+  );
+
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (definitionStyle === "bottom-panel") return;
@@ -102,19 +157,9 @@ export function ExpandableText({
         setTooltip(null);
         return;
       }
-      const idx = Number(target.getAttribute("data-term-idx"));
-      const term = glossary[idx];
-      if (!term) return;
-      const rect = target.getBoundingClientRect();
-      const below = rect.top < 100;
-      setTooltip({
-        term,
-        x: rect.left + rect.width / 2,
-        y: below ? rect.bottom + 8 : rect.top - 8,
-        below,
-      });
+      setTooltip(positionTooltip(target));
     },
-    [glossary, definitionStyle],
+    [positionTooltip, definitionStyle],
   );
 
   const handlePointerLeave = useCallback(() => {
@@ -127,19 +172,9 @@ export function ExpandableText({
       if (definitionStyle === "bottom-panel") return;
       const target = (e.target as HTMLElement).closest("[data-term-idx]");
       if (!target) return;
-      const idx = Number(target.getAttribute("data-term-idx"));
-      const term = glossary[idx];
-      if (!term) return;
-      const rect = target.getBoundingClientRect();
-      const below = rect.top < 100;
-      setTooltip({
-        term,
-        x: rect.left + rect.width / 2,
-        y: below ? rect.bottom + 8 : rect.top - 8,
-        below,
-      });
+      setTooltip(positionTooltip(target));
     },
-    [glossary, definitionStyle],
+    [positionTooltip, definitionStyle],
   );
 
   const handleBlur = useCallback(
@@ -169,18 +204,11 @@ export function ExpandableText({
         if (tooltip?.term === term) {
           setTooltip(null);
         } else {
-          const rect = target.getBoundingClientRect();
-          const below = rect.top < 100;
-          setTooltip({
-            term,
-            x: rect.left + rect.width / 2,
-            y: below ? rect.bottom + 8 : rect.top - 8,
-            below,
-          });
+          setTooltip(positionTooltip(target));
         }
       }
     },
-    [glossary, tooltip, definitionStyle],
+    [glossary, tooltip, definitionStyle, positionTooltip],
   );
 
   const handleClick = useCallback(
@@ -232,8 +260,9 @@ export function ExpandableText({
         )}
       </div>
 
-      {definitionStyle === "tooltip" && tooltip && (
+      {definitionStyle === "tooltip" && tooltip && createPortal(
         <span
+          ref={tooltipRef}
           id="glossary-tooltip"
           role="tooltip"
           className="fixed z-[9999] w-56 px-3 py-2 rounded-lg bg-(--color-text-primary) text-(--color-text-on-accent) text-xs leading-relaxed pointer-events-none -translate-x-1/2"
@@ -250,7 +279,8 @@ export function ExpandableText({
           <span className="font-semibold">{tooltip.term.term}</span>
           <span className="mx-1">—</span>
           <span>{tooltip.term.definition}</span>
-        </span>
+        </span>,
+        document.body,
       )}
 
       <AnimatePresence>
