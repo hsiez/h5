@@ -14,7 +14,7 @@ function formatTime(seconds: number): string {
 
 function PlayIcon() {
   return (
-    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style={{ transform: "translateX(1px)" }}>
       <path d="M6.3 3.7a1 1 0 0 0-1.55.83v10.94a1 1 0 0 0 1.55.83l8.5-5.47a1 1 0 0 0 0-1.66l-8.5-5.47Z" />
     </svg>
   );

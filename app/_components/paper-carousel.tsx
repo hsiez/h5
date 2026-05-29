@@ -406,7 +406,10 @@ export function PaperCarousel({
             );
           })}
           </div>
-          <div className={isOnEndCard ? "invisible" : undefined}>
+          <div
+            className={`rounded-full bg-(--color-surface) px-4 py-2 ${isOnEndCard ? "invisible" : ""}`}
+            style={{ boxShadow: cardShadow }}
+          >
             <AudioPlayer
               src={`/api/papers/${date}/${papers[Math.min(active, papers.length - 1)].arxivId}/audio`}
               knownDuration={papers[Math.min(active, papers.length - 1)].audioDuration}
