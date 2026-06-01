@@ -50,7 +50,7 @@ export const automationSignals: SignalDefinition[] = [
     weight: 0.1,
     collect: () => {
       try {
-        const w = window as Record<string, unknown>;
+        const w = window as unknown as Record<string, unknown>;
         const chrome = w.chrome as Record<string, unknown> | undefined;
         if (!chrome)
           return fail("chrome_obj", false, 0, "window.chrome is missing");
@@ -97,7 +97,7 @@ export const automationSignals: SignalDefinition[] = [
         "domAutomationController",
       ];
       try {
-        const w = window as Record<string, unknown>;
+        const w = window as unknown as Record<string, unknown>;
         const found = markers.filter((m) => m in w);
         if (found.length > 0)
           return fail(
@@ -233,7 +233,7 @@ export const automationSignals: SignalDefinition[] = [
     weight: 0.07,
     collect: () => {
       try {
-        const w = window as Record<string, unknown>;
+        const w = window as unknown as Record<string, unknown>;
         const chrome = w.chrome as Record<string, unknown> | undefined;
         if (!chrome || !("runtime" in chrome))
           return fail(
