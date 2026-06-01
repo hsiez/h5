@@ -1,0 +1,90 @@
+import { chromium } from "playwright";
+
+const TARGET_URL = process.argv[2] || "http://localhost:3001/vibe-check";
+const mode = process.argv.includes("--browserbase") ? "browserbase" : "local";
+const headed = process.argv.includes("--headed");
+
+async function launchLocal() {
+  const browser = await chromium.launch({ headless: !headed });
+  const page = await browser.newPage();
+  return { browser, page, label: headed ? "Local (headed)" : "Local (headless)" };
+}
+
+async function launchBrowserbase() {
+  const apiKey = process.env.BROWSERBASE_API_KEY;
+  const projectId = process.env.BROWSERBASE_PROJECT_ID;
+  if (!apiKey || !projectId) {
+    console.error(
+      "Set BROWSERBASE_API_KEY and BROWSERBASE_PROJECT_ID env vars.\n" +
+        "Example: BROWSERBASE_API_KEY=xxx BROWSERBASE_PROJECT_ID=yyy node scripts/vibe-check-test.mjs --browserbase",
+    );
+    process.exit(1);
+  }
+
+  const res = await fetch("https://api.browserbase.com/v1/sessions", {
+    method: "POST",
+    headers: {
+      "x-bb-api-key": apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ projectId }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`Browserbase session creation failed (${res.status}): ${body}`);
+    process.exit(1);
+  }
+
+  const session = await res.json();
+  const wsUrl = `wss://connect.browserbase.com?apiKey=${apiKey}&sessionId=${session.id}`;
+
+  console.log(`Browserbase session: ${session.id}`);
+  const browser = await chromium.connectOverCDP(wsUrl);
+  const context = browser.contexts()[0];
+  const page = context.pages()[0] || (await context.newPage());
+  return { browser, page, label: "Browserbase" };
+}
+
+async function run() {
+  const { browser, page, label } =
+    mode === "browserbase" ? await launchBrowserbase() : await launchLocal();
+
+  console.log(`\nRunner: ${label}`);
+  console.log(`Target: ${TARGET_URL}\n`);
+
+  await page.goto(TARGET_URL, { waitUntil: "networkidle" });
+  await page.waitForSelector("#vibe-result", { state: "attached", timeout: 30000 });
+
+  const json = await page.$eval("#vibe-result", (el) => el.textContent);
+  const scorecard = JSON.parse(json);
+
+  console.log("=== Vibe Check Results ===\n");
+  console.log(`Composite: ${scorecard.composite}/100`);
+  console.log(`Verdict:   ${scorecard.verdict}`);
+  console.log(`UA:        ${scorecard.userAgent.slice(0, 80)}`);
+
+  for (const layer of scorecard.layers) {
+    console.log(`\n--- ${layer.name} (${layer.score}/100) ---`);
+    for (const sig of layer.signals) {
+      const icon = sig.score >= 80 ? "✓" : sig.score >= 40 ? "~" : "✗";
+      const val =
+        typeof sig.rawValue === "object"
+          ? JSON.stringify(sig.rawValue)
+          : String(sig.rawValue ?? "—");
+      console.log(
+        `  ${icon} ${sig.id.padEnd(24)} ${String(sig.score).padStart(3)}/100  ${sig.detail || val}`,
+      );
+    }
+  }
+
+  console.log("\n=== Full JSON ===\n");
+  console.log(JSON.stringify(scorecard, null, 2));
+
+  await browser.close();
+}
+
+run().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
