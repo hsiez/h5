@@ -1,5 +1,5 @@
 export type Verdict = "human" | "likely_human" | "likely_bot" | "bot";
-export type SignalCategory = "automation" | "fingerprint";
+export type SignalCategory = "automation" | "fingerprint" | "behavior";
 export type SignalStatus = "pending" | "complete" | "error";
 
 export interface SignalResult {
@@ -15,7 +15,7 @@ export interface SignalDefinition {
   name: string;
   description: string;
   category: SignalCategory;
-  layer: 1 | 2;
+  layer: 1 | 2 | 4;
   weight: number;
   collect: (prior?: SignalResult[]) => Promise<SignalResult> | SignalResult;
 }

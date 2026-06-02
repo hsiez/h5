@@ -1,8 +1,12 @@
 import { chromium } from "playwright";
 
-const TARGET_URL = process.argv[2] || "http://localhost:3001/vibe-check";
-const mode = process.argv.includes("--browserbase") ? "browserbase" : "local";
-const headed = process.argv.includes("--headed");
+const args = process.argv.slice(2);
+const TARGET_URL =
+  args.find((arg) => !arg.startsWith("--")) ||
+  process.env.VIBE_CHECK_URL ||
+  "http://localhost:3002/vibe-check";
+const mode = args.includes("--browserbase") ? "browserbase" : "local";
+const headed = args.includes("--headed");
 
 async function launchLocal() {
   const browser = await chromium.launch({ headless: !headed });
@@ -54,6 +58,7 @@ async function run() {
   console.log(`Target: ${TARGET_URL}\n`);
 
   await page.goto(TARGET_URL, { waitUntil: "networkidle" });
+  await completeBehaviorChallenge(page);
   await page.waitForSelector("#vibe-result", { state: "attached", timeout: 30000 });
 
   const json = await page.$eval("#vibe-result", (el) => el.textContent);
@@ -82,6 +87,42 @@ async function run() {
   console.log(JSON.stringify(scorecard, null, 2));
 
   await browser.close();
+}
+
+async function completeBehaviorChallenge(page) {
+  const area = page.locator("[data-vibe-challenge-area]");
+  const marker = page.locator("[data-vibe-challenge-marker]");
+
+  await area.waitFor({ state: "visible", timeout: 30000 });
+  await marker.waitFor({ state: "visible", timeout: 30000 });
+  await marker.scrollIntoViewIfNeeded();
+
+  const areaBox = await area.boundingBox();
+  const markerBox = await marker.boundingBox();
+  if (!areaBox || !markerBox) {
+    throw new Error("Could not locate behavior challenge geometry");
+  }
+
+  const startX = markerBox.x + markerBox.width / 2;
+  const startY = markerBox.y + markerBox.height / 2;
+  const targetX = areaBox.x + areaBox.width * 0.78;
+  const targetY = areaBox.y + areaBox.height * 0.34;
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+
+  const steps = 18;
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const ease = t * t * (3 - 2 * t);
+    const wave = Math.sin(t * Math.PI) * 18;
+    const x = startX + (targetX - startX) * ease;
+    const y = startY + (targetY - startY) * ease + wave;
+    await page.mouse.move(x, y);
+    await page.waitForTimeout(18 + (i % 4) * 7);
+  }
+
+  await page.mouse.up();
 }
 
 run().catch((e) => {
