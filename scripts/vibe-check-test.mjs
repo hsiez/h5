@@ -105,23 +105,33 @@ async function completeBehaviorChallenge(page) {
 
   const startX = markerBox.x + markerBox.width / 2;
   const startY = markerBox.y + markerBox.height / 2;
-  const targetX = areaBox.x + areaBox.width * 0.78;
-  const targetY = areaBox.y + areaBox.height * 0.34;
+  const gates = [
+    { x: areaBox.x + areaBox.width * 0.34, y: areaBox.y + areaBox.height * 0.42 },
+    { x: areaBox.x + areaBox.width * 0.56, y: areaBox.y + areaBox.height * 0.66 },
+    { x: areaBox.x + areaBox.width * 0.78, y: areaBox.y + areaBox.height * 0.34 },
+  ];
 
   await page.mouse.move(startX, startY);
   await page.mouse.down();
 
-  const steps = 18;
-  for (let i = 1; i <= steps; i++) {
-    const t = i / steps;
-    const ease = t * t * (3 - 2 * t);
-    const wave = Math.sin(t * Math.PI) * 18;
-    const x = startX + (targetX - startX) * ease;
-    const y = startY + (targetY - startY) * ease + wave;
-    await page.mouse.move(x, y);
-    await page.waitForTimeout(18 + (i % 4) * 7);
+  let current = { x: startX, y: startY };
+  for (const gate of gates) {
+    const steps = 12;
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const ease = t * t * (3 - 2 * t);
+      const x = current.x + (gate.x - current.x) * ease;
+      const y = current.y + (gate.y - current.y) * ease;
+      await page.mouse.move(x, y);
+      await page.waitForTimeout(18 + (i % 4) * 7);
+    }
+    current = gate;
   }
 
+  for (let i = 0; i < 12; i++) {
+    await page.mouse.move(current.x, current.y);
+    await page.waitForTimeout(85);
+  }
   await page.mouse.up();
 }
 

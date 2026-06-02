@@ -73,10 +73,22 @@ export function scoreComposite(layers: LayerScore[]): VibeCheckScorecard {
     ) &&
     behaviorLayer.signals.some(
       (signal) =>
+        signal.id === "interaction_control" &&
+        signal.status === "complete" &&
+        signal.score >= 90,
+    ) &&
+    (behaviorLayer.signals.some(
+      (signal) =>
         signal.id === "pointer_path_shape" &&
         signal.status === "complete" &&
-        signal.score <= 35,
-    );
+        signal.score <= 50,
+    ) ||
+      behaviorLayer.signals.some(
+        (signal) =>
+          signal.id === "hold_steadiness" &&
+          signal.status === "complete" &&
+          signal.score <= 45,
+      ));
   const composite = hardAutomationFail
     ? Math.min(rawComposite, 35)
     : behaviorFail

@@ -14,9 +14,21 @@ interface Point {
   t: number;
 }
 
-const START = { x: 0.18, y: 0.68 };
-const TARGET = { x: 0.78, y: 0.34 };
-const HIT_RADIUS = 28;
+interface RatioPoint {
+  x: number;
+  y: number;
+}
+
+const START: RatioPoint = { x: 0.14, y: 0.72 };
+const GATES: RatioPoint[] = [
+  { x: 0.34, y: 0.42 },
+  { x: 0.56, y: 0.66 },
+  { x: 0.78, y: 0.34 },
+];
+const HOLD_MS = 900;
+const GATE_RADIUS = 26;
+const HOLD_RADIUS = 30;
+const CORRIDOR_TOLERANCE = 54;
 
 export function BehaviorChallenge({
   disabled,
@@ -31,16 +43,28 @@ export function BehaviorChallenge({
   const areaRef = useRef<HTMLDivElement>(null);
   const loadTimeRef = useRef(0);
   const dragStartRef = useRef(0);
+  const holdStartRef = useRef<number | null>(null);
+  const holdTimerRef = useRef<number | null>(null);
   const samplesRef = useRef<Point[]>([]);
+  const holdSamplesRef = useRef<Point[]>([]);
   const pointerTypeRef = useRef("unknown");
   const draggingRef = useRef(false);
-  const [phase, setPhase] = useState<"ready" | "dragging" | "missed" | "done">(
+  const gateIndexRef = useRef(0);
+  const boundaryViolationsRef = useRef(0);
+  const [phase, setPhase] = useState<"ready" | "dragging" | "holding" | "missed" | "done">(
     "ready",
   );
   const [marker, setMarker] = useState(START);
+  const [gateIndex, setGateIndex] = useState(0);
+  const [holdProgress, setHoldProgress] = useState(0);
 
   useEffect(() => {
     loadTimeRef.current = performance.now();
+    return () => {
+      if (holdTimerRef.current !== null) {
+        window.clearInterval(holdTimerRef.current);
+      }
+    };
   }, []);
 
   function toPoint(event: React.PointerEvent): Point | null {
@@ -51,7 +75,7 @@ export function BehaviorChallenge({
     return { x, y, t: performance.now() };
   }
 
-  function pointToRatio(point: Point): { x: number; y: number } {
+  function pointToRatio(point: Point): RatioPoint {
     const rect = areaRef.current?.getBoundingClientRect();
     if (!rect) return START;
     return {
@@ -60,22 +84,12 @@ export function BehaviorChallenge({
     };
   }
 
-  function targetPoint(): Point | null {
+  function ratioToPoint(ratio: RatioPoint): Point | null {
     const rect = areaRef.current?.getBoundingClientRect();
     if (!rect) return null;
     return {
-      x: rect.width * TARGET.x,
-      y: rect.height * TARGET.y,
-      t: performance.now(),
-    };
-  }
-
-  function startPoint(): Point | null {
-    const rect = areaRef.current?.getBoundingClientRect();
-    if (!rect) return null;
-    return {
-      x: rect.width * START.x,
-      y: rect.height * START.y,
+      x: rect.width * ratio.x,
+      y: rect.height * ratio.y,
       t: performance.now(),
     };
   }
@@ -86,10 +100,15 @@ export function BehaviorChallenge({
     if (!point) return;
 
     event.currentTarget.setPointerCapture(event.pointerId);
+    resetHold();
     dragStartRef.current = point.t;
     samplesRef.current = [point];
+    holdSamplesRef.current = [];
     pointerTypeRef.current = event.pointerType || "unknown";
     draggingRef.current = true;
+    gateIndexRef.current = 0;
+    boundaryViolationsRef.current = 0;
+    setGateIndex(0);
     setPhase("dragging");
     setMarker(pointToRatio(point));
     onProgress(0.05);
@@ -98,41 +117,51 @@ export function BehaviorChallenge({
   function handlePointerMove(event: React.PointerEvent<HTMLButtonElement>) {
     if (!draggingRef.current) return;
     const point = toPoint(event);
-    const target = targetPoint();
-    const start = startPoint();
-    if (!point || !target || !start) return;
+    if (!point) return;
 
     samplesRef.current.push(point);
     setMarker(pointToRatio(point));
-    onProgress(progressTowardTarget(point, target, start));
+
+    const currentGate = ratioToPoint(GATES[gateIndexRef.current]);
+    const finalGate = ratioToPoint(GATES[GATES.length - 1]);
+    if (!currentGate || !finalGate) return;
+
+    if (!isWithinCorridor(point)) {
+      boundaryViolationsRef.current++;
+    }
+
+    if (distance(point, currentGate) <= GATE_RADIUS) {
+      const nextGate = Math.min(gateIndexRef.current + 1, GATES.length);
+      gateIndexRef.current = nextGate;
+      setGateIndex(nextGate);
+    }
+
+    if (gateIndexRef.current >= GATES.length && distance(point, finalGate) <= HOLD_RADIUS) {
+      if (holdStartRef.current === null) {
+        holdStartRef.current = point.t;
+        holdSamplesRef.current = [point];
+        setPhase("holding");
+        startHoldTimer();
+      } else {
+        holdSamplesRef.current.push(point);
+      }
+    } else {
+      resetHold();
+      setPhase("dragging");
+    }
+
+    onProgress(progressFromState(point, finalGate));
   }
 
   function handlePointerUp(event: React.PointerEvent<HTMLButtonElement>) {
     if (!draggingRef.current) return;
     draggingRef.current = false;
     const point = toPoint(event);
-    const target = targetPoint();
-    if (!point || !target) return;
+    if (!point) return;
 
     samplesRef.current.push(point);
     setMarker(pointToRatio(point));
-
-    const metrics = buildMetrics(
-      samplesRef.current,
-      target,
-      pointerTypeRef.current,
-      dragStartRef.current - loadTimeRef.current,
-    );
-
-    if (!metrics.completed) {
-      setPhase("missed");
-      onProgress(0);
-      return;
-    }
-
-    setPhase("done");
-    onProgress(1);
-    onComplete(scoreBehavior(metrics));
+    finishInteraction(point);
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
@@ -144,7 +173,7 @@ export function BehaviorChallenge({
     const metrics: BehaviorMetrics = {
       completed: true,
       pointerType: "keyboard",
-      durationMs: 1000,
+      durationMs: 2200,
       startDelayMs: now - loadTimeRef.current,
       sampleCount: 0,
       pathLength: 0,
@@ -153,22 +182,125 @@ export function BehaviorChallenge({
       meanSpeed: 0,
       speedVariation: 0,
       targetDistance: 0,
+      gatesPassed: GATES.length,
+      totalGates: GATES.length,
+      boundaryViolations: 0,
+      holdDurationMs: HOLD_MS,
+      holdSampleCount: 0,
+      holdDrift: 0,
     };
 
+    resetHold();
     setPhase("done");
-    setMarker(TARGET);
+    setGateIndex(GATES.length);
+    setMarker(GATES[GATES.length - 1]);
+    setHoldProgress(1);
     onProgress(1);
     onComplete(scoreBehavior(metrics));
+  }
+
+  function finishInteraction(point: Point) {
+    const finalGate = ratioToPoint(GATES[GATES.length - 1]);
+    if (!finalGate) return;
+
+    const holdDurationMs =
+      holdStartRef.current === null ? 0 : Math.max(0, point.t - holdStartRef.current);
+    const completed =
+      gateIndexRef.current >= GATES.length &&
+      holdDurationMs >= HOLD_MS &&
+      distance(point, finalGate) <= HOLD_RADIUS;
+
+    const metrics = buildMetrics(
+      samplesRef.current,
+      finalGate,
+      pointerTypeRef.current,
+      dragStartRef.current - loadTimeRef.current,
+      {
+        completed,
+        gatesPassed: gateIndexRef.current,
+        boundaryViolations: boundaryViolationsRef.current,
+        holdDurationMs,
+        holdSamples: holdSamplesRef.current,
+      },
+    );
+
+    resetHold();
+
+    if (!metrics.completed) {
+      setPhase("missed");
+      onProgress(0);
+      return;
+    }
+
+    setPhase("done");
+    setHoldProgress(1);
+    onProgress(1);
+    onComplete(scoreBehavior(metrics));
+  }
+
+  function isWithinCorridor(point: Point): boolean {
+    const route = [START, ...GATES].map((ratio) => ratioToPoint(ratio));
+    if (route.some((routePoint) => routePoint === null)) return true;
+    const points = route as Point[];
+
+    let minDistance = Number.POSITIVE_INFINITY;
+    for (let i = 1; i < points.length; i++) {
+      minDistance = Math.min(
+        minDistance,
+        distanceToSegment(point, points[i - 1], points[i]),
+      );
+    }
+    return minDistance <= CORRIDOR_TOLERANCE;
+  }
+
+  function startHoldTimer() {
+    if (holdTimerRef.current !== null) return;
+    holdTimerRef.current = window.setInterval(() => {
+      const startedAt = holdStartRef.current;
+      if (startedAt === null) return;
+      const elapsed = performance.now() - startedAt;
+      setHoldProgress(Math.min(1, elapsed / HOLD_MS));
+    }, 50);
+  }
+
+  function resetHold() {
+    holdStartRef.current = null;
+    setHoldProgress(0);
+    if (holdTimerRef.current !== null) {
+      window.clearInterval(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+  }
+
+  function progressFromState(point: Point, finalGate: Point): number {
+    const gateProgress = gateIndexRef.current / GATES.length;
+    const distanceProgress =
+      gateIndexRef.current >= GATES.length
+        ? 1
+        : Math.max(0, 1 - distance(point, finalGate) / pathStraightDistance());
+    return Math.min(
+      0.98,
+      0.1 + gateProgress * 0.62 + distanceProgress * 0.12 + holdProgress * 0.16,
+    );
+  }
+
+  function pathStraightDistance(): number {
+    const start = ratioToPoint(START);
+    const finalGate = ratioToPoint(GATES[GATES.length - 1]);
+    if (!start || !finalGate) return 1;
+    return Math.max(1, distance(start, finalGate));
   }
 
   const statusText =
     phase === "done"
       ? "Interaction captured"
       : phase === "missed"
-        ? "Target missed"
-        : disabled
-          ? "Waiting for browser checks"
-          : "Drag marker to target";
+        ? "Path incomplete"
+        : phase === "holding"
+          ? "Hold steady"
+          : disabled
+            ? "Waiting for browser checks"
+            : "Drag through the rings, then hold";
 
   return (
     <div className="rounded-lg border border-(--color-border) bg-(--color-surface) shadow-sm overflow-hidden">
@@ -190,19 +322,60 @@ export function BehaviorChallenge({
         <div
           ref={areaRef}
           data-vibe-challenge-area
-          className="relative h-[190px] overflow-hidden rounded-md border border-(--color-border-subtle) bg-(--color-background) touch-none select-none"
+          className="relative h-[220px] overflow-hidden rounded-md border border-(--color-border-subtle) bg-(--color-background) touch-none select-none"
         >
-          <div
-            data-vibe-challenge-target
-            className="absolute h-12 w-12 rounded-full border-2 border-[#16a34a] bg-[#16a34a]/10"
-            style={{
-              left: `calc(${TARGET.x * 100}% - 24px)`,
-              top: `calc(${TARGET.y * 100}% - 24px)`,
-            }}
-          />
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <polyline
+              points={[START, ...GATES]
+                .map((point) => `${point.x * 100},${point.y * 100}`)
+                .join(" ")}
+              fill="none"
+              stroke="var(--color-border)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray="4 4"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+
+          {GATES.map((gate, index) => {
+            const passed = gateIndex > index;
+            const final = index === GATES.length - 1;
+            return (
+              <div
+                key={`${gate.x}-${gate.y}`}
+                data-vibe-challenge-gate={index}
+                className={`absolute rounded-full border-2 ${
+                  passed
+                    ? "border-[#16a34a] bg-[#16a34a]/15"
+                    : "border-(--color-border) bg-(--color-surface-muted)"
+                }`}
+                style={{
+                  width: final ? 58 : 48,
+                  height: final ? 58 : 48,
+                  left: `calc(${gate.x * 100}% - ${final ? 29 : 24}px)`,
+                  top: `calc(${gate.y * 100}% - ${final ? 29 : 24}px)`,
+                }}
+              >
+                {final && (
+                  <div
+                    className="absolute inset-1 rounded-full bg-[#16a34a]/20"
+                    style={{ transform: `scale(${holdProgress})` }}
+                  />
+                )}
+              </div>
+            );
+          })}
+
           <motion.button
             type="button"
-            aria-label="Drag marker to target"
+            aria-label="Drag marker through rings and hold"
             data-vibe-challenge-marker
             disabled={disabled || phase === "done"}
             onPointerDown={handlePointerDown}
@@ -212,6 +385,7 @@ export function BehaviorChallenge({
             onPointerCancel={() => {
               if (draggingRef.current) {
                 draggingRef.current = false;
+                resetHold();
                 setPhase("ready");
                 setMarker(START);
                 onProgress(0);
@@ -240,6 +414,13 @@ function buildMetrics(
   target: Point,
   pointerType: string,
   startDelayMs: number,
+  extra: {
+    completed: boolean;
+    gatesPassed: number;
+    boundaryViolations: number;
+    holdDurationMs: number;
+    holdSamples: Point[];
+  },
 ): BehaviorMetrics {
   const first = samples[0] ?? target;
   const last = samples[samples.length - 1] ?? first;
@@ -261,9 +442,10 @@ function buildMetrics(
           ) / speeds.length,
         )
       : 0;
+  const holdDrift = averageDistance(extra.holdSamples, target);
 
   return {
-    completed: targetDistance <= HIT_RADIUS,
+    completed: extra.completed,
     pointerType,
     durationMs,
     startDelayMs,
@@ -275,14 +457,13 @@ function buildMetrics(
     meanSpeed,
     speedVariation: meanSpeed > 0 ? speedStdDev / meanSpeed : 0,
     targetDistance,
+    gatesPassed: extra.gatesPassed,
+    totalGates: GATES.length,
+    boundaryViolations: extra.boundaryViolations,
+    holdDurationMs: extra.holdDurationMs,
+    holdSampleCount: extra.holdSamples.length,
+    holdDrift,
   };
-}
-
-function progressTowardTarget(point: Point, target: Point, start: Point): number {
-  const startDistance = distance(start, target);
-  const currentDistance = distance(point, target);
-  if (startDistance <= 0) return 0.05;
-  return Math.max(0.05, Math.min(0.95, 1 - currentDistance / startDistance));
 }
 
 function pathDistance(samples: Point[]): number {
@@ -300,6 +481,30 @@ function segmentSpeeds(samples: Point[]): number[] {
     if (dt > 0) speeds.push((distance(samples[i - 1], samples[i]) / dt) * 1000);
   }
   return speeds;
+}
+
+function averageDistance(samples: Point[], target: Point): number {
+  if (samples.length === 0) return 0;
+  return (
+    samples.reduce((sum, sample) => sum + distance(sample, target), 0) /
+    samples.length
+  );
+}
+
+function distanceToSegment(point: Point, start: Point, end: Point): number {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared === 0) return distance(point, start);
+  const t = Math.max(
+    0,
+    Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared),
+  );
+  return distance(point, {
+    x: start.x + t * dx,
+    y: start.y + t * dy,
+    t: point.t,
+  });
 }
 
 function distance(a: Point, b: Point): number {

@@ -13,6 +13,12 @@ export interface BehaviorMetrics {
   meanSpeed: number;
   speedVariation: number;
   targetDistance: number;
+  gatesPassed: number;
+  totalGates: number;
+  boundaryViolations: number;
+  holdDurationMs: number;
+  holdSampleCount: number;
+  holdDrift: number;
 }
 
 function result(
@@ -86,6 +92,24 @@ export const behaviorSignals: SignalDefinition[] = [
     weight: 0.1,
     collect: () => inertCollect("time_to_interact"),
   },
+  {
+    id: "interaction_control",
+    name: "Control path",
+    description: "Scores ring order and corridor control during the challenge",
+    category: "behavior",
+    layer: 4,
+    weight: 0.2,
+    collect: () => inertCollect("interaction_control"),
+  },
+  {
+    id: "hold_steadiness",
+    name: "Hold steadiness",
+    description: "Scores final hold duration and micro-corrections",
+    category: "behavior",
+    layer: 4,
+    weight: 0.15,
+    collect: () => inertCollect("hold_steadiness"),
+  },
 ];
 
 export function scoreBehavior(metrics: BehaviorMetrics): LayerScore {
@@ -94,6 +118,8 @@ export function scoreBehavior(metrics: BehaviorMetrics): LayerScore {
   const pathScore = scorePath(metrics);
   const velocityScore = scoreVelocity(metrics);
   const startDelayScore = scoreStartDelay(metrics);
+  const controlScore = scoreControl(metrics);
+  const holdScore = scoreHold(metrics);
 
   const results: SignalResult[] = [
     result(
@@ -135,6 +161,26 @@ export function scoreBehavior(metrics: BehaviorMetrics): LayerScore {
       `Velocity variation ${round(metrics.speedVariation)}`,
     ),
     result(
+      "interaction_control",
+      {
+        gatesPassed: metrics.gatesPassed,
+        totalGates: metrics.totalGates,
+        boundaryViolations: metrics.boundaryViolations,
+      },
+      controlScore,
+      `${metrics.gatesPassed}/${metrics.totalGates} gates passed, ${metrics.boundaryViolations} corridor miss(es)`,
+    ),
+    result(
+      "hold_steadiness",
+      {
+        holdDurationMs: metrics.holdDurationMs,
+        holdSampleCount: metrics.holdSampleCount,
+        holdDrift: round(metrics.holdDrift),
+      },
+      holdScore,
+      `${Math.round(metrics.holdDurationMs)}ms hold, ${round(metrics.holdDrift)}px drift`,
+    ),
+    result(
       "time_to_interact",
       { startDelayMs: metrics.startDelayMs },
       startDelayScore,
@@ -147,7 +193,9 @@ export function scoreBehavior(metrics: BehaviorMetrics): LayerScore {
     metrics.completed &&
     metrics.pointerType !== "keyboard" &&
     metrics.sampleCount >= 8 &&
-    metrics.pathRatio < 1.015;
+    metrics.pathRatio < 1.08 &&
+    metrics.boundaryViolations === 0 &&
+    metrics.holdDrift < 4;
 
   return mechanicalDrag
     ? { ...layer, score: Math.min(layer.score, 55) }
@@ -175,8 +223,9 @@ function scoreSampling(metrics: BehaviorMetrics): number {
 function scorePath(metrics: BehaviorMetrics): number {
   if (metrics.pointerType === "keyboard") return 75;
   if (!metrics.completed || metrics.straightDistance <= 0) return 0;
-  if (metrics.pathRatio >= 1.04 && metrics.pathRatio <= 2.2) return 100;
-  if (metrics.pathRatio >= 1.015 && metrics.pathRatio < 1.04) return 75;
+  if (metrics.pathRatio >= 1.1 && metrics.pathRatio <= 2.2) return 100;
+  if (metrics.pathRatio >= 1.06 && metrics.pathRatio < 1.1) return 70;
+  if (metrics.pathRatio >= 1.015 && metrics.pathRatio < 1.06) return 50;
   if (metrics.pathRatio > 2.2 && metrics.pathRatio <= 3) return 70;
   if (metrics.pathRatio > 3) return 45;
   return 35;
@@ -190,6 +239,25 @@ function scoreVelocity(metrics: BehaviorMetrics): number {
   if (metrics.speedVariation >= 0.2) return 80;
   if (metrics.speedVariation >= 0.1) return 55;
   return 35;
+}
+
+function scoreControl(metrics: BehaviorMetrics): number {
+  if (metrics.pointerType === "keyboard") return 75;
+  if (metrics.totalGates <= 0) return 50;
+  const gateRatio = metrics.gatesPassed / metrics.totalGates;
+  let score = Math.round(gateRatio * 100);
+  score -= Math.min(40, metrics.boundaryViolations * 4);
+  return Math.max(0, score);
+}
+
+function scoreHold(metrics: BehaviorMetrics): number {
+  if (metrics.pointerType === "keyboard") return 75;
+  if (!metrics.completed && metrics.holdDurationMs < 500) return 20;
+  if (metrics.holdDurationMs < 700) return 45;
+  if (metrics.holdSampleCount < 4) return 40;
+  if (metrics.holdDrift <= 14) return 100;
+  if (metrics.holdDrift <= 24) return 75;
+  return 45;
 }
 
 function scoreStartDelay(metrics: BehaviorMetrics): number {
