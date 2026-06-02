@@ -43,6 +43,7 @@ export function scoreLayer(
 export function scoreComposite(layers: LayerScore[]): VibeCheckScorecard {
   const automation = layers.find((l) => l.layer === 1)?.score ?? 50;
   const fingerprint = layers.find((l) => l.layer === 2)?.score ?? 50;
+  const behaviorLayer = layers.find((l) => l.layer === 4);
   const behavior = layers.find((l) => l.layer === 4)?.score;
   const rawComposite =
     behavior === undefined
@@ -57,11 +58,32 @@ export function scoreComposite(layers: LayerScore[]): VibeCheckScorecard {
     ),
   );
   const behaviorFail = behavior !== undefined && behavior <= 35;
+  const mechanicalInteraction =
+    behaviorLayer?.signals.some(
+      (signal) =>
+        signal.id === "interaction_completion" &&
+        signal.status === "complete" &&
+        signal.score >= 80,
+    ) &&
+    behaviorLayer.signals.some(
+      (signal) =>
+        signal.id === "pointer_sampling" &&
+        signal.status === "complete" &&
+        signal.score >= 80,
+    ) &&
+    behaviorLayer.signals.some(
+      (signal) =>
+        signal.id === "pointer_path_shape" &&
+        signal.status === "complete" &&
+        signal.score <= 35,
+    );
   const composite = hardAutomationFail
     ? Math.min(rawComposite, 35)
     : behaviorFail
       ? Math.min(rawComposite, 50)
-      : rawComposite;
+      : mechanicalInteraction
+        ? Math.min(rawComposite, 69)
+        : rawComposite;
 
   return {
     version: "1.0",
