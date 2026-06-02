@@ -19,6 +19,8 @@ export interface BehaviorMetrics {
   holdDurationMs: number;
   holdSampleCount: number;
   holdDrift: number;
+  holdMovementRatio: number;
+  holdIntervalVariation: number;
 }
 
 function result(
@@ -103,8 +105,8 @@ export const behaviorSignals: SignalDefinition[] = [
   },
   {
     id: "hold_steadiness",
-    name: "Hold steadiness",
-    description: "Scores final hold duration and micro-corrections",
+    name: "Hold plausibility",
+    description: "Scores final hold duration without rewarding synthetic stillness",
     category: "behavior",
     layer: 4,
     weight: 0.15,
@@ -176,9 +178,11 @@ export function scoreBehavior(metrics: BehaviorMetrics): LayerScore {
         holdDurationMs: metrics.holdDurationMs,
         holdSampleCount: metrics.holdSampleCount,
         holdDrift: round(metrics.holdDrift),
+        holdMovementRatio: round(metrics.holdMovementRatio),
+        holdIntervalVariation: round(metrics.holdIntervalVariation),
       },
       holdScore,
-      `${Math.round(metrics.holdDurationMs)}ms hold, ${round(metrics.holdDrift)}px drift`,
+      holdDetail(metrics),
     ),
     result(
       "time_to_interact",
@@ -254,9 +258,21 @@ function scoreHold(metrics: BehaviorMetrics): number {
   if (metrics.pointerType === "keyboard") return 75;
   if (!metrics.completed && metrics.holdDurationMs < 500) return 20;
   if (metrics.holdDurationMs < 700) return 45;
-  if (metrics.holdSampleCount < 4) return 40;
-  if (metrics.holdDrift <= 14) return 100;
-  if (metrics.holdDrift <= 24) return 75;
+
+  if (metrics.holdSampleCount < 4) return 85;
+
+  const repeatedStillness =
+    metrics.holdSampleCount >= 8 &&
+    metrics.holdDrift < 4 &&
+    metrics.holdMovementRatio < 0.2;
+  const regularCadence =
+    metrics.holdSampleCount >= 8 && metrics.holdIntervalVariation < 0.12;
+
+  if (repeatedStillness && regularCadence) return 25;
+  if (repeatedStillness) return 45;
+  if (regularCadence) return 65;
+  if (metrics.holdDrift <= 18) return 100;
+  if (metrics.holdDrift <= 30) return 75;
   return 45;
 }
 
@@ -271,6 +287,34 @@ function completionDetail(metrics: BehaviorMetrics): string {
   if (!metrics.completed)
     return `Target missed by ${Math.round(metrics.targetDistance)}px`;
   return `Completed in ${Math.round(metrics.durationMs)}ms`;
+}
+
+function holdDetail(metrics: BehaviorMetrics): string {
+  const drift = round(metrics.holdDrift);
+  const movement = round(metrics.holdMovementRatio);
+  const cadence = round(metrics.holdIntervalVariation);
+  const base = `${Math.round(metrics.holdDurationMs)}ms hold, ${drift}px drift`;
+  if (metrics.pointerType === "keyboard") return `${base}, keyboard fallback`;
+  if (metrics.holdSampleCount < 4) return `${base}, sparse hold evidence`;
+  if (
+    metrics.holdSampleCount >= 8 &&
+    metrics.holdDrift < 4 &&
+    metrics.holdMovementRatio < 0.2 &&
+    metrics.holdIntervalVariation < 0.12
+  ) {
+    return `${base}, repeated stillness at regular cadence`;
+  }
+  if (
+    metrics.holdSampleCount >= 8 &&
+    metrics.holdDrift < 4 &&
+    metrics.holdMovementRatio < 0.2
+  ) {
+    return `${base}, repeated stillness`;
+  }
+  if (metrics.holdSampleCount >= 8 && metrics.holdIntervalVariation < 0.12) {
+    return `${base}, regular hold cadence`;
+  }
+  return `${base}, movement ${movement}, cadence ${cadence}`;
 }
 
 function round(value: number): number {
