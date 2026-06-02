@@ -104,20 +104,19 @@ export const fingerprintSignals: SignalDefinition[] = [
         const renderer = glCtx.getParameter(ext.UNMASKED_RENDERER_WEBGL);
         const vendor = glCtx.getParameter(ext.UNMASKED_VENDOR_WEBGL);
 
-        const headlessRenderers = [
+        const softwareRenderers = [
           "swiftshader",
           "llvmpipe",
-          "mesa",
           "softpipe",
-          "software",
+          "software rasterizer",
           "microsoft basic render",
         ];
         const rendererLower = (renderer || "").toLowerCase();
-        const isHeadless = headlessRenderers.some((h) =>
+        const isSoftware = softwareRenderers.some((h) =>
           rendererLower.includes(h),
         );
 
-        if (isHeadless)
+        if (isSoftware)
           return fail(
             "webgl_renderer",
             { renderer, vendor },
@@ -470,12 +469,12 @@ export const fingerprintSignals: SignalDefinition[] = [
 
         if (
           claimedOS === "mac" &&
-          (rendererLower.includes("mesa") ||
-            rendererLower.includes("llvmpipe"))
+          (rendererLower.includes("llvmpipe") ||
+            rendererLower.includes("softpipe"))
         ) {
           score -= 50;
           issues.push(
-            `UA claims macOS but renderer is Linux: ${renderer}`,
+            `UA claims macOS but renderer is Linux software: ${renderer}`,
           );
         }
         if (
