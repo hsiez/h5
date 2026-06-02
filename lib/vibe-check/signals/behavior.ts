@@ -142,7 +142,16 @@ export function scoreBehavior(metrics: BehaviorMetrics): LayerScore {
     ),
   ];
 
-  return scoreLayer(4, "Interaction Pattern", results, behaviorSignals);
+  const layer = scoreLayer(4, "Interaction Pattern", results, behaviorSignals);
+  const mechanicalDrag =
+    metrics.completed &&
+    metrics.pointerType !== "keyboard" &&
+    metrics.sampleCount >= 8 &&
+    metrics.pathRatio < 1.015;
+
+  return mechanicalDrag
+    ? { ...layer, score: Math.min(layer.score, 55) }
+    : layer;
 }
 
 function scoreCompletion(metrics: BehaviorMetrics): number {
