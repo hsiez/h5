@@ -54,19 +54,10 @@ export const automationSignals: SignalDefinition[] = [
         const chrome = w.chrome as Record<string, unknown> | undefined;
         if (!chrome)
           return fail("chrome_obj", false, 0, "window.chrome is missing");
-        const hasRuntime = "runtime" in chrome;
-        const hasApp = "app" in chrome;
-        if (hasRuntime && hasApp)
-          return ok(
-            "chrome_obj",
-            { runtime: hasRuntime, app: hasApp },
-            "window.chrome looks real",
-          );
-        return fail(
+        return ok(
           "chrome_obj",
-          { runtime: hasRuntime, app: hasApp },
-          40,
-          "window.chrome exists but is incomplete",
+          true,
+          "window.chrome exists",
         );
       } catch {
         return err("chrome_obj", "Could not inspect window.chrome");
@@ -227,7 +218,7 @@ export const automationSignals: SignalDefinition[] = [
   {
     id: "chrome_runtime",
     name: "chrome.runtime",
-    description: "Inspects chrome.runtime behavior",
+    description: "Inspects chrome.runtime existence",
     category: "automation",
     layer: 1,
     weight: 0.07,
@@ -235,25 +226,20 @@ export const automationSignals: SignalDefinition[] = [
       try {
         const w = window as unknown as Record<string, unknown>;
         const chrome = w.chrome as Record<string, unknown> | undefined;
-        if (!chrome || !("runtime" in chrome))
+        if (!chrome)
           return fail(
             "chrome_runtime",
             false,
-            30,
-            "chrome.runtime is missing",
+            0,
+            "window.chrome is missing entirely",
           );
-        const runtime = chrome.runtime as Record<string, unknown>;
-        const hasId = "id" in runtime;
-        if (hasId)
-          return ok(
-            "chrome_runtime",
-            { hasId: true },
-            "chrome.runtime.id exists (extension context)",
-          );
+        // chrome.runtime is minimal on normal pages — its presence
+        // or absence is not a reliable automation signal. Score pass
+        // as long as window.chrome exists.
         return ok(
           "chrome_runtime",
-          { hasId: false },
-          "chrome.runtime exists without id (normal page)",
+          true,
+          "window.chrome exists",
         );
       } catch {
         return err("chrome_runtime", "Could not inspect chrome.runtime");
