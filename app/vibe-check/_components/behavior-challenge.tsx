@@ -84,9 +84,9 @@ export function BehaviorChallenge({
     };
   }
 
-  function ratioToPoint(ratio: RatioPoint): Point | null {
+  function ratioToPoint(ratio: RatioPoint | undefined): Point | null {
     const rect = areaRef.current?.getBoundingClientRect();
-    if (!rect) return null;
+    if (!rect || !ratio) return null;
     return {
       x: rect.width * ratio.x,
       y: rect.height * ratio.y,
@@ -122,15 +122,15 @@ export function BehaviorChallenge({
     samplesRef.current.push(point);
     setMarker(pointToRatio(point));
 
-    const currentGate = ratioToPoint(GATES[gateIndexRef.current]);
     const finalGate = ratioToPoint(GATES[GATES.length - 1]);
-    if (!currentGate || !finalGate) return;
+    const currentGate = ratioToPoint(GATES[gateIndexRef.current]);
+    if (!finalGate) return;
 
     if (!isWithinCorridor(point)) {
       boundaryViolationsRef.current++;
     }
 
-    if (distance(point, currentGate) <= GATE_RADIUS) {
+    if (currentGate && distance(point, currentGate) <= GATE_RADIUS) {
       const nextGate = Math.min(gateIndexRef.current + 1, GATES.length);
       gateIndexRef.current = nextGate;
       setGateIndex(nextGate);
@@ -217,7 +217,7 @@ export function BehaviorChallenge({
       dragStartRef.current - loadTimeRef.current,
       {
         completed,
-        gatesPassed: gateIndexRef.current,
+        gatesPassed: Math.min(gateIndexRef.current, GATES.length),
         boundaryViolations: boundaryViolationsRef.current,
         holdDurationMs,
         holdSamples: holdSamplesRef.current,
