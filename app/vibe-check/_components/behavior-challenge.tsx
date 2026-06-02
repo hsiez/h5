@@ -188,6 +188,8 @@ export function BehaviorChallenge({
       holdDurationMs: HOLD_MS,
       holdSampleCount: 0,
       holdDrift: 0,
+      holdMovementRatio: 0,
+      holdIntervalVariation: 0,
     };
 
     resetHold();
@@ -443,6 +445,8 @@ function buildMetrics(
         )
       : 0;
   const holdDrift = averageDistance(extra.holdSamples, target);
+  const holdMovementRatio = movementRatio(extra.holdSamples, 0.5);
+  const holdIntervalVariation = intervalVariation(extra.holdSamples);
 
   return {
     completed: extra.completed,
@@ -463,6 +467,8 @@ function buildMetrics(
     holdDurationMs: extra.holdDurationMs,
     holdSampleCount: extra.holdSamples.length,
     holdDrift,
+    holdMovementRatio,
+    holdIntervalVariation,
   };
 }
 
@@ -489,6 +495,34 @@ function averageDistance(samples: Point[], target: Point): number {
     samples.reduce((sum, sample) => sum + distance(sample, target), 0) /
     samples.length
   );
+}
+
+function movementRatio(samples: Point[], thresholdPx: number): number {
+  if (samples.length < 2) return 0;
+  let moved = 0;
+  for (let i = 1; i < samples.length; i++) {
+    if (distance(samples[i - 1], samples[i]) >= thresholdPx) moved++;
+  }
+  return moved / (samples.length - 1);
+}
+
+function intervalVariation(samples: Point[]): number {
+  if (samples.length < 3) return 0;
+  const intervals: number[] = [];
+  for (let i = 1; i < samples.length; i++) {
+    const interval = samples[i].t - samples[i - 1].t;
+    if (interval > 0) intervals.push(interval);
+  }
+  if (intervals.length < 2) return 0;
+  const mean =
+    intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
+  if (mean <= 0) return 0;
+  const variance =
+    intervals.reduce(
+      (sum, interval) => sum + Math.pow(interval - mean, 2),
+      0,
+    ) / intervals.length;
+  return Math.sqrt(variance) / mean;
 }
 
 function distanceToSegment(point: Point, start: Point, end: Point): number {
