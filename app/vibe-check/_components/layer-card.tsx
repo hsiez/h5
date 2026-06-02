@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import type { LayerScore } from "@/lib/vibe-check/types";
 import { automationSignals } from "@/lib/vibe-check/signals/automation";
 import { fingerprintSignals } from "@/lib/vibe-check/signals/fingerprint";
+import { behaviorSignals } from "@/lib/vibe-check/signals/behavior";
 import { SignalRow } from "./signal-row";
 
 function barColor(score: number): string {
@@ -14,7 +15,10 @@ function barColor(score: number): string {
 }
 
 const signalNames = new Map(
-  [...automationSignals, ...fingerprintSignals].map((s) => [s.id, s.name]),
+  [...automationSignals, ...fingerprintSignals, ...behaviorSignals].map((s) => [
+    s.id,
+    s.name,
+  ]),
 );
 
 export function LayerCard({ layer }: { layer: LayerScore | null }) {

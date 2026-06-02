@@ -17,6 +17,14 @@ function err(id: string, detail: string): SignalResult {
   return { id, rawValue: null, score: 50, detail, status: "error" };
 }
 
+function claimsChromiumDesktop(): boolean {
+  const ua = navigator.userAgent;
+  const claimsChromium =
+    /\b(?:Chrome|Chromium|Edg|OPR)\//i.test(ua) && !/\b(?:CriOS|FxiOS)\//i.test(ua);
+  const isMobile = /Android|Mobile|iPhone|iPad|iPod/i.test(ua);
+  return claimsChromium && !isMobile;
+}
+
 export const automationSignals: SignalDefinition[] = [
   {
     id: "nav_webdriver",
@@ -44,20 +52,29 @@ export const automationSignals: SignalDefinition[] = [
   {
     id: "chrome_obj",
     name: "window.chrome",
-    description: "Checks for the Chrome browser object and sub-properties",
+    description:
+      "Checks whether Chromium-claiming desktop browsers expose window.chrome",
     category: "automation",
     layer: 1,
-    weight: 0.1,
+    weight: 0.06,
     collect: () => {
       try {
         const w = window as unknown as Record<string, unknown>;
         const chrome = w.chrome as Record<string, unknown> | undefined;
-        if (!chrome)
-          return fail("chrome_obj", false, 0, "window.chrome is missing");
+        const claimsChromium = claimsChromiumDesktop();
+        if (!chrome && claimsChromium)
+          return fail(
+            "chrome_obj",
+            { hasChromeObject: false, claimsChromium },
+            20,
+            "UA claims desktop Chromium but window.chrome is missing",
+          );
         return ok(
           "chrome_obj",
-          true,
-          "window.chrome exists",
+          { hasChromeObject: Boolean(chrome), claimsChromium },
+          chrome
+            ? "window.chrome exists"
+            : "Non-Chromium browser; window.chrome not expected",
         );
       } catch {
         return err("chrome_obj", "Could not inspect window.chrome");
@@ -106,17 +123,26 @@ export const automationSignals: SignalDefinition[] = [
   {
     id: "nav_plugins",
     name: "navigator.plugins",
-    description: "Checks if the browser has plugins installed",
+    description: "Soft check for plugin-list anomalies in Chromium browsers",
     category: "automation",
     layer: 1,
-    weight: 0.1,
+    weight: 0.03,
     collect: () => {
       try {
         const count = navigator.plugins.length;
-        if (count >= 3) return ok("nav_plugins", count, `${count} plugins`);
-        if (count > 0)
-          return fail("nav_plugins", count, 60, `Only ${count} plugin(s)`);
-        return fail("nav_plugins", 0, 0, "No plugins (empty array)");
+        const claimsChromium = claimsChromiumDesktop();
+        if (count === 0 && claimsChromium)
+          return fail(
+            "nav_plugins",
+            { count, claimsChromium },
+            70,
+            "Empty plugin list in desktop Chromium-like browser",
+          );
+        return ok(
+          "nav_plugins",
+          { count, claimsChromium },
+          `${count} plugin(s); plugin lists are weak modern signals`,
+        );
       } catch {
         return err("nav_plugins", "Could not read navigator.plugins");
       }
@@ -135,16 +161,30 @@ export const automationSignals: SignalDefinition[] = [
           name: "notifications",
         });
         const state = result.state;
-        if (state === "prompt")
-          return ok("nav_permissions", state, "Notifications prompt (normal)");
-        if (state === "denied")
+        const notificationPermission =
+          typeof Notification === "undefined"
+            ? "unavailable"
+            : Notification.permission;
+        const normalizedNotification =
+          notificationPermission === "default"
+            ? "prompt"
+            : notificationPermission;
+
+        if (
+          notificationPermission !== "unavailable" &&
+          normalizedNotification !== state
+        )
           return fail(
             "nav_permissions",
-            state,
-            60,
-            "Notifications denied (common in automation)",
+            { permissionsState: state, notificationPermission },
+            50,
+            "Permissions API and Notification.permission disagree",
           );
-        return ok("nav_permissions", state, `Notifications: ${state}`);
+        return ok(
+          "nav_permissions",
+          { permissionsState: state, notificationPermission },
+          `Notifications permission surfaces agree (${state})`,
+        );
       } catch {
         return err("nav_permissions", "Permissions API unavailable");
       }
@@ -156,7 +196,7 @@ export const automationSignals: SignalDefinition[] = [
     description: "Checks for headless markers in the user agent string",
     category: "automation",
     layer: 1,
-    weight: 0.08,
+    weight: 0.03,
     collect: () => {
       try {
         const ua = navigator.userAgent;
@@ -216,43 +256,12 @@ export const automationSignals: SignalDefinition[] = [
     },
   },
   {
-    id: "chrome_runtime",
-    name: "chrome.runtime",
-    description: "Inspects chrome.runtime existence",
-    category: "automation",
-    layer: 1,
-    weight: 0.07,
-    collect: () => {
-      try {
-        const w = window as unknown as Record<string, unknown>;
-        const chrome = w.chrome as Record<string, unknown> | undefined;
-        if (!chrome)
-          return fail(
-            "chrome_runtime",
-            false,
-            0,
-            "window.chrome is missing entirely",
-          );
-        // chrome.runtime is minimal on normal pages — its presence
-        // or absence is not a reliable automation signal. Score pass
-        // as long as window.chrome exists.
-        return ok(
-          "chrome_runtime",
-          true,
-          "window.chrome exists",
-        );
-      } catch {
-        return err("chrome_runtime", "Could not inspect chrome.runtime");
-      }
-    },
-  },
-  {
     id: "stack_trace_cdp",
     name: "Stack trace analysis",
     description: "Checks error stack traces for CDP injection patterns",
     category: "automation",
     layer: 1,
-    weight: 0.1,
+    weight: 0.04,
     collect: () => {
       try {
         const e = new Error("probe");
@@ -277,6 +286,72 @@ export const automationSignals: SignalDefinition[] = [
         return ok("stack_trace_cdp", null, "No CDP patterns in stack trace");
       } catch {
         return err("stack_trace_cdp", "Could not analyze stack trace");
+      }
+    },
+  },
+  {
+    id: "webdriver_descriptor",
+    name: "WebDriver descriptor",
+    description:
+      "Checks whether navigator.webdriver has been patched as an own property",
+    category: "automation",
+    layer: 1,
+    weight: 0.08,
+    collect: () => {
+      try {
+        const own = Object.getOwnPropertyDescriptor(navigator, "webdriver");
+        const proto = Object.getOwnPropertyDescriptor(
+          Navigator.prototype,
+          "webdriver",
+        );
+        const claimsChromium = claimsChromiumDesktop();
+        const getterString =
+          typeof proto?.get === "function"
+            ? Function.prototype.toString.call(proto.get)
+            : null;
+
+        if (own)
+          return fail(
+            "webdriver_descriptor",
+            {
+              hasOwnDescriptor: true,
+              hasPrototypeDescriptor: Boolean(proto),
+              claimsChromium,
+            },
+            20,
+            "navigator.webdriver is shadowed by an own property",
+          );
+        if (
+          claimsChromium &&
+          getterString !== null &&
+          !getterString.includes("[native code]")
+        )
+          return fail(
+            "webdriver_descriptor",
+            {
+              hasOwnDescriptor: false,
+              hasPrototypeDescriptor: Boolean(proto),
+              claimsChromium,
+            },
+            40,
+            "navigator.webdriver getter does not look native",
+          );
+        return ok(
+          "webdriver_descriptor",
+          {
+            hasOwnDescriptor: false,
+            hasPrototypeDescriptor: Boolean(proto),
+            claimsChromium,
+          },
+          proto
+            ? "navigator.webdriver descriptor is on the prototype"
+            : "navigator.webdriver descriptor not exposed in this browser",
+        );
+      } catch {
+        return err(
+          "webdriver_descriptor",
+          "Could not inspect navigator.webdriver descriptor",
+        );
       }
     },
   },

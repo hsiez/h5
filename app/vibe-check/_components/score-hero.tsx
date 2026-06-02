@@ -13,16 +13,16 @@ const RADIUS = 54;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 const VERDICT_STYLES: Record<Verdict, { label: string; className: string }> = {
-  human: { label: "Human", className: "bg-[#16a34a] text-white" },
+  human: { label: "Low Anomaly", className: "bg-[#16a34a] text-white" },
   likely_human: {
-    label: "Likely Human",
+    label: "Mostly Typical",
     className: "bg-[#d97706] text-white",
   },
   likely_bot: {
-    label: "Likely Bot",
+    label: "Suspicious",
     className: "bg-(--color-neutral-700) text-white",
   },
-  bot: { label: "Bot", className: "bg-[#dc2626] text-white" },
+  bot: { label: "Automation Likely", className: "bg-[#dc2626] text-white" },
 };
 
 function ringColor(score: number): string {
@@ -45,11 +45,7 @@ export function ScoreHero({
   const [displayed, setDisplayed] = useState(0);
 
   useEffect(() => {
-    if (score === null) return;
-    if (prefersReduced) {
-      setDisplayed(score);
-      return;
-    }
+    if (score === null || prefersReduced) return;
     const mv = motionValue(0);
     const unsub = mv.on("change", (v) => setDisplayed(Math.round(v)));
     const controls = animate(mv, score, {
@@ -67,6 +63,7 @@ export function ScoreHero({
   const dashOffset = CIRCUMFERENCE * (1 - displayProgress);
   const color = score !== null ? ringColor(score) : "var(--color-accent-500)";
   const verdictStyle = verdict ? VERDICT_STYLES[verdict] : null;
+  const displayedScore = prefersReduced && score !== null ? score : displayed;
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -107,7 +104,7 @@ export function ScoreHero({
             </span>
           ) : (
             <span className="text-4xl font-semibold text-(--color-text-primary) tabular-nums">
-              {displayed}
+              {displayedScore}
             </span>
           )}
         </div>

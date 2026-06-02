@@ -13,6 +13,13 @@ function verdictFromScore(score: number): Verdict {
   return "bot";
 }
 
+const HARD_AUTOMATION_IDS = new Set([
+  "nav_webdriver",
+  "cdp_bindings",
+  "webdriver_descriptor",
+  "fn_tostring_lie",
+]);
+
 export function scoreLayer(
   layerNum: number,
   name: string,
@@ -36,7 +43,25 @@ export function scoreLayer(
 export function scoreComposite(layers: LayerScore[]): VibeCheckScorecard {
   const automation = layers.find((l) => l.layer === 1)?.score ?? 50;
   const fingerprint = layers.find((l) => l.layer === 2)?.score ?? 50;
-  const composite = Math.round(0.5 * automation + 0.5 * fingerprint);
+  const behavior = layers.find((l) => l.layer === 4)?.score;
+  const rawComposite =
+    behavior === undefined
+      ? Math.round(0.5 * automation + 0.5 * fingerprint)
+      : Math.round(0.3 * automation + 0.35 * fingerprint + 0.35 * behavior);
+  const hardAutomationFail = layers.some((layer) =>
+    layer.signals.some(
+      (signal) =>
+        signal.status === "complete" &&
+        HARD_AUTOMATION_IDS.has(signal.id) &&
+        signal.score <= 20,
+    ),
+  );
+  const behaviorFail = behavior !== undefined && behavior <= 35;
+  const composite = hardAutomationFail
+    ? Math.min(rawComposite, 35)
+    : behaviorFail
+      ? Math.min(rawComposite, 50)
+      : rawComposite;
 
   return {
     version: "1.0",

@@ -74,7 +74,7 @@ export async function runVibeCheck(
   );
   const layer2 = scoreLayer(
     2,
-    "Environment Fingerprint",
+    "Environment Consistency",
     layer2Results,
     fingerprintSignals,
   );

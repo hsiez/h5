@@ -26,12 +26,28 @@ function djb2(str: string): string {
 }
 
 function parseOSFromUA(ua: string): string {
+  if (/iPhone|iPad/i.test(ua)) return "ios";
+  if (/Android/i.test(ua)) return "android";
   if (/Mac/i.test(ua)) return "mac";
   if (/Windows/i.test(ua)) return "windows";
   if (/Linux/i.test(ua)) return "linux";
-  if (/Android/i.test(ua)) return "android";
-  if (/iPhone|iPad/i.test(ua)) return "ios";
   return "unknown";
+}
+
+function normalizePlatform(value: string | undefined): string {
+  if (!value) return "unknown";
+  if (/mac/i.test(value)) return "mac";
+  if (/win/i.test(value)) return "windows";
+  if (/android/i.test(value)) return "android";
+  if (/ios|iphone|ipad/i.test(value)) return "ios";
+  if (/linux/i.test(value)) return "linux";
+  return "unknown";
+}
+
+interface NavigatorUADataLike {
+  brands?: Array<{ brand: string; version: string }>;
+  mobile?: boolean;
+  platform?: string;
 }
 
 export const fingerprintSignals: SignalDefinition[] = [
@@ -96,8 +112,8 @@ export const fingerprintSignals: SignalDefinition[] = [
           return fail(
             "webgl_renderer",
             null,
-            40,
-            "WEBGL_debug_renderer_info unavailable",
+            80,
+            "Renderer details unavailable; often caused by privacy settings",
           );
 
         const glCtx = gl as WebGLRenderingContext;
@@ -248,7 +264,7 @@ export const fingerprintSignals: SignalDefinition[] = [
     description: "Detects installed system fonts via width measurement",
     category: "fingerprint",
     layer: 2,
-    weight: 0.08,
+    weight: 0.03,
     collect: () => {
       try {
         const testFonts = [
@@ -304,14 +320,14 @@ export const fingerprintSignals: SignalDefinition[] = [
           return fail(
             "font_enum",
             detected,
-            60,
-            `Only ${detected.length} fonts detected`,
+            85,
+            `Only ${detected.length} distinctive fonts detected`,
           );
         return fail(
           "font_enum",
           detected,
-          20,
-          "No distinctive fonts detected",
+          75,
+          "No distinctive fonts detected; may be privacy protection",
         );
       } catch {
         return err("font_enum", "Font enumeration failed");
@@ -413,6 +429,72 @@ export const fingerprintSignals: SignalDefinition[] = [
         );
       } catch {
         return err("nav_props", "Could not read navigator properties");
+      }
+    },
+  },
+  {
+    id: "ua_client_hints",
+    name: "UA Client Hints",
+    description:
+      "Cross-checks navigator.userAgentData against the legacy user agent string",
+    category: "fingerprint",
+    layer: 2,
+    weight: 0.08,
+    collect: () => {
+      try {
+        const ua = navigator.userAgent;
+        const uaData = (navigator as Navigator & {
+          userAgentData?: NavigatorUADataLike;
+        }).userAgentData;
+
+        if (!uaData)
+          return ok(
+            "ua_client_hints",
+            { available: false },
+            "Client hints unavailable in this browser",
+          );
+
+        const uaOS = parseOSFromUA(ua);
+        const hintsOS = normalizePlatform(uaData.platform);
+        const uaMobile = /Android|Mobile|iPhone|iPad|iPod/i.test(ua);
+        const issues: string[] = [];
+        let score = 100;
+
+        if (uaOS !== "unknown" && hintsOS !== "unknown" && uaOS !== hintsOS) {
+          score -= 40;
+          issues.push(`UA OS ${uaOS} disagrees with hints ${hintsOS}`);
+        }
+
+        if (typeof uaData.mobile === "boolean" && uaData.mobile !== uaMobile) {
+          score -= 20;
+          issues.push(
+            `UA mobile=${uaMobile} disagrees with hints mobile=${uaData.mobile}`,
+          );
+        }
+
+        const rawValue = {
+          available: true,
+          uaOS,
+          hintsOS,
+          uaMobile,
+          hintsMobile: uaData.mobile ?? null,
+          brands: uaData.brands?.map((b) => b.brand) ?? [],
+        };
+
+        if (issues.length > 0)
+          return fail(
+            "ua_client_hints",
+            rawValue,
+            Math.max(0, score),
+            issues.join("; "),
+          );
+        return ok(
+          "ua_client_hints",
+          rawValue,
+          "Client hints are consistent with user agent",
+        );
+      } catch {
+        return err("ua_client_hints", "Could not inspect Client Hints");
       }
     },
   },
@@ -567,7 +649,7 @@ export const fingerprintSignals: SignalDefinition[] = [
           platform.includes("win") ||
           platform.includes("mac") ||
           platform.includes("linux");
-        if (isDesktopPlatform && touch > 5) {
+        if (isDesktopPlatform && touch > 20) {
           score -= 20;
           issues.push(
             `Desktop platform (${platform}) with ${touch} touch points`,
