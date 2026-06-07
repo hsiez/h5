@@ -3,7 +3,7 @@ import Image from "next/image";
 export default function Home() {
   return (
     <main className="flex flex-1 items-center justify-center bg-(--color-background) px-6 py-16">
-      <article className="max-w-xl">
+      <article className="max-w-2xl">
         <h1 className="mb-4 text-3xl font-normal italic">
           hey, i&apos;m harley
         </h1>
