@@ -59,7 +59,7 @@ export default function Home() {
           </p>
         </section>
 
-        <section className="clear-both pt-24" aria-labelledby="contributions">
+        <section className="clear-both pt-32" aria-labelledby="contributions">
           <h2
             id="contributions"
             className="mb-6 text-3xl font-normal italic"
