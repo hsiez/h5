@@ -23,7 +23,7 @@ export default function Home() {
             className="home-newspaper__portrait-outline"
           />
         </figure>
-        <p className="text-base leading-relaxed text-(--color-text-secondary)">
+        <p className="text-lg leading-relaxed text-(--color-text-secondary)">
           a builder based in <span className="seattle-word">seattle</span>.
           i&apos;ve been lucky enough to work on 0-to-1 teams, infrastructure
           for social programs, and beloved products with tons of users.
