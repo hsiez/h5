@@ -13,7 +13,7 @@ const CONTRIBUTIONS = [
   },
   {
     role: "Software engineer",
-    company: "Cobalt",
+    company: "Corbalt",
   },
   {
     role: "Software engineer",
