@@ -170,8 +170,8 @@ body {
 .home-newspaper__portrait {
   position: relative;
   float: right;
-  width: 12rem;
-  height: 9.125rem;
+  width: 14rem;
+  height: 10.625rem;
   margin: -12px 0 16px 4px;
   shape-outside: polygon(
     100% 10.73%,
@@ -229,8 +229,8 @@ body {
 
 @media (min-width: 48rem) {
   .home-newspaper__portrait {
-    width: 16rem;
-    height: 12.125rem;
+    width: 18rem;
+    height: 13.625rem;
   }
 }
 
