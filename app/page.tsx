@@ -80,7 +80,7 @@ export default function Home() {
         <section className="clear-both pt-16" aria-labelledby="contributions">
           <h2
             id="contributions"
-            className="mb-6 text-3xl font-normal italic"
+            className="mb-6 text-3xl font-normal"
           >
             contributions
           </h2>
@@ -102,7 +102,7 @@ export default function Home() {
         </section>
 
         <section className="pt-24" aria-labelledby="side-quests">
-          <h2 id="side-quests" className="mb-6 text-3xl font-normal italic">
+          <h2 id="side-quests" className="mb-6 text-3xl font-normal">
             side quests
           </h2>
           <ul className="border-t border-(--color-border-strong)">
