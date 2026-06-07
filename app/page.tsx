@@ -27,9 +27,9 @@ const CONTRIBUTIONS = [
 
 export default function Home() {
   return (
-    <main className="flex flex-1 justify-center bg-(--color-background) px-6 pb-16 pt-24">
+    <main className="flex flex-1 justify-center bg-(--color-background) px-6 pb-16">
       <article className="max-w-2xl">
-        <section>
+        <section className="flex min-h-screen flex-col justify-center py-16">
           <h1 className="mb-4 text-3xl font-normal italic">
             hey, i&apos;m harley
           </h1>
