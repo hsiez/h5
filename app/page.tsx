@@ -25,6 +25,21 @@ const CONTRIBUTIONS = [
   },
 ];
 
+const SIDE_QUESTS = [
+  {
+    name: "calm papers",
+    href: "https://h5.codes/papers",
+  },
+  {
+    name: "travel blog",
+    href: "https://www.siezar.com/travel/cdmx",
+  },
+  {
+    name: "Evals with Vercel Workflows",
+    href: "https://h5.codes/eval-wf",
+  },
+];
+
 export default function Home() {
   return (
     <main className="flex flex-1 justify-center bg-(--color-background) px-6 pb-16">
@@ -90,11 +105,28 @@ export default function Home() {
           <h2 id="side-quests" className="mb-6 text-3xl font-normal italic">
             side quests
           </h2>
-          <div className="border-t border-(--color-border-strong) pt-4">
-            <p className="text-lg text-(--color-text-tertiary)">
-              side projects coming soon.
-            </p>
-          </div>
+          <ul className="border-t border-(--color-border-strong)">
+            {SIDE_QUESTS.map(({ name, href }) => (
+              <li key={href} className="py-4">
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-baseline justify-between gap-6 text-lg text-(--color-text-primary)"
+                >
+                  <span className="group-hover:underline group-hover:underline-offset-4">
+                    {name}
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="text-(--color-text-tertiary)"
+                  >
+                    ↗
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
         </section>
       </article>
     </main>
