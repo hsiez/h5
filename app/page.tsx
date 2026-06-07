@@ -85,6 +85,17 @@ export default function Home() {
             ))}
           </ol>
         </section>
+
+        <section className="pt-24" aria-labelledby="side-quests">
+          <h2 id="side-quests" className="mb-6 text-3xl font-normal italic">
+            side quests
+          </h2>
+          <div className="border-t border-(--color-border-strong) pt-4">
+            <p className="text-lg text-(--color-text-tertiary)">
+              side projects coming soon.
+            </p>
+          </div>
+        </section>
       </article>
     </main>
   );
