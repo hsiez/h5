@@ -4,7 +4,6 @@ const CONTRIBUTIONS = [
   {
     role: "AI engineer",
     company: "Miro",
-    note: "currently",
   },
   {
     role: "AI engineer",
