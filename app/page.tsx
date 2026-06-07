@@ -66,7 +66,7 @@ export default function Home() {
           >
             contributions
           </h2>
-          <ol>
+          <ol className="border-t border-(--color-border-strong)">
             {CONTRIBUTIONS.map(({ role, company, note }) => (
               <li
                 key={company}
