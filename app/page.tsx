@@ -66,11 +66,11 @@ export default function Home() {
           >
             contributions
           </h2>
-          <ol className="border-t border-(--color-border-strong)">
+          <ol>
             {CONTRIBUTIONS.map(({ role, company, note }) => (
               <li
                 key={company}
-                className="grid gap-1 border-b border-(--color-border) py-4 sm:grid-cols-[1fr_auto] sm:items-baseline sm:gap-6"
+                className="grid gap-1 py-4 sm:grid-cols-[1fr_auto] sm:items-baseline sm:gap-6"
               >
                 <p className="text-lg text-(--color-text-primary)">
                   {role} at <span className="font-medium">{company}</span>
