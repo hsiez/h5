@@ -27,7 +27,7 @@ const CONTRIBUTIONS = [
 
 export default function Home() {
   return (
-    <main className="flex flex-1 items-center justify-center bg-(--color-background) px-6 py-16">
+    <main className="flex flex-1 justify-center bg-(--color-background) px-6 pb-16 pt-24">
       <article className="max-w-2xl">
         <section>
           <h1 className="mb-4 text-3xl font-normal italic">
