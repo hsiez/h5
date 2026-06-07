@@ -29,7 +29,7 @@ export default function Home() {
   return (
     <main className="flex flex-1 justify-center bg-(--color-background) px-6 pb-16">
       <article className="max-w-2xl">
-        <section className="flex min-h-screen flex-col justify-center py-16">
+        <section className="flex min-h-[calc(100svh-6rem)] flex-col justify-center py-16">
           <div>
             <h1 className="mb-4 text-3xl font-normal italic">
               hey, i&apos;m harley
@@ -62,7 +62,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="clear-both pt-32" aria-labelledby="contributions">
+        <section className="clear-both pt-16" aria-labelledby="contributions">
           <h2
             id="contributions"
             className="mb-6 text-3xl font-normal italic"
