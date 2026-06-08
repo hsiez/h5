@@ -81,7 +81,7 @@ export default function Home() {
           <h2 id="missions" className="mb-2 text-3xl font-normal">
             missions
           </h2>
-          <ol className="border-t border-(--color-border-strong)">
+          <ol className="border-t border-(--color-border-strong) pt-4">
             {MISSIONS.map(({ role, company, note }) => (
               <li
                 key={company}
@@ -105,7 +105,7 @@ export default function Home() {
           <h2 id="side-quests" className="mb-2 text-3xl font-normal">
             side quests
           </h2>
-          <ul className="border-t border-(--color-border-strong)">
+          <ul className="border-t border-(--color-border-strong) pt-4">
             {SIDE_QUESTS.map(({ name, href }) => (
               <li key={href} className="py-4">
                 <a
