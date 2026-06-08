@@ -78,7 +78,7 @@ export default function Home() {
         </section>
 
         <section className="clear-both pt-16" aria-labelledby="missions">
-          <h2 id="missions" className="mb-6 text-3xl font-normal">
+          <h2 id="missions" className="mb-2 text-3xl font-normal">
             missions
           </h2>
           <ol className="border-t border-(--color-border-strong)">
@@ -102,7 +102,7 @@ export default function Home() {
         </section>
 
         <section className="pt-24" aria-labelledby="side-quests">
-          <h2 id="side-quests" className="mb-6 text-3xl font-normal">
+          <h2 id="side-quests" className="mb-2 text-3xl font-normal">
             side quests
           </h2>
           <ul className="border-t border-(--color-border-strong)">
