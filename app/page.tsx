@@ -8,7 +8,7 @@ const MISSIONS = [
   {
     role: "AI engineer",
     company: "Reforge",
-    note: "acquired by Miro",
+    note: "acq. by Miro",
   },
   {
     role: "Software engineer",
@@ -21,7 +21,7 @@ const MISSIONS = [
   {
     role: "Software engineer",
     company: "Algorithmia",
-    note: "acquired by DataRobot",
+    note: "acq. by DataRobot",
   },
 ];
 
