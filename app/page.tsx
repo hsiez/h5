@@ -8,7 +8,7 @@ const MISSIONS = [
   {
     role: "AI engineer",
     company: "Reforge",
-    note: "acq. by Miro",
+    acquiredBy: "Miro",
   },
   {
     role: "Software engineer",
@@ -21,7 +21,7 @@ const MISSIONS = [
   {
     role: "Software engineer",
     company: "Algorithmia",
-    note: "acq. by DataRobot",
+    acquiredBy: "DataRobot",
   },
 ];
 
@@ -82,7 +82,7 @@ export default function Home() {
             missions
           </h2>
           <ol className="border-t border-(--color-border-strong) pt-4">
-            {MISSIONS.map(({ role, company, note }) => (
+            {MISSIONS.map(({ role, company, acquiredBy }) => (
               <li
                 key={company}
                 className="grid grid-cols-2 gap-6 py-4"
@@ -90,9 +90,12 @@ export default function Home() {
                 <p className="text-lg text-(--color-text-secondary)">{role}</p>
                 <p className="flex items-baseline gap-2 text-lg font-medium text-(--color-text-primary)">
                   <span>{company}</span>
-                  {note && (
+                  {acquiredBy && (
                     <span className="font-light text-(--color-text-tertiary)">
-                      {note}
+                      <span className="sm:hidden">acq.</span>
+                      <span className="hidden sm:inline">
+                        acq. by {acquiredBy}
+                      </span>
                     </span>
                   )}
                 </p>
