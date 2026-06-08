@@ -161,6 +161,79 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+.seattle-word {
+  color: #22a855;
+  -webkit-text-stroke: 3px #e6b800;
+  paint-order: stroke fill;
+}
+
+.home-newspaper__portrait {
+  position: relative;
+  float: right;
+  width: 14rem;
+  height: 10.625rem;
+  margin: -12px 0 16px 4px;
+  shape-outside: polygon(
+    100% 10.73%,
+    41.84% 10.73%,
+    35.74% 13.99%,
+    34.19% 17.26%,
+    33.26% 20.52%,
+    32.64% 23.78%,
+    31.71% 27.04%,
+    30.48% 30.3%,
+    27.58% 33.56%,
+    26.03% 36.82%,
+    26.34% 40.08%,
+    26.76% 43.34%,
+    27.58% 46.6%,
+    27.58% 49.86%,
+    28.51% 53.12%,
+    28.51% 56.39%,
+    28.51% 59.65%,
+    28.93% 62.91%,
+    28.72% 66.17%,
+    25.21% 69.43%,
+    21.59% 72.69%,
+    19.73% 75.95%,
+    18.49% 79.21%,
+    17.25% 82.47%,
+    16.22% 85.73%,
+    15.29% 88.99%,
+    14.57% 92.26%,
+    13.95% 95.52%,
+    13.74% 99.86%,
+    100% 99.86%
+  );
+  shape-margin: 8px;
+}
+
+.home-newspaper__portrait-image,
+.home-newspaper__portrait-outline {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.home-newspaper__portrait-image {
+  display: block;
+  transform: scale(0.96);
+}
+
+.home-newspaper__portrait-outline {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+@media (min-width: 48rem) {
+  .home-newspaper__portrait {
+    width: 18rem;
+    height: 13.625rem;
+  }
+}
+
 @keyframes bell-swing {
   0%, 100% { transform: rotate(0deg); }
   15% { transform: rotate(14deg); }
