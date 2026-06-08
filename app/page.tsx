@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-const CONTRIBUTIONS = [
+const MISSIONS = [
   {
     role: "AI engineer",
     company: "Miro",
@@ -77,25 +77,27 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="clear-both pt-16" aria-labelledby="contributions">
-          <h2
-            id="contributions"
-            className="mb-6 text-3xl font-normal"
-          >
-            contributions
+        <section className="clear-both pt-16" aria-labelledby="missions">
+          <h2 id="missions" className="mb-6 text-3xl font-normal">
+            missions
           </h2>
           <ol className="border-t border-(--color-border-strong)">
-            {CONTRIBUTIONS.map(({ role, company, note }) => (
+            {MISSIONS.map(({ role, company, note }) => (
               <li
                 key={company}
-                className="grid gap-1 py-4 sm:grid-cols-[1fr_auto] sm:items-baseline sm:gap-6"
+                className="grid grid-cols-2 gap-6 py-4"
               >
-                <p className="text-lg text-(--color-text-primary)">
-                  {role} at <span className="font-medium">{company}</span>
-                </p>
-                {note && (
-                  <p className="text-sm text-(--color-text-tertiary)">{note}</p>
-                )}
+                <p className="text-lg text-(--color-text-secondary)">{role}</p>
+                <div>
+                  <p className="text-lg font-medium text-(--color-text-primary)">
+                    {company}
+                  </p>
+                  {note && (
+                    <p className="text-sm text-(--color-text-tertiary)">
+                      {note}
+                    </p>
+                  )}
+                </div>
               </li>
             ))}
           </ol>
