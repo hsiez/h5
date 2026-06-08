@@ -91,7 +91,7 @@ export default function Home() {
                 <p className="flex items-baseline gap-2 text-lg font-medium text-(--color-text-primary)">
                   <span>{company}</span>
                   {note && (
-                    <span className="font-normal text-(--color-text-tertiary)">
+                    <span className="font-light text-(--color-text-tertiary)">
                       {note}
                     </span>
                   )}
