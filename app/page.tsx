@@ -88,16 +88,14 @@ export default function Home() {
                 className="grid grid-cols-2 gap-6 py-4"
               >
                 <p className="text-lg text-(--color-text-secondary)">{role}</p>
-                <div>
-                  <p className="text-lg font-medium text-(--color-text-primary)">
-                    {company}
-                  </p>
+                <p className="flex items-baseline gap-2 text-lg font-medium text-(--color-text-primary)">
+                  <span>{company}</span>
                   {note && (
-                    <p className="text-sm text-(--color-text-tertiary)">
+                    <span className="text-sm font-normal text-(--color-text-tertiary)">
                       {note}
-                    </p>
+                    </span>
                   )}
-                </div>
+                </p>
               </li>
             ))}
           </ol>
