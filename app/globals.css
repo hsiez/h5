@@ -163,7 +163,7 @@ body {
 
 .seattle-word {
   color: #22a855;
-  -webkit-text-stroke: 3px #e6b800;
+  -webkit-text-stroke: 5px #e6b800;
   paint-order: stroke fill;
 }
 

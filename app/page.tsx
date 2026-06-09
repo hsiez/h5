@@ -81,13 +81,12 @@ export default function Home() {
           <h2 id="missions" className="mb-2 text-3xl font-normal">
             missions
           </h2>
-          <ol className="border-t border-(--color-border-strong) pt-4">
+          <ol className="border-t border-(--color-border) pt-4">
             {MISSIONS.map(({ role, company, acquiredBy }) => (
               <li
                 key={company}
                 className="grid grid-cols-2 gap-6 py-4"
               >
-                <p className="text-lg text-(--color-text-secondary)">{role}</p>
                 <p className="flex items-baseline gap-2 text-lg font-medium text-(--color-text-primary)">
                   <span>{company}</span>
                   {acquiredBy && (
@@ -99,6 +98,7 @@ export default function Home() {
                     </span>
                   )}
                 </p>
+                <p className="text-lg text-(--color-text-secondary)">{role}</p>
               </li>
             ))}
           </ol>
@@ -108,14 +108,14 @@ export default function Home() {
           <h2 id="side-quests" className="mb-2 text-3xl font-normal">
             side quests
           </h2>
-          <ul className="border-t border-(--color-border-strong) pt-4">
+          <ul className="border-t border-(--color-border) pt-4">
             {SIDE_QUESTS.map(({ name, href }) => (
               <li key={href} className="py-4">
                 <a
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-baseline justify-between gap-6 text-lg text-(--color-text-primary)"
+                  className="group flex items-baseline gap-2 text-lg text-(--color-text-primary)"
                 >
                   <span className="group-hover:underline group-hover:underline-offset-4">
                     {name}
