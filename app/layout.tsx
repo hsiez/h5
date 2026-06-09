@@ -36,18 +36,18 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         {children}
         <footer className="flex justify-center px-6 pb-6 pt-32 sm:pb-8 sm:pt-40">
-          <div className="flex w-full max-w-2xl items-end justify-between gap-6">
+          <div className="flex w-full max-w-2xl items-end justify-between gap-4 sm:gap-6">
             <Image
               src="/h5-logo-sibling-02.png"
               alt="h5"
               width={958}
               height={964}
               loading="eager"
-              className="h-auto w-20 object-contain sm:w-22"
+              className="h-auto w-14 shrink-0 object-contain sm:w-18"
             />
             <nav
               aria-label="Footer links"
-              className="flex gap-4 pb-1 text-base text-(--color-text-secondary)"
+              className="flex shrink-0 gap-2 text-sm leading-none whitespace-nowrap text-(--color-text-secondary) sm:gap-4 sm:text-base"
             >
               <a
                 href="mailto:hey@h5.codes"
