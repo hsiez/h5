@@ -35,49 +35,49 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col font-sans">
         {children}
-        <footer className="flex justify-end px-6 pb-6 pt-16 sm:px-8 sm:pb-8">
-          <div className="footer-logo-easter-egg aspect-square w-28 sm:w-32">
+        <footer className="flex justify-center px-6 pb-6 pt-32 sm:pb-8 sm:pt-40">
+          <div className="flex w-full max-w-2xl items-end justify-between gap-6">
             <Image
-              src="/h5-logo-letterpress-green.png"
+              src="/h5-logo-sibling-02.png"
               alt="h5"
-              width={320}
-              height={320}
-              className="footer-logo-layer"
+              width={958}
+              height={964}
               loading="eager"
-              style={{ "--logo-delay": "0ms" } as React.CSSProperties}
+              className="h-auto w-20 object-contain sm:w-22"
             />
-            <Image
-              src="/h5-logo-letterpress.png"
-              alt=""
-              width={1254}
-              height={1254}
-              className="footer-logo-layer"
-              style={{ "--logo-delay": "1000ms" } as React.CSSProperties}
-            />
-            <Image
-              src="/h5-logo-ascii.png"
-              alt=""
-              width={320}
-              height={320}
-              className="footer-logo-layer"
-              style={{ "--logo-delay": "2000ms" } as React.CSSProperties}
-            />
-            <Image
-              src="/h5-logo-bayer-8x8.png"
-              alt=""
-              width={320}
-              height={320}
-              className="footer-logo-layer"
-              style={{ "--logo-delay": "3000ms" } as React.CSSProperties}
-            />
-            <Image
-              src="/h5-logo-dots.png"
-              alt=""
-              width={320}
-              height={320}
-              className="footer-logo-layer"
-              style={{ "--logo-delay": "4000ms" } as React.CSSProperties}
-            />
+            <nav
+              aria-label="Footer links"
+              className="flex gap-4 pb-1 text-base text-(--color-text-secondary)"
+            >
+              <a
+                href="mailto:hey@h5.codes"
+                className="hover:text-(--color-text-primary) hover:underline hover:underline-offset-4"
+              >
+                hey@h5.codes
+              </a>
+              <a
+                href="https://x.com/hadasie"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-(--color-text-primary) hover:underline hover:underline-offset-4"
+              >
+                x
+              </a>
+              <a
+                href="https://www.linkedin.com/in/harleysiezar"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-(--color-text-primary) hover:underline hover:underline-offset-4"
+              >
+                linkedin
+              </a>
+              <a
+                href="/resume-2026.pdf"
+                className="hover:text-(--color-text-primary) hover:underline hover:underline-offset-4"
+              >
+                resume
+              </a>
+            </nav>
           </div>
         </footer>
       </body>

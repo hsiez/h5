@@ -167,69 +167,6 @@ body {
   paint-order: stroke fill;
 }
 
-.section-divider {
-  position: relative;
-}
-
-.section-divider::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 8px;
-  background: url("/section-divider.svg") center / 100% 100% no-repeat;
-  pointer-events: none;
-}
-
-.footer-logo-easter-egg {
-  position: relative;
-  isolation: isolate;
-}
-
-.footer-logo-layer {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.footer-logo-layer:not(:first-child) {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  pointer-events: none;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .footer-logo-easter-egg {
-    cursor: crosshair;
-  }
-
-  .footer-logo-easter-egg:hover .footer-logo-layer {
-    animation: logo-print-proof 5s steps(1, end) infinite;
-    animation-delay: var(--logo-delay);
-    will-change: opacity;
-  }
-}
-
-@keyframes logo-print-proof {
-  0%, 19.99% {
-    opacity: 1;
-  }
-  20%, 100% {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) and (hover: hover) and (pointer: fine) {
-  .footer-logo-easter-egg:hover .footer-logo-layer {
-    animation: none;
-    will-change: auto;
-  }
-}
-
 .home-newspaper__portrait {
   position: relative;
   float: right;
