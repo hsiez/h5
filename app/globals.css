@@ -227,10 +227,43 @@ body {
   pointer-events: none;
 }
 
+.paper-soft-bleed-text {
+  text-shadow:
+    0 0 0.35px currentColor,
+    0.35px 0.25px 0.45px rgba(111, 112, 104, 0.22),
+    -0.3px 0.15px 0.4px rgba(111, 112, 104, 0.16);
+  filter: blur(0.12px);
+  mix-blend-mode: multiply;
+}
+
+.footer-logo-mark {
+  --footer-logo-width: 45px;
+  background-color: #e2e2da;
+  width: var(--footer-logo-width);
+  height: calc(var(--footer-logo-width) * 923 / 859);
+  mask-image: url("/h5-logo-letterpress-flat-black.png");
+  mask-position:
+    calc(var(--footer-logo-width) * -247 / 859)
+    calc(var(--footer-logo-width) * -131 / 859);
+  mask-repeat: no-repeat;
+  mask-size: calc(var(--footer-logo-width) * 1254 / 859);
+  -webkit-mask-image: url("/h5-logo-letterpress-flat-black.png");
+  -webkit-mask-position:
+    calc(var(--footer-logo-width) * -247 / 859)
+    calc(var(--footer-logo-width) * -131 / 859);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: calc(var(--footer-logo-width) * 1254 / 859);
+  mix-blend-mode: multiply;
+}
+
 @media (min-width: 48rem) {
   .home-newspaper__portrait {
     width: 18rem;
     height: 13.625rem;
+  }
+
+  .footer-logo-mark {
+    --footer-logo-width: 58px;
   }
 }
 

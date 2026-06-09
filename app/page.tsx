@@ -40,6 +40,21 @@ const SIDE_QUESTS = [
   },
 ];
 
+const SOCIAL_LINKS = [
+  {
+    label: "email",
+    href: "mailto:hey@h5.codes",
+  },
+  {
+    label: "twitter",
+    href: "https://x.com/hadasie",
+  },
+  {
+    label: "github",
+    href: "https://github.com/hsiez",
+  },
+];
+
 export default function Home() {
   return (
     <main className="flex flex-1 justify-center bg-(--color-background) px-6 pb-16">
@@ -74,6 +89,24 @@ export default function Home() {
               curiosity. here&apos;s to making impact and building relationships
               — cheers.
             </p>
+            <nav
+              aria-label="Social links"
+              className="mt-[18px] flex gap-4 text-sm text-(--color-text-secondary) sm:text-base"
+            >
+              {SOCIAL_LINKS.map(({ label, href }) => (
+                <a
+                  key={href}
+                  href={href}
+                  target={href.startsWith("http") ? "_blank" : undefined}
+                  rel={
+                    href.startsWith("http") ? "noopener noreferrer" : undefined
+                  }
+                  className="underline underline-offset-4 hover:text-(--color-text-primary)"
+                >
+                  {label}
+                </a>
+              ))}
+            </nav>
           </div>
         </section>
 
