@@ -2,26 +2,26 @@ import Image from "next/image";
 
 const MISSIONS = [
   {
-    role: "AI engineer",
-    company: "Miro",
+    role: "ai engineer",
+    company: "miro",
   },
   {
-    role: "AI engineer",
-    company: "Reforge",
-    acquiredBy: "Miro",
+    role: "ai engineer",
+    company: "reforge",
+    acquiredBy: "miro",
   },
   {
-    role: "Software engineer",
-    company: "Corbalt",
+    role: "software engineer",
+    company: "corbalt",
   },
   {
-    role: "Software engineer",
-    company: "DataRobot",
+    role: "software engineer",
+    company: "datarobot",
   },
   {
-    role: "Software engineer",
-    company: "Algorithmia",
-    acquiredBy: "DataRobot",
+    role: "software engineer",
+    company: "algorithmia",
+    acquiredBy: "datarobot",
   },
 ];
 
@@ -35,7 +35,7 @@ const SIDE_QUESTS = [
     href: "https://www.siezar.com/travel/cdmx",
   },
   {
-    name: "Evals with Vercel Workflows",
+    name: "evals with vercel workflows",
     href: "https://h5.codes/eval-wf",
   },
 ];
@@ -85,16 +85,13 @@ export default function Home() {
             {MISSIONS.map(({ role, company, acquiredBy }) => (
               <li
                 key={company}
-                className="grid grid-cols-2 gap-6 py-4"
+                className="grid gap-1 py-6 sm:grid-cols-2 sm:gap-6 sm:py-4"
               >
-                <p className="flex items-baseline gap-2 text-lg font-medium text-(--color-text-primary)">
+                <p className="flex items-baseline gap-4 text-lg font-medium text-(--color-text-primary) sm:inline-grid sm:w-fit sm:grid-cols-[6rem_auto]">
                   <span>{company}</span>
                   {acquiredBy && (
-                    <span className="font-light text-(--color-text-tertiary)">
-                      <span className="sm:hidden">acq.</span>
-                      <span className="hidden sm:inline">
-                        acq. by {acquiredBy}
-                      </span>
+                    <span className="rounded-sm bg-[#e2e2da] px-2 font-light text-[#6f7068]">
+                      acquired
                     </span>
                   )}
                 </p>
