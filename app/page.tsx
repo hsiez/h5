@@ -1,6 +1,25 @@
 import Image from "next/image";
 import { HoverVideo } from "./_components/hover-video";
 
+type SideQuestMedia =
+  | {
+      type: "image";
+      src: string;
+      alt: string;
+    }
+  | {
+      type: "video";
+      src: string;
+      poster: string;
+      alt: string;
+    };
+
+type SideQuest = {
+  name: string;
+  href: string;
+  media: SideQuestMedia;
+};
+
 const MISSIONS = [
   {
     role: "ai engineer",
@@ -26,7 +45,7 @@ const MISSIONS = [
   },
 ];
 
-const SIDE_QUESTS = [
+const SIDE_QUESTS: SideQuest[] = [
   {
     name: "calm papers",
     href: "https://h5.codes/papers",
@@ -42,6 +61,7 @@ const SIDE_QUESTS = [
     media: {
       type: "video",
       src: "/sidequest-travel.mp4",
+      poster: "/sidequest-travel-poster.jpg",
       alt: "Travel writing preview",
     },
   },
@@ -51,6 +71,7 @@ const SIDE_QUESTS = [
     media: {
       type: "video",
       src: "/sidequest-evals.mp4",
+      poster: "/sidequest-evals-poster.jpg",
       alt: "Evals workflow preview",
     },
   },
@@ -72,7 +93,6 @@ const SOCIAL_LINKS = [
 ];
 
 type Mission = (typeof MISSIONS)[number];
-type SideQuest = (typeof SIDE_QUESTS)[number];
 
 const PRESSABLE_PAPER_CLASS =
   "rounded-lg border border-[rgba(20,20,20,0.055)] bg-[#f5f5f1] shadow-[inset_0_2px_0_rgba(255,255,255,0.9),inset_2px_0_0_rgba(255,255,255,0.45),inset_-2px_0_0_rgba(255,255,255,0.28),0_1px_2px_rgba(20,20,20,0.05),0_12px_28px_-22px_rgba(20,20,20,0.45)]";
@@ -130,6 +150,7 @@ function SideQuestThumbnail({ media }: { media: SideQuest["media"] }) {
       {media.type === "video" ? (
         <HoverVideo
           src={media.src}
+          poster={media.poster}
           label={media.alt}
           className="h-full w-full object-cover"
         />
@@ -181,10 +202,12 @@ export default function Home() {
             </h1>
             <figure className="home-newspaper__portrait">
               <Image
-                src="/me-2.png"
+                src="/me-2-640.png"
                 alt="Harley Siezar"
-                width={968}
-                height={736}
+                width={640}
+                height={486}
+                sizes="(min-width: 48rem) 288px, 224px"
+                preload
                 className="home-newspaper__portrait-image"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
