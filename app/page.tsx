@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { HoverVideo } from "./_components/hover-video";
 
 const MISSIONS = [
   {
@@ -29,14 +30,29 @@ const SIDE_QUESTS = [
   {
     name: "calm papers",
     href: "https://h5.codes/papers",
+    media: {
+      type: "image",
+      src: "/og-papers.png",
+      alt: "Calm Papers preview",
+    },
   },
   {
     name: "travel blog",
     href: "https://www.siezar.com/travel/cdmx",
+    media: {
+      type: "video",
+      src: "/sidequest-travel.mp4",
+      alt: "Travel writing preview",
+    },
   },
   {
     name: "evals with vercel workflows",
     href: "https://h5.codes/eval-wf",
+    media: {
+      type: "video",
+      src: "/sidequest-evals.mp4",
+      alt: "Evals workflow preview",
+    },
   },
 ];
 
@@ -54,6 +70,105 @@ const SOCIAL_LINKS = [
     href: "https://github.com/hsiez",
   },
 ];
+
+type Mission = (typeof MISSIONS)[number];
+type SideQuest = (typeof SIDE_QUESTS)[number];
+
+const PRESSABLE_PAPER_CLASS =
+  "rounded-lg border border-[rgba(20,20,20,0.055)] bg-[#f5f5f1] shadow-[inset_0_2px_0_rgba(255,255,255,0.9),inset_2px_0_0_rgba(255,255,255,0.45),inset_-2px_0_0_rgba(255,255,255,0.28),0_1px_2px_rgba(20,20,20,0.05),0_12px_28px_-22px_rgba(20,20,20,0.45)]";
+
+function MissionRow({
+  role,
+  company,
+  acquiredBy,
+  isLast,
+}: Mission & { isLast: boolean }) {
+  return (
+    <li className="px-5 sm:px-6">
+      <div
+        className={`grid gap-2 py-4 sm:grid-cols-[1fr_auto] sm:items-center ${
+          isLast ? "" : "border-b border-[rgba(20,20,20,0.035)]"
+        }`}
+      >
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h3 className="text-lg font-medium text-(--color-text-primary)">
+            {company}
+          </h3>
+          {acquiredBy && (
+            <p className="rounded-sm border border-(--color-border) bg-(--color-surface-muted) px-2 text-sm text-(--color-text-tertiary)">
+              acquired by {acquiredBy}
+            </p>
+          )}
+        </div>
+        <p className="text-base text-(--color-text-secondary) sm:text-right">
+          {role}
+        </p>
+      </div>
+    </li>
+  );
+}
+
+function MissionsPanel() {
+  return (
+    <article className="rounded-lg border border-[rgba(20,20,20,0.045)] bg-[#fbfbf2] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+      <ol>
+        {MISSIONS.map((mission, index) => (
+          <MissionRow
+            key={mission.company}
+            {...mission}
+            isLast={index === MISSIONS.length - 1}
+          />
+        ))}
+      </ol>
+    </article>
+  );
+}
+
+function SideQuestThumbnail({ media }: { media: SideQuest["media"] }) {
+  return (
+    <div className="relative aspect-[16/9] overflow-hidden rounded-md border border-[rgba(20,20,20,0.055)] bg-(--color-surface-muted) shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]">
+      {media.type === "video" ? (
+        <HoverVideo
+          src={media.src}
+          label={media.alt}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <Image
+          src={media.src}
+          alt={media.alt}
+          fill
+          sizes="(min-width: 672px) 624px, calc(100vw - 88px)"
+          className="object-cover"
+        />
+      )}
+    </div>
+  );
+}
+
+function SideQuestRow({ name, href, media }: SideQuest) {
+  return (
+    <li>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`${PRESSABLE_PAPER_CLASS} flex flex-col gap-3 px-2 pb-4 pt-2 text-(--color-text-primary)`}
+      >
+        <SideQuestThumbnail media={media} />
+        <span className="flex items-baseline gap-2 pl-1">
+          <span className="min-w-0 text-base font-medium leading-6">{name}</span>
+          <span
+            aria-hidden="true"
+            className="shrink-0 text-base text-(--color-text-tertiary)"
+          >
+            ↗
+          </span>
+        </span>
+      </a>
+    </li>
+  );
+}
 
 export default function Home() {
   return (
@@ -111,53 +226,25 @@ export default function Home() {
         </section>
 
         <section className="clear-both pt-16" aria-labelledby="missions">
-          <h2 id="missions" className="mb-2 text-3xl font-normal">
+          <h2
+            id="missions"
+            className="mb-4 text-2xl font-normal text-(--color-text-secondary)"
+          >
             missions
           </h2>
-          <ol className="border-t border-(--color-border) pt-4">
-            {MISSIONS.map(({ role, company, acquiredBy }) => (
-              <li
-                key={company}
-                className="grid gap-1 py-6 sm:grid-cols-2 sm:gap-6 sm:py-4"
-              >
-                <p className="flex items-baseline gap-4 text-lg font-medium text-(--color-text-primary) sm:inline-grid sm:w-fit sm:grid-cols-[6rem_auto]">
-                  <span>{company}</span>
-                  {acquiredBy && (
-                    <span className="rounded-sm bg-[#e2e2da] px-2 font-light text-[#6f7068]">
-                      acquired
-                    </span>
-                  )}
-                </p>
-                <p className="text-lg text-(--color-text-secondary)">{role}</p>
-              </li>
-            ))}
-          </ol>
+          <MissionsPanel />
         </section>
 
         <section className="pt-24" aria-labelledby="side-quests">
-          <h2 id="side-quests" className="mb-2 text-3xl font-normal">
+          <h2
+            id="side-quests"
+            className="mb-4 text-2xl font-normal text-(--color-text-secondary)"
+          >
             side quests
           </h2>
-          <ul className="border-t border-(--color-border) pt-4">
-            {SIDE_QUESTS.map(({ name, href }) => (
-              <li key={href} className="py-4">
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-baseline gap-2 text-lg text-(--color-text-primary)"
-                >
-                  <span className="group-hover:underline group-hover:underline-offset-4">
-                    {name}
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    className="text-(--color-text-tertiary)"
-                  >
-                    ↗
-                  </span>
-                </a>
-              </li>
+          <ul className="grid gap-4">
+            {SIDE_QUESTS.map((sideQuest) => (
+              <SideQuestRow key={sideQuest.href} {...sideQuest} />
             ))}
           </ul>
         </section>
