@@ -111,12 +111,12 @@ function MissionRow({
         }`}
       >
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h3 className="text-lg font-medium text-(--color-text-primary)">
+          <h3 className="min-w-[7rem] text-lg font-normal text-(--color-text-primary)">
             {company}
           </h3>
           {acquiredBy && (
-            <p className="rounded-sm border border-(--color-border) bg-(--color-surface-muted) px-2 text-sm text-(--color-text-tertiary)">
-              acquired by {acquiredBy}
+            <p className="rounded-sm bg-(--color-surface-sunken) px-2 text-sm text-(--color-text-tertiary)">
+              acquired
             </p>
           )}
         </div>
@@ -222,10 +222,9 @@ export default function Home() {
               a builder based in <span className="seattle-word">seattle</span>.
               i&apos;ve been lucky enough to work on 0-to-1 teams,
               infrastructure for social programs, and beloved products with
-              tons of users. throughout that journey i&apos;ve confirmed the
-              most important ingredients in life are energy, care, and
-              curiosity. here&apos;s to making impact and building relationships
-              — cheers.
+              tons of users. i believe the most important ingredients in life
+              are energy, care, and curiosity. here&apos;s to making impact and
+              building relationships — cheers.
             </p>
             <nav
               aria-label="Social links"
@@ -248,20 +247,26 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="clear-both pt-16" aria-labelledby="missions">
+        <section
+          className="clear-both grid gap-y-4 pt-16"
+          aria-labelledby="missions"
+        >
           <h2
             id="missions"
-            className="mb-4 text-2xl font-normal text-(--color-text-secondary)"
+            className="heading-trace text-lg font-normal"
           >
             missions
           </h2>
           <MissionsPanel />
         </section>
 
-        <section className="pt-24" aria-labelledby="side-quests">
+        <section
+          className="grid gap-y-4 pt-24"
+          aria-labelledby="side-quests"
+        >
           <h2
             id="side-quests"
-            className="mb-4 text-2xl font-normal text-(--color-text-secondary)"
+            className="heading-trace heading-trace--alt text-lg font-normal"
           >
             side quests
           </h2>

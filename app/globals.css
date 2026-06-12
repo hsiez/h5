@@ -167,6 +167,35 @@ body {
   paint-order: stroke fill;
 }
 
+/* A hand-drawn underline beneath the word — a round-cap pen stroke that
+   leans slightly, echoing the organic line drawn over the portrait. */
+.heading-trace {
+  display: inline-block;
+  justify-self: start;
+  position: relative;
+  padding: 0 0.06em 0.32em;
+  color: var(--color-text-secondary);
+}
+
+.heading-trace::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.05em;
+  height: 0.16em;
+  background: var(--color-text-primary);
+  /* Mostly even weight with softly rounded ends — a round-cap pen stroke
+     (like the portrait outline) rather than a sharply tapered lens. */
+  border-radius: 0.12em;
+  transform: rotate(-0.7deg);
+}
+
+/* The second underline leans the other way so it never looks stamped. */
+.heading-trace--alt::after {
+  transform: rotate(0.8deg);
+}
+
 .home-newspaper__portrait {
   position: relative;
   float: right;
