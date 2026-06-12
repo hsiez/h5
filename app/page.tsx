@@ -106,12 +106,12 @@ function MissionRow({
   return (
     <li className="px-5 sm:px-6">
       <div
-        className={`grid gap-2 py-4 sm:grid-cols-[1fr_auto] sm:items-center ${
+        className={`flex items-baseline justify-between gap-x-4 py-4 ${
           isLast ? "" : "border-b border-[rgba(20,20,20,0.035)]"
         }`}
       >
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h3 className="min-w-[7rem] text-lg font-normal text-(--color-text-primary)">
+          <h3 className="text-lg font-normal text-(--color-text-primary)">
             {company}
           </h3>
           {acquiredBy && (
@@ -120,8 +120,11 @@ function MissionRow({
             </p>
           )}
         </div>
-        <p className="text-base text-(--color-text-secondary) sm:text-right">
-          {role}
+        <p className="shrink-0 text-right text-base text-(--color-text-secondary)">
+          <span className="sm:hidden">
+            {role === "software engineer" ? "swe" : role}
+          </span>
+          <span className="hidden sm:inline">{role}</span>
         </p>
       </div>
     </li>
