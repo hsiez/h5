@@ -66,7 +66,7 @@ const SIDE_QUESTS: SideQuest[] = [
     },
   },
   {
-    name: "evals with vercel workflows",
+    name: "evals with agency",
     href: "https://h5.codes/eval-wf",
     media: {
       type: "video",
@@ -200,7 +200,7 @@ export default function Home() {
       <article className="max-w-2xl">
         <section className="flex min-h-[calc(100svh-8rem)] flex-col justify-center py-16">
           <div>
-            <h1 className="mb-4 text-3xl font-normal italic">
+            <h1 className="mb-2 text-3xl font-normal italic">
               hey, i&apos;m harley
             </h1>
             <figure className="home-newspaper__portrait">
