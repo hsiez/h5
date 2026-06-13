@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { HoverVideo } from "./_components/hover-video";
+import { SketchOutline } from "./_components/sketch-outline";
 
 type SideQuestMedia =
   | {
@@ -213,13 +214,7 @@ export default function Home() {
                 preload
                 className="home-newspaper__portrait-image"
               />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/me-2-outline.svg"
-                alt=""
-                aria-hidden="true"
-                className="home-newspaper__portrait-outline"
-              />
+              <SketchOutline className="home-newspaper__portrait-outline" />
             </figure>
             <p className="text-lg leading-relaxed text-(--color-text-secondary)">
               a builder based in <span className="seattle-word">seattle</span>.
