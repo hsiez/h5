@@ -195,6 +195,23 @@ function SideQuestRow({ name, href, media }: SideQuest) {
   );
 }
 
+function Portrait({ className }: { className?: string }) {
+  return (
+    <figure className={`home-newspaper__portrait ${className ?? ""}`}>
+      <Image
+        src="/me-2-640.png"
+        alt="Harley Siezar"
+        width={640}
+        height={486}
+        sizes="(min-width: 48rem) 288px, 224px"
+        preload
+        className="home-newspaper__portrait-image"
+      />
+      <SketchOutline className="home-newspaper__portrait-outline" />
+    </figure>
+  );
+}
+
 export default function Home() {
   return (
     <main className="flex flex-1 justify-center bg-(--color-background) px-6 pb-16">
@@ -204,29 +221,20 @@ export default function Home() {
             <h1 className="mb-2 text-3xl font-normal italic">
               hey, i&apos;m harley
             </h1>
-            <figure className="home-newspaper__portrait">
-              <Image
-                src="/me-2-640.png"
-                alt="Harley Siezar"
-                width={640}
-                height={486}
-                sizes="(min-width: 48rem) 288px, 224px"
-                preload
-                className="home-newspaper__portrait-image"
-              />
-              <SketchOutline className="home-newspaper__portrait-outline" />
-            </figure>
-            <p className="text-lg leading-relaxed text-(--color-text-secondary)">
+            <Portrait className="hidden md:block" />
+            <div className="text-lg leading-relaxed text-(--color-text-secondary)">
               a builder based in <span className="seattle-word">seattle</span>.
               i&apos;ve been lucky enough to work on 0-to-1 teams,
               infrastructure for social programs, and beloved products with
-              tons of users. i believe the most important ingredients in life
+              tons of users. i believe the most important ingredients in
+              life{" "}
+              <Portrait className="md:hidden" />
               are energy, care, and curiosity. here&apos;s to making impact and
               building relationships — cheers.
-            </p>
+            </div>
             <nav
               aria-label="Social links"
-              className="mt-[18px] flex gap-4 text-sm text-(--color-text-secondary) sm:text-base"
+              className="mt-6 flex gap-4 text-sm text-(--color-text-secondary) sm:text-base md:mt-[18px]"
             >
               {SOCIAL_LINKS.map(({ label, href }) => (
                 <a
