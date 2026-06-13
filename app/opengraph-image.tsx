@@ -10,10 +10,17 @@ const BG = "#fffff7";
 const TEXT_PRIMARY = "#141414";
 
 export default async function Image() {
-  const logo = await readFile(
-    join(process.cwd(), "public", "h5-logo-letterpress-flat-black.png"),
+  const svg = await readFile(
+    join(process.cwd(), "public", "h5-logo.svg"),
+    "utf8",
   );
-  const logoSrc = `data:image/png;base64,${logo.toString("base64")}`;
+  // ImageResponse <img> can't resolve currentColor — bake the ink color in.
+  const inkSvg = svg.replace('fill="currentColor"', `fill="${TEXT_PRIMARY}"`);
+  const logoSrc = `data:image/svg+xml;base64,${Buffer.from(inkSvg).toString("base64")}`;
+
+  // logo viewBox aspect 349 / 130.7 ≈ 2.67
+  const logoWidth = 560;
+  const logoHeight = Math.round(logoWidth / (349 / 130.7));
 
   return new ImageResponse(
     (
@@ -26,35 +33,15 @@ export default async function Image() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <img
-            src={logoSrc}
-            alt=""
-            width={210}
-            height={210}
-            style={{ objectFit: "contain" }}
-          />
-          <span
-            style={{
-              fontSize: 128,
-              lineHeight: 1,
-              fontWeight: 400,
-              marginLeft: -24,
-              transform: "translateY(25px)",
-            }}
-          >
-            .codes
-          </span>
-        </div>
+        <img
+          src={logoSrc}
+          alt=""
+          width={logoWidth}
+          height={logoHeight}
+          style={{ objectFit: "contain" }}
+        />
       </div>
     ),
     { ...size },
