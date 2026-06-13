@@ -35,7 +35,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col font-sans">
         {children}
-        <footer className="flex justify-center px-6 pb-6 pt-32 sm:pb-8 sm:pt-40">
+        <footer className="flex justify-center px-6 pb-2 pt-48 sm:pt-60">
           <Watermark className="w-full max-w-2xl text-[#f5f5ed]" />
         </footer>
       </body>

@@ -256,6 +256,55 @@ body {
   pointer-events: none;
 }
 
+/* Sketch flip-book outline.
+   At rest a clean constant 3px line shows. On hover it hides and the variable-
+   width boil frames flip in sequence so the line "boils" like hand-drawn animation. */
+.sketch-outline__rest {
+  opacity: 1;
+}
+
+.sketch-outline__frame {
+  opacity: 0;
+}
+
+/* --frames must match the number of BOIL frames in SketchOutline. */
+.home-newspaper__portrait {
+  --frames: 4;
+  --frame-dur: 90ms;
+}
+
+.home-newspaper__portrait:hover .sketch-outline__rest {
+  opacity: 0;
+}
+
+.home-newspaper__portrait:hover .sketch-outline__frame {
+  animation: sketch-boil calc(var(--frames) * var(--frame-dur)) linear infinite;
+  animation-delay: calc(var(--frame) * var(--frame-dur) * -1);
+}
+
+@keyframes sketch-boil {
+  0% {
+    opacity: 1;
+  }
+  /* visible for one frame's slice (1 / --frames), hidden the rest */
+  25% {
+    opacity: 1;
+  }
+  25.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-newspaper__portrait:hover .sketch-outline__rest {
+    opacity: 1;
+  }
+  .home-newspaper__portrait:hover .sketch-outline__frame {
+    animation: none;
+  }
+}
+
 .paper-soft-bleed-text {
   text-shadow:
     0 0 0.35px currentColor,
