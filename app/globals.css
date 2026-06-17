@@ -204,7 +204,7 @@ body {
      the viewport but is floored so the bio column never gets too narrow to read,
      and capped at the 18rem desktop size. aspect-ratio keeps the box proportional
      at any width so the traced shape-outside polygon (in %) stays aligned. */
-  width: clamp(7.5rem, 34vw, 18rem);
+  width: clamp(11rem, 50vw, 18rem);
   aspect-ratio: 640 / 486;
   /* margin-left matches shape-margin so the wrapped text keeps an even gap. */
   margin: -12px 0 16px 8px;
