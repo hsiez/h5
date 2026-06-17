@@ -95,6 +95,13 @@ const SOCIAL_LINKS = [
 
 type Mission = (typeof MISSIONS)[number];
 
+// Short forms shown on narrow screens so the role never wraps or crowds the
+// company name. Falls back to the full role if there's no abbreviation.
+const ROLE_ABBREVIATIONS: Record<string, string> = {
+  "software engineer": "swe",
+  "ai engineer": "ai eng",
+};
+
 const PRESSABLE_PAPER_CLASS =
   "rounded-lg border border-[rgba(20,20,20,0.055)] bg-[#f5f5f1] shadow-[inset_0_2px_0_rgba(255,255,255,0.9),inset_2px_0_0_rgba(255,255,255,0.45),inset_-2px_0_0_rgba(255,255,255,0.28),0_1px_2px_rgba(20,20,20,0.05),0_12px_28px_-22px_rgba(20,20,20,0.45)]";
 
@@ -123,7 +130,7 @@ function MissionRow({
         </div>
         <p className="shrink-0 text-right text-base text-(--color-text-secondary)">
           <span className="sm:hidden">
-            {role === "software engineer" ? "swe" : role}
+            {ROLE_ABBREVIATIONS[role] ?? role}
           </span>
           <span className="hidden sm:inline">{role}</span>
         </p>
@@ -195,9 +202,9 @@ function SideQuestRow({ name, href, media }: SideQuest) {
   );
 }
 
-function Portrait({ className }: { className?: string }) {
+function Portrait() {
   return (
-    <figure className={`home-newspaper__portrait ${className ?? ""}`}>
+    <figure className="home-newspaper__portrait">
       <Image
         src="/me-2-640.png"
         alt="Harley Siezar"
@@ -221,20 +228,18 @@ export default function Home() {
             <h1 className="mb-2 text-3xl font-normal italic">
               hey, i&apos;m harley
             </h1>
-            <Portrait className="hidden md:block" />
+            <Portrait />
             <div className="text-lg leading-relaxed text-(--color-text-secondary)">
               a builder based in <span className="seattle-word">seattle</span>.
               i&apos;ve been lucky enough to work on 0-to-1 teams,
               infrastructure for social programs, and beloved products with
-              tons of users. i believe the most important ingredients in
-              life{" "}
-              <Portrait className="md:hidden" />
+              tons of users. i believe the most important ingredients in life
               are energy, care, and curiosity. here&apos;s to making impact and
               building relationships — cheers.
             </div>
             <nav
               aria-label="Social links"
-              className="mt-6 flex gap-4 text-sm text-(--color-text-secondary) sm:text-base md:mt-[18px]"
+              className="mt-6 flex gap-4 text-sm text-(--color-text-secondary) sm:text-base"
             >
               {SOCIAL_LINKS.map(({ label, href }) => (
                 <a
