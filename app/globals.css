@@ -199,11 +199,15 @@ body {
 .home-newspaper__portrait {
   position: relative;
   float: right;
-  width: 14rem;
-  height: 10.625rem;
-  /* Mobile: the portrait is placed inline before the last sentence, so the
-     bio runs full width above it and only its top half pokes into the wrap. */
-  margin: -4px 0 8px 14px;
+  /* One stable placement at every size: floated top-right with the bio flowing
+     around it. No breakpoint swap — the width just scales fluidly. It grows with
+     the viewport but is floored so the bio column never gets too narrow to read,
+     and capped at the 18rem desktop size. aspect-ratio keeps the box proportional
+     at any width so the traced shape-outside polygon (in %) stays aligned. */
+  width: clamp(7.5rem, 34vw, 18rem);
+  aspect-ratio: 640 / 486;
+  /* margin-left matches shape-margin so the wrapped text keeps an even gap. */
+  margin: -12px 0 16px 8px;
   shape-outside: polygon(
     100% 10.73%,
     41.84% 10.73%,
@@ -314,14 +318,6 @@ body {
     -0.3px 0.15px 0.4px rgba(111, 112, 104, 0.16);
   filter: blur(0.12px);
   mix-blend-mode: multiply;
-}
-
-@media (min-width: 48rem) {
-  .home-newspaper__portrait {
-    width: 18rem;
-    height: 13.625rem;
-    margin: -12px 0 16px 4px;
-  }
 }
 
 @keyframes bell-swing {
