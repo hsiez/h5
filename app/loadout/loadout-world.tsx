@@ -2,6 +2,7 @@
 
 import {
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -120,7 +121,11 @@ function itemSlug(item: string) {
   return item.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-function writeLoadoutUrl(regionId: RegionId | null, itemIndex?: number | null) {
+function writeLoadoutUrl(
+  regionId: RegionId | null,
+  itemIndex?: number | null,
+  replace = false,
+) {
   const url = new URL(window.location.href);
   url.search = "";
 
@@ -135,7 +140,11 @@ function writeLoadoutUrl(regionId: RegionId | null, itemIndex?: number | null) {
     if (item) url.searchParams.set("item", itemSlug(item));
   }
 
-  window.history.pushState({}, "", `${url.pathname}${url.search}`);
+  window.history[replace ? "replaceState" : "pushState"](
+    {},
+    "",
+    `${url.pathname}${url.search}`,
+  );
 }
 
 function distance(a: PointerEvent | ReactPointerEvent, b: PointerEvent | ReactPointerEvent) {
@@ -159,6 +168,8 @@ function useReducedMotion() {
 export function LoadoutWorld() {
   const [activeRegionId, setActiveRegionId] = useState<RegionId | null>("edc");
   const [stage, setStage] = useState(0);
+  const [activeItemIndex, setActiveItemIndex] = useState(0);
+  const [isDensityTransitioning, setIsDensityTransitioning] = useState(false);
   const [memory, setMemory] = useState<RegionMemory>(INITIAL_MEMORY);
   const [isPinching, setIsPinching] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -176,10 +187,14 @@ export function LoadoutWorld() {
   const frame = useRef<number | null>(null);
   const pendingScale = useRef(1);
   const rawScale = useRef(1);
-  const wheelInputRef = useRef<(event: WheelEvent) => void>(() => undefined);
-  const safariStartRef = useRef<(event: SafariGestureEvent) => void>(() => undefined);
-  const safariChangeRef = useRef<(event: SafariGestureEvent) => void>(() => undefined);
-  const safariEndRef = useRef<(event: SafariGestureEvent) => void>(() => undefined);
+  const focusedWheelDelta = useRef(0);
+  const focusedWheelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusedNavigationLocked = useRef(false);
+  const focusedSwipe = useRef<{
+    pointerId: number;
+    startY: number;
+    currentY: number;
+  } | null>(null);
   const reducedMotion = useReducedMotion();
 
   const activeRegion = useMemo(
@@ -273,48 +288,41 @@ export function LoadoutWorld() {
       return itemDistance < bestDistance ? item : best;
     }, null);
     const anchorId = anchor?.dataset.itemId;
-    const anchorRect = anchor?.getBoundingClientRect();
-    const offsetWithinAnchor = anchorRect ? y - anchorRect.top : 0;
-    const first = new Map(candidates.map((item) => [item.dataset.itemId, item.getBoundingClientRect()]));
+    const anchorIndex = Number(anchorId?.split("-").at(-1));
+    const nextItemIndex = targetStage === 1 && Number.isFinite(anchorIndex)
+      ? anchorIndex
+      : activeItemIndex;
 
     sheet.style.transform = "";
-    flushSync(() => setStage(targetStage));
-
-    if (anchorId) {
-      const nextAnchor = viewport.querySelector<HTMLElement>(`[data-item-id="${anchorId}"]`);
-      if (nextAnchor) {
-        const nextRect = nextAnchor.getBoundingClientRect();
-        window.scrollBy(0, nextRect.top + offsetWithinAnchor - y);
-      }
-    }
-
-    if (!reducedMotion) {
-      visibleItems().forEach((item) => {
-        const oldRect = first.get(item.dataset.itemId);
-        if (!oldRect) return;
-        const nextRect = item.getBoundingClientRect();
-        item.animate(
-          [
-            {
-              transform: `translate(${oldRect.left - nextRect.left}px, ${oldRect.top - nextRect.top}px) scale(${oldRect.width / nextRect.width}, ${oldRect.height / nextRect.height})`,
-            },
-            { transform: "translate(0, 0) scale(1)" },
-          ],
-          { duration: 460, easing: "cubic-bezier(.2,.75,.2,1)" },
-        );
-      });
+    const update = () => {
+      setIsDensityTransitioning(true);
+      setActiveItemIndex(nextItemIndex);
+      setStage(targetStage);
+      window.scrollTo(0, 0);
+    };
+    const transitionDocument = document as Document & {
+      startViewTransition?: (callback: () => void) => { finished: Promise<void> };
+    };
+    if (reducedMotion || !transitionDocument.startViewTransition) {
+      flushSync(update);
+      requestAnimationFrame(() => setIsDensityTransitioning(false));
+    } else {
+      const transition = transitionDocument.startViewTransition(() => flushSync(update));
+      transition.finished.then(
+        () => setIsDensityTransitioning(false),
+        () => setIsDensityTransitioning(false),
+      );
     }
 
     if (activeRegionId) {
-      const anchorIndex = Number(anchorId?.split("-").at(-1));
       writeLoadoutUrl(
         activeRegionId,
-        targetStage === 1 && Number.isFinite(anchorIndex) ? anchorIndex : null,
+        targetStage === 1 ? nextItemIndex : null,
       );
     }
 
     setIsPinching(false);
-  }, [activeRegionId, reducedMotion, stage, visibleItems]);
+  }, [activeItemIndex, activeRegionId, reducedMotion, stage, visibleItems]);
 
   const switchMode = useCallback((
     nextRegion: RegionId | null,
@@ -336,6 +344,9 @@ export function LoadoutWorld() {
         const nextStage = targetStage ?? remembered.stage;
         setActiveRegionId(nextRegion);
         setStage(nextStage);
+        if (targetItemIndex !== undefined && targetItemIndex !== null) {
+          setActiveItemIndex(targetItemIndex);
+        }
         requestAnimationFrame(() => {
           if (targetItemIndex !== undefined && targetItemIndex !== null) {
             const item = viewportRef.current?.querySelector<HTMLElement>(
@@ -500,11 +511,35 @@ export function LoadoutWorld() {
     resetPreview();
   }, [resetPreview]);
 
+  const moveFocusedItem = useCallback((direction: 1 | -1) => {
+    if (stage !== 1 || !activeRegion || focusedNavigationLocked.current) return;
+    const nextIndex = Math.max(
+      0,
+      Math.min(activeRegion.items.length - 1, activeItemIndex + direction),
+    );
+    if (nextIndex === activeItemIndex) return;
+
+    focusedNavigationLocked.current = true;
+    setActiveItemIndex(nextIndex);
+    writeLoadoutUrl(activeRegion.id, nextIndex, true);
+    window.setTimeout(() => {
+      focusedNavigationLocked.current = false;
+    }, reducedMotion ? 80 : 520);
+  }, [activeItemIndex, activeRegion, reducedMotion, stage]);
+
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.pointerType !== "touch") return;
     pointers.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
     event.currentTarget.setPointerCapture(event.pointerId);
+    if (stage === 1 && pointers.current.size === 1) {
+      focusedSwipe.current = {
+        pointerId: event.pointerId,
+        startY: event.clientY,
+        currentY: event.clientY,
+      };
+    }
     if (pointers.current.size === 2) {
+      focusedSwipe.current = null;
       const [a, b] = Array.from(pointers.current.values());
       const midpointX = (a.clientX + b.clientX) / 2;
       const midpointY = (a.clientY + b.clientY) / 2;
@@ -521,6 +556,10 @@ export function LoadoutWorld() {
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
     if (!pointers.current.has(event.pointerId)) return;
     pointers.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+    if (focusedSwipe.current?.pointerId === event.pointerId) {
+      focusedSwipe.current.currentY = event.clientY;
+      if (Math.abs(event.clientY - focusedSwipe.current.startY) > 8) event.preventDefault();
+    }
     if (pointers.current.size !== 2 || gestureSession.current.source !== "touch") return;
     event.preventDefault();
     const [a, b] = Array.from(pointers.current.values());
@@ -533,16 +572,39 @@ export function LoadoutWorld() {
 
   function onPointerEnd(event: ReactPointerEvent<HTMLDivElement>) {
     const wasPinching = pointers.current.size === 2;
+    const swipe = focusedSwipe.current?.pointerId === event.pointerId
+      ? focusedSwipe.current
+      : null;
     pointers.current.delete(event.pointerId);
-    if (wasPinching) finishGesture("touch", gesture.current.x, gesture.current.y);
+    focusedSwipe.current = null;
+    if (wasPinching) {
+      finishGesture("touch", gesture.current.x, gesture.current.y);
+    } else if (swipe) {
+      const delta = swipe.currentY - swipe.startY;
+      if (Math.abs(delta) >= 48) moveFocusedItem(delta < 0 ? 1 : -1);
+    }
   }
 
   function onPointerCancel(event: ReactPointerEvent<HTMLDivElement>) {
     pointers.current.delete(event.pointerId);
+    focusedSwipe.current = null;
     cancelGesture("touch");
   }
 
-  wheelInputRef.current = (event: WheelEvent) => {
+  const handleWheelInput = useCallback((event: WheelEvent) => {
+    if (stage === 1 && !event.ctrlKey && !event.metaKey) {
+      if (event.cancelable) event.preventDefault();
+      focusedWheelDelta.current += event.deltaY;
+      if (focusedWheelTimer.current) clearTimeout(focusedWheelTimer.current);
+      focusedWheelTimer.current = setTimeout(() => {
+        focusedWheelDelta.current = 0;
+      }, 160);
+      if (Math.abs(focusedWheelDelta.current) >= 42) {
+        moveFocusedItem(focusedWheelDelta.current > 0 ? 1 : -1);
+        focusedWheelDelta.current = 0;
+      }
+      return;
+    }
     if (!event.ctrlKey && !event.metaKey) return;
     if (event.cancelable) event.preventDefault();
     const normalizedDelta = event.deltaMode === WheelEvent.DOM_DELTA_LINE
@@ -559,14 +621,14 @@ export function LoadoutWorld() {
 
     lockGestureUntilQuiet(420);
     stepWheelZoom(normalizedDelta < 0 ? 1 : -1, event.clientX, event.clientY);
-  };
+  }, [beginGesture, lockGestureUntilQuiet, moveFocusedItem, stage, stepWheelZoom]);
 
-  safariStartRef.current = (event: SafariGestureEvent) => {
+  const handleSafariStart = useCallback((event: SafariGestureEvent) => {
     if (event.cancelable) event.preventDefault();
     beginGesture("safari", event.clientX, event.clientY);
-  };
+  }, [beginGesture]);
 
-  safariChangeRef.current = (event: SafariGestureEvent) => {
+  const handleSafariChange = useCallback((event: SafariGestureEvent) => {
     if (event.cancelable) event.preventDefault();
     if (gestureSession.current.phase === "locked") {
       lockGestureUntilQuiet(420);
@@ -576,12 +638,12 @@ export function LoadoutWorld() {
     if (event.scale === 1) return;
     lockGestureUntilQuiet(420);
     stepWheelZoom(event.scale > 1 ? 1 : -1, event.clientX, event.clientY);
-  };
+  }, [lockGestureUntilQuiet, stepWheelZoom]);
 
-  safariEndRef.current = (event: SafariGestureEvent) => {
+  const handleSafariEnd = useCallback((event: SafariGestureEvent) => {
     if (event.cancelable) event.preventDefault();
     finishGesture("safari", gesture.current.x, gesture.current.y);
-  };
+  }, [finishGesture]);
 
   useEffect(() => {
     const restoreFromUrl = () => {
@@ -604,6 +666,7 @@ export function LoadoutWorld() {
 
       setActiveRegionId(region.id);
       setStage(itemIndex >= 0 ? 1 : 0);
+      setActiveItemIndex(itemIndex >= 0 ? itemIndex : 0);
       requestAnimationFrame(() => {
         if (itemIndex < 0) {
           window.scrollTo(0, 0);
@@ -622,28 +685,48 @@ export function LoadoutWorld() {
   }, []);
 
   useEffect(() => {
-    const onWheel = (event: WheelEvent) => wheelInputRef.current(event);
-    const onGestureStart = (event: Event) => safariStartRef.current(event as SafariGestureEvent);
-    const onGestureChange = (event: Event) => safariChangeRef.current(event as SafariGestureEvent);
-    const onGestureEnd = (event: Event) => safariEndRef.current(event as SafariGestureEvent);
+    const onGestureStart = (event: Event) => handleSafariStart(event as SafariGestureEvent);
+    const onGestureChange = (event: Event) => handleSafariChange(event as SafariGestureEvent);
+    const onGestureEnd = (event: Event) => handleSafariEnd(event as SafariGestureEvent);
 
-    window.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    window.addEventListener("wheel", handleWheelInput, { passive: false, capture: true });
     window.addEventListener("gesturestart", onGestureStart, { passive: false });
     window.addEventListener("gesturechange", onGestureChange, { passive: false });
     window.addEventListener("gestureend", onGestureEnd, { passive: false });
 
     return () => {
-      window.removeEventListener("wheel", onWheel, { capture: true });
+      window.removeEventListener("wheel", handleWheelInput, { capture: true });
       window.removeEventListener("gesturestart", onGestureStart);
       window.removeEventListener("gesturechange", onGestureChange);
       window.removeEventListener("gestureend", onGestureEnd);
     };
-  }, []);
+  }, [handleSafariChange, handleSafariEnd, handleSafariStart, handleWheelInput]);
 
   useEffect(() => () => {
     if (frame.current !== null) cancelAnimationFrame(frame.current);
     if (gestureUnlockTimer.current) clearTimeout(gestureUnlockTimer.current);
+    if (focusedWheelTimer.current) clearTimeout(focusedWheelTimer.current);
   }, []);
+
+  const onViewportKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (stage !== 1 || !activeRegion) return;
+    if (event.key === "ArrowDown" || event.key === "PageDown") {
+      event.preventDefault();
+      moveFocusedItem(1);
+    } else if (event.key === "ArrowUp" || event.key === "PageUp") {
+      event.preventDefault();
+      moveFocusedItem(-1);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setActiveItemIndex(0);
+      writeLoadoutUrl(activeRegion.id, 0, true);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      const lastIndex = activeRegion.items.length - 1;
+      setActiveItemIndex(lastIndex);
+      writeLoadoutUrl(activeRegion.id, lastIndex, true);
+    }
+  }, [activeRegion, moveFocusedItem, stage]);
 
   return (
     <main className={styles.page}>
@@ -653,6 +736,9 @@ export function LoadoutWorld() {
         data-mode={activeRegionId ? "region" : "world"}
         data-stage={stage}
         data-pinching={isPinching ? "true" : "false"}
+        data-density-transitioning={isDensityTransitioning ? "true" : "false"}
+        tabIndex={stage === 1 ? 0 : undefined}
+        onKeyDown={onViewportKeyDown}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
@@ -667,18 +753,26 @@ export function LoadoutWorld() {
               ref={sheetRef}
               className={styles.sheet}
               style={{
-                "--columns": DENSITY_STAGES[stage],
                 viewTransitionName: `region-${activeRegion.id}`,
               } as CSSProperties}
             >
-              {activeRegion.items.map((item, index) => {
-                const imageSrc = activeRegion.id !== "coming-soon" ? EDC_IMAGES[item] : undefined;
-                const presentation = ITEM_PRESENTATION[item];
-                return (
+              <div
+                className={styles.itemLayout}
+                style={{
+                  "--columns": DENSITY_STAGES[stage],
+                  "--active-item": activeItemIndex,
+                } as CSSProperties}
+              >
+                {activeRegion.items.map((item, index) => {
+                  const imageSrc = activeRegion.id !== "coming-soon" ? EDC_IMAGES[item] : undefined;
+                  const presentation = ITEM_PRESENTATION[item];
+                  return (
                     <button
                       key={`${activeRegion.id}-${index}`}
                       className={styles.item}
                       data-item-id={`${activeRegion.id}-${index}`}
+                      data-active={index === activeItemIndex ? "true" : "false"}
+                      tabIndex={stage === 1 && index !== activeItemIndex ? -1 : 0}
                       style={{
                         "--item-index": index,
                         "--item-scale": presentation?.scale ?? 1,
@@ -698,6 +792,9 @@ export function LoadoutWorld() {
                         className={styles.itemMedia}
                         data-has-image={imageSrc ? "true" : "false"}
                         aria-hidden="true"
+                        style={{
+                          viewTransitionName: `loadout-${activeRegion.id}-${index}`,
+                        } as CSSProperties}
                       >
                         {imageSrc ? (
                           <>
@@ -722,8 +819,14 @@ export function LoadoutWorld() {
                         )}
                       </span>
                     </button>
-                );
-              })}
+                  );
+                })}
+              </div>
+              {stage === 1 ? (
+                <p className={styles.focusedPosition} aria-live="polite">
+                  {activeItemIndex + 1} / {activeRegion.items.length}
+                </p>
+              ) : null}
             </div>
           </section>
         ) : (
