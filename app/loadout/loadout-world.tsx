@@ -91,19 +91,6 @@ const GRAPHITE_IMAGES: Record<string, string> = {
   Wallet: "/loadout/wallet-graphite-v2.png",
 };
 
-const ITEM_BRANDS: Record<string, string> = {
-  Belt: "Arcade",
-  Coat: "Kapital",
-  Jeans: "Oni",
-  Hat: "Reforge",
-  Wallet: "Coach",
-  Loafers: "Aurora",
-};
-
-const ITEM_LABELS: Record<string, string> = {
-  Hat: "Cap",
-};
-
 const ITEM_PRESENTATION: Record<string, { scale: number; x: string; y: string }> = {
   Belt: { scale: 1.08, x: "0%", y: "0%" },
   Coat: { scale: 1.05, x: "0%", y: "2%" },
