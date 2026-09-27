@@ -18,6 +18,11 @@
      p-1 = 4px, p-2 = 8px, p-4 = 16px, p-6 = 24px, p-8 = 32px, p-12 = 48px,
      p-16 = 64px, p-24 = 96px, p-32 = 128px. No half-steps, no exceptions. */
   --spacing: 4px;
+  --spacing-focus-title-content: 72px;
+  --spacing-focus-title-content-compact: 48px;
+  --spacing-focus-title-content-mobile: 32px;
+  --spacing-focus-columns: 56px;
+  --spacing-focus-columns-compact: 32px;
 
   /* ---- Type scale (rems anchored at 16px root) ---- */
   --text-xs: 0.875rem;    /* 14px — captions, badges, micro-meta */

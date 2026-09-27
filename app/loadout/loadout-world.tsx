@@ -33,6 +33,14 @@ type RegionMemory = Record<RegionId, { stage: number; scrollTop: number }>;
 type GestureSource = "touch" | "wheel" | "safari";
 type GesturePhase = "idle" | "tracking" | "locked";
 
+type ItemContent = {
+  brand: string;
+  title: string;
+  description: string;
+  badges: string[];
+  details: Array<[string, string]>;
+};
+
 type SafariGestureEvent = Event & {
   scale: number;
   clientX: number;
@@ -91,6 +99,51 @@ const GRAPHITE_IMAGES: Record<string, string> = {
   Wallet: "/loadout/wallet-graphite-v2.png",
 };
 
+const ITEM_CONTENT: Record<string, ItemContent> = {
+  Belt: {
+    brand: "Arcade",
+    title: "Belts built to move",
+    description: "A low-profile stretch belt that disappears under layers and stays comfortable through long days in motion.",
+    badges: ["Daily", "Stretch", "Low profile"],
+    details: [["Material", "Performance weave"], ["Closure", "Micro-adjust buckle"]],
+  },
+  Coat: {
+    brand: "Kapital",
+    title: "A coat that carries the day",
+    description: "Soft structure, generous pockets, and enough character to make a simple uniform feel considered.",
+    badges: ["Outerwear", "Layering", "Natural wear"],
+    details: [["Cut", "Relaxed"], ["Use", "Three season"]],
+  },
+  Hat: {
+    brand: "Reforge",
+    title: "The everyday cap",
+    description: "A familiar shape with a quiet profile—easy to pack, easy to wear, and better after repeated use.",
+    badges: ["Daily", "Packable", "Soft crown"],
+    details: [["Profile", "Low"], ["Fit", "Adjustable"]],
+  },
+  Jeans: {
+    brand: "Oni",
+    title: "Texture before polish",
+    description: "A substantial pair of jeans chosen for irregular texture, patient break-in, and the record they keep over time.",
+    badges: ["Denim", "Selvedge", "Slow wear"],
+    details: [["Fabric", "Japanese denim"], ["Fit", "Relaxed taper"]],
+  },
+  Loafers: {
+    brand: "Aurora",
+    title: "An easy leather shoe",
+    description: "Unstructured loafers that bridge formal and casual use without asking the rest of the outfit to change.",
+    badges: ["Leather", "Slip-on", "Resoleable"],
+    details: [["Construction", "Handsewn"], ["Sole", "Leather"]],
+  },
+  Wallet: {
+    brand: "Coach",
+    title: "Only what is needed",
+    description: "A compact leather wallet with just enough organization for the cards and notes that actually leave the house.",
+    badges: ["Leather", "Compact", "Daily"],
+    details: [["Format", "Bifold"], ["Carry", "Front or back pocket"]],
+  },
+};
+
 const ITEM_PRESENTATION: Record<string, { scale: number; x: string; y: string }> = {
   Belt: { scale: 1.08, x: "0%", y: "0%" },
   Coat: { scale: 1.05, x: "0%", y: "2%" },
@@ -100,12 +153,42 @@ const ITEM_PRESENTATION: Record<string, { scale: number; x: string; y: string }>
   Wallet: { scale: 1.2, x: "0%", y: "0%" },
 };
 
+const ITEM_ALPHA_BOUNDS: Record<string, { left: number; top: number }> = {
+  Belt: { left: 24.5, top: 8.84 },
+  Coat: { left: 8.81, top: 22.56 },
+  Hat: { left: 22.39, top: 17.69 },
+  Jeans: { left: 24.31, top: 11.74 },
+  Loafers: { left: 19.36, top: 16.86 },
+  Wallet: { left: 15.6, top: 28.02 },
+};
+
+const FOCUSED_VISUAL_TOP = 0;
+
 const INITIAL_MEMORY = Object.fromEntries(
   REGIONS.map((region) => [region.id, { stage: 0, scrollTop: 0 }]),
 ) as RegionMemory;
 
 function itemSlug(item: string) {
   return item.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+function baseItemName(item: string) {
+  return item.replace(/\s+\d+$/, "");
+}
+
+function itemVisualAlignment(item: string) {
+  const name = baseItemName(item);
+  const bounds = ITEM_ALPHA_BOUNDS[name] ?? { left: 0, top: 0 };
+  const presentation = ITEM_PRESENTATION[name] ?? { scale: 1, x: "0%", y: "0%" };
+  const translateX = Number.parseFloat(presentation.x) || 0;
+  const translateY = Number.parseFloat(presentation.y) || 0;
+  const left = 50 + (bounds.left - 50) * presentation.scale + translateX;
+  const top = 50 + (bounds.top - 50) * presentation.scale + translateY;
+
+  return {
+    left,
+    focusY: FOCUSED_VISUAL_TOP - top,
+  };
 }
 
 function writeLoadoutUrl(
@@ -156,6 +239,8 @@ export function LoadoutWorld() {
   const [activeRegionId, setActiveRegionId] = useState<RegionId | null>("edc");
   const [stage, setStage] = useState(0);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
+  const [detailItemIndex, setDetailItemIndex] = useState(0);
+  const [detailsVisible, setDetailsVisible] = useState(true);
   const [isDensityTransitioning, setIsDensityTransitioning] = useState(false);
   const [memory, setMemory] = useState<RegionMemory>(INITIAL_MEMORY);
   const [isPinching, setIsPinching] = useState(false);
@@ -177,6 +262,8 @@ export function LoadoutWorld() {
   const focusedWheelDelta = useRef(0);
   const focusedWheelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusedNavigationLocked = useRef(false);
+  const focusedNavigationUnlockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const detailsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusedSwipe = useRef<{
     pointerId: number;
     startY: number;
@@ -284,6 +371,8 @@ export function LoadoutWorld() {
     const update = () => {
       setIsDensityTransitioning(true);
       setActiveItemIndex(nextItemIndex);
+      setDetailItemIndex(nextItemIndex);
+      setDetailsVisible(true);
       setStage(targetStage);
       window.scrollTo(0, 0);
     };
@@ -333,6 +422,7 @@ export function LoadoutWorld() {
         setStage(nextStage);
         if (targetItemIndex !== undefined && targetItemIndex !== null) {
           setActiveItemIndex(targetItemIndex);
+          setDetailItemIndex(targetItemIndex);
         }
         requestAnimationFrame(() => {
           if (targetItemIndex !== undefined && targetItemIndex !== null) {
@@ -507,10 +597,20 @@ export function LoadoutWorld() {
     if (nextIndex === activeItemIndex) return;
 
     focusedNavigationLocked.current = true;
+    setDetailsVisible(false);
     setActiveItemIndex(nextIndex);
     writeLoadoutUrl(activeRegion.id, nextIndex, true);
-    window.setTimeout(() => {
+    if (detailsTimer.current) clearTimeout(detailsTimer.current);
+    detailsTimer.current = setTimeout(() => {
+      setDetailItemIndex(nextIndex);
+      setDetailsVisible(true);
+    }, reducedMotion ? 0 : 150);
+    if (focusedNavigationUnlockTimer.current) {
+      clearTimeout(focusedNavigationUnlockTimer.current);
+    }
+    focusedNavigationUnlockTimer.current = setTimeout(() => {
       focusedNavigationLocked.current = false;
+      focusedNavigationUnlockTimer.current = null;
     }, reducedMotion ? 80 : 520);
   }, [activeItemIndex, activeRegion, reducedMotion, stage]);
 
@@ -633,11 +733,29 @@ export function LoadoutWorld() {
   }, [finishGesture]);
 
   useEffect(() => {
-    const restoreFromUrl = () => {
+    const restoreFromUrl = (fromHistory = false) => {
+      if (detailsTimer.current) {
+        clearTimeout(detailsTimer.current);
+        detailsTimer.current = null;
+      }
+      if (focusedNavigationUnlockTimer.current) {
+        clearTimeout(focusedNavigationUnlockTimer.current);
+        focusedNavigationUnlockTimer.current = null;
+      }
+      if (focusedWheelTimer.current) {
+        clearTimeout(focusedWheelTimer.current);
+        focusedWheelTimer.current = null;
+      }
+      focusedNavigationLocked.current = false;
+      focusedWheelDelta.current = 0;
+
       const params = new URLSearchParams(window.location.search);
       if (params.get("view") === "world") {
+        setIsDensityTransitioning(true);
         setActiveRegionId(null);
         setStage(0);
+        setDetailsVisible(true);
+        requestAnimationFrame(() => setIsDensityTransitioning(false));
         requestAnimationFrame(() => window.scrollTo(0, 0));
         return;
       }
@@ -651,24 +769,25 @@ export function LoadoutWorld() {
         ? region.items.findIndex((item) => itemSlug(item) === requestedItem)
         : -1;
 
+      setIsDensityTransitioning(true);
       setActiveRegionId(region.id);
       setStage(itemIndex >= 0 ? 1 : 0);
       setActiveItemIndex(itemIndex >= 0 ? itemIndex : 0);
+      setDetailItemIndex(itemIndex >= 0 ? itemIndex : 0);
+      setDetailsVisible(true);
       requestAnimationFrame(() => {
-        if (itemIndex < 0) {
-          window.scrollTo(0, 0);
-          return;
+        window.scrollTo(0, 0);
+        if (fromHistory && itemIndex >= 0) {
+          viewportRef.current?.focus({ preventScroll: true });
         }
-        const item = viewportRef.current?.querySelector<HTMLElement>(
-          `[data-item-id="${region.id}-${itemIndex}"]`,
-        );
-        item?.scrollIntoView({ block: "center" });
+        setIsDensityTransitioning(false);
       });
     };
 
     restoreFromUrl();
-    window.addEventListener("popstate", restoreFromUrl);
-    return () => window.removeEventListener("popstate", restoreFromUrl);
+    const handlePopState = () => restoreFromUrl(true);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   useEffect(() => {
@@ -693,6 +812,8 @@ export function LoadoutWorld() {
     if (frame.current !== null) cancelAnimationFrame(frame.current);
     if (gestureUnlockTimer.current) clearTimeout(gestureUnlockTimer.current);
     if (focusedWheelTimer.current) clearTimeout(focusedWheelTimer.current);
+    if (focusedNavigationUnlockTimer.current) clearTimeout(focusedNavigationUnlockTimer.current);
+    if (detailsTimer.current) clearTimeout(detailsTimer.current);
   }, []);
 
   const onViewportKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -706,11 +827,13 @@ export function LoadoutWorld() {
     } else if (event.key === "Home") {
       event.preventDefault();
       setActiveItemIndex(0);
+      setDetailItemIndex(0);
       writeLoadoutUrl(activeRegion.id, 0, true);
     } else if (event.key === "End") {
       event.preventDefault();
       const lastIndex = activeRegion.items.length - 1;
       setActiveItemIndex(lastIndex);
+      setDetailItemIndex(lastIndex);
       writeLoadoutUrl(activeRegion.id, lastIndex, true);
     }
   }, [activeRegion, moveFocusedItem, stage]);
@@ -753,6 +876,7 @@ export function LoadoutWorld() {
                 {activeRegion.items.map((item, index) => {
                   const imageSrc = activeRegion.id !== "coming-soon" ? EDC_IMAGES[item] : undefined;
                   const presentation = ITEM_PRESENTATION[item];
+                  const alignment = itemVisualAlignment(item);
                   return (
                     <button
                       key={`${activeRegion.id}-${index}`}
@@ -765,6 +889,7 @@ export function LoadoutWorld() {
                         "--item-scale": presentation?.scale ?? 1,
                         "--item-x": presentation?.x ?? "0%",
                         "--item-y": presentation?.y ?? "0%",
+                        "--focus-y": `${alignment.focusY}%`,
                       } as CSSProperties}
                       aria-label={`${item}, item ${index + 1} of ${activeRegion.items.length}`}
                       onClick={(event) => {
@@ -809,6 +934,45 @@ export function LoadoutWorld() {
                   );
                 })}
               </div>
+              {stage === 1 ? (() => {
+                const detailItem = activeRegion.items[detailItemIndex];
+                const content = ITEM_CONTENT[baseItemName(detailItem)];
+                const alignment = itemVisualAlignment(detailItem);
+                if (!content) return null;
+                return (
+                  <aside
+                    className={styles.focusedDetails}
+                    data-visible={detailsVisible && !isDensityTransitioning ? "true" : "false"}
+                    aria-live="polite"
+                  >
+                    <header className={styles.detailsHeader}>
+                      <div
+                        className={styles.detailsHeaderInner}
+                        style={{ "--visual-left": `${alignment.left}%` } as CSSProperties}
+                      >
+                        <span>{content.brand}</span>
+                        <h1>{content.title}</h1>
+                      </div>
+                    </header>
+                    <div className={styles.detailsContent}>
+                      <div className={styles.detailsBody}>
+                        <div className={styles.badges}>
+                          {content.badges.map((badge) => <span key={badge}>{badge}</span>)}
+                        </div>
+                        <p>{content.description}</p>
+                        <dl>
+                          {content.details.map(([term, value]) => (
+                            <div key={term}>
+                              <dt>{term}</dt>
+                              <dd>{value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </div>
+                    </div>
+                  </aside>
+                );
+              })() : null}
               {stage === 1 ? (
                 <p className={styles.focusedPosition} aria-live="polite">
                   {activeItemIndex + 1} / {activeRegion.items.length}
