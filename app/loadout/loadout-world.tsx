@@ -38,6 +38,7 @@ type ItemContent = {
   title: string;
   description: string;
   badges: string[];
+  why: string;
   details: Array<[string, string]>;
 };
 
@@ -102,44 +103,50 @@ const GRAPHITE_IMAGES: Record<string, string> = {
 const ITEM_CONTENT: Record<string, ItemContent> = {
   Belt: {
     brand: "Arcade",
-    title: "Belts built to move",
+    title: "Braided belt",
     description: "A low-profile stretch belt that disappears under layers and stays comfortable through long days in motion.",
-    badges: ["Daily", "Stretch", "Low profile"],
+    badges: ["Owned —", "Daily", "In rotation"],
+    why: "It moves with me, stays flat under a shirt, and never asks for adjustment halfway through the day.",
     details: [["Material", "Performance weave"], ["Closure", "Micro-adjust buckle"]],
   },
   Coat: {
     brand: "Kapital",
-    title: "A coat that carries the day",
+    title: "Coverall chore coat",
     description: "Soft structure, generous pockets, and enough character to make a simple uniform feel considered.",
-    badges: ["Outerwear", "Layering", "Natural wear"],
+    badges: ["Owned —", "Seasonal", "In rotation"],
+    why: "The relaxed shape makes layering easy, while the pockets carry enough that I can leave a bag behind.",
     details: [["Cut", "Relaxed"], ["Use", "Three season"]],
   },
   Hat: {
     brand: "Reforge",
-    title: "The everyday cap",
+    title: "Prototype cap",
     description: "A familiar shape with a quiet profile—easy to pack, easy to wear, and better after repeated use.",
-    badges: ["Daily", "Packable", "Soft crown"],
+    badges: ["Owned —", "Frequent", "In rotation"],
+    why: "The soft crown packs without complaint and the low profile works without becoming the center of an outfit.",
     details: [["Profile", "Low"], ["Fit", "Adjustable"]],
   },
   Jeans: {
     brand: "Oni",
-    title: "Texture before polish",
+    title: "Selvedge denim pant",
     description: "A substantial pair of jeans chosen for irregular texture, patient break-in, and the record they keep over time.",
-    badges: ["Denim", "Selvedge", "Slow wear"],
+    badges: ["Owned —", "Weekly", "Breaking in"],
+    why: "The irregular denim rewards attention. Its texture and fading make repeated wear feel like part of the design.",
     details: [["Fabric", "Japanese denim"], ["Fit", "Relaxed taper"]],
   },
   Loafers: {
     brand: "Aurora",
-    title: "An easy leather shoe",
+    title: "Leather loafer",
     description: "Unstructured loafers that bridge formal and casual use without asking the rest of the outfit to change.",
-    badges: ["Leather", "Slip-on", "Resoleable"],
+    badges: ["Owned —", "Weekly", "In rotation"],
+    why: "They are relaxed enough for everyday wear but retain enough structure to make simple clothes feel finished.",
     details: [["Construction", "Handsewn"], ["Sole", "Leather"]],
   },
   Wallet: {
     brand: "Coach",
-    title: "Only what is needed",
+    title: "Slim card wallet",
     description: "A compact leather wallet with just enough organization for the cards and notes that actually leave the house.",
-    badges: ["Leather", "Compact", "Daily"],
+    badges: ["Owned —", "Daily", "In rotation"],
+    why: "It holds the essentials without creating extra capacity that eventually turns into clutter.",
     details: [["Format", "Bifold"], ["Carry", "Front or back pocket"]],
   },
 };
@@ -950,24 +957,22 @@ export function LoadoutWorld() {
                         className={styles.detailsHeaderInner}
                         style={{ "--visual-left": `${alignment.left}%` } as CSSProperties}
                       >
-                        <span>{content.brand}</span>
                         <h1>{content.title}</h1>
                       </div>
                     </header>
                     <div className={styles.detailsContent}>
                       <div className={styles.detailsBody}>
+                        <section className={styles.detailSection}>
+                          <h2>Story</h2>
+                          <p>{content.description}</p>
+                        </section>
+                        <section className={styles.detailSection}>
+                          <h2>Utility</h2>
+                          <p>{content.why}</p>
+                        </section>
                         <div className={styles.badges}>
                           {content.badges.map((badge) => <span key={badge}>{badge}</span>)}
                         </div>
-                        <p>{content.description}</p>
-                        <dl>
-                          {content.details.map(([term, value]) => (
-                            <div key={term}>
-                              <dt>{term}</dt>
-                              <dd>{value}</dd>
-                            </div>
-                          ))}
-                        </dl>
                       </div>
                     </div>
                   </aside>

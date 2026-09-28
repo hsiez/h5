@@ -107,24 +107,6 @@
   opacity: 1;
 }
 
-.item:focus-visible .itemPhoto {
-  opacity: 1;
-}
-
-.item:focus-visible .itemDither {
-  opacity: 0;
-}
-
-@media (hover: hover) {
-  .item:hover .itemPhoto {
-    opacity: 1;
-  }
-
-  .item:hover .itemDither {
-    opacity: 0;
-  }
-}
-
 .itemMedia > span {
   position: absolute;
   top: 7px;
@@ -202,6 +184,14 @@
     scale(var(--item-scale, 1));
 }
 
+.viewport[data-stage="1"] .itemPhoto {
+  opacity: 1;
+}
+
+.viewport[data-stage="1"] .itemDither {
+  opacity: 0;
+}
+
 .focusedDetails {
   position: absolute;
   inset: 0;
@@ -246,16 +236,6 @@
   padding-left: var(--visual-left, 0%);
 }
 
-.detailsHeaderInner > span {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1;
-  letter-spacing: .13em;
-  text-transform: uppercase;
-}
-
 .detailsHeaderInner h1 {
   max-width: 14ch;
   margin: 0;
@@ -273,7 +253,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 22px;
+  margin-top: 22px;
 }
 
 .badges span {
@@ -285,34 +265,47 @@
   line-height: 1;
 }
 
-.detailsBody > p {
+.detailSection + .detailSection {
+  margin-top: 36px;
+}
+
+.detailSection h2 {
+  margin: 0 0 6px;
+  color: var(--color-text-primary);
+  font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: var(--text-base);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.detailSection p {
   max-width: 38ch;
   margin: 0;
   color: rgba(21, 21, 21, 0.78);
-  font-size: clamp(14px, 1.3vw, 17px);
-  line-height: 1.62;
+  font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: var(--text-base);
+  line-height: 1.55;
   letter-spacing: -.01em;
 }
 
-.detailsBody dl {
-  display: grid;
+.detailSection ul {
   max-width: 360px;
-  margin: 30px 0 0;
-  border-top: 1px solid var(--line);
+  margin: 0;
+  padding-left: 1.15em;
+  color: rgba(21, 21, 21, 0.78);
+  font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
+  font-size: var(--text-base);
+  line-height: 1.55;
 }
 
-.detailsBody dl > div {
-  display: grid;
-  grid-template-columns: 88px 1fr;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--line);
-  font-size: 11px;
-  line-height: 1.35;
+.detailSection li + li {
+  margin-top: 4px;
 }
 
-.detailsBody dt { color: var(--muted); }
-.detailsBody dd { margin: 0; }
+.detailSection li::marker { color: var(--muted); }
+.detailSection li span { color: var(--muted); }
 
 .focusedPosition {
   position: fixed;
@@ -379,8 +372,8 @@
     font-size: clamp(28px, 9vw, 42px);
   }
 
-  .detailsBody dl { display: none; }
-  .detailsBody > p { max-width: 32ch; }
+  .notesSection { display: none; }
+  .detailSection p { max-width: 32ch; }
 }
 
 .world {
