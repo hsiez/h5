@@ -12,6 +12,7 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import Image from "next/image";
+import { CursorTooltip } from "../_components/cursor-tooltip";
 import styles from "./loadout.module.css";
 
 const DENSITY_STAGES = [3, 1] as const;
@@ -53,13 +54,13 @@ const REGION_DEFINITIONS: Array<Omit<Region, "items"> & { seed: string[] }> = [
     id: "edc",
     name: "Everyday carry",
     note: "6 objects · active kit",
-    seed: ["Belt", "Coat", "Hat", "Jeans", "Loafers", "Wallet"],
+    seed: ["Hat", "Coat", "Jeans", "Belt", "Loafers", "Wallet"],
   },
   {
     id: "cooking",
     name: "Cooking",
     note: "6 objects · temporary kit",
-    seed: ["Belt", "Coat", "Hat", "Jeans", "Loafers", "Wallet"],
+    seed: ["Hat", "Coat", "Jeans", "Belt", "Loafers", "Wallet"],
   },
   {
     id: "coming-soon",
@@ -249,6 +250,8 @@ export function LoadoutWorld() {
   const [detailItemIndex, setDetailItemIndex] = useState(0);
   const [detailsVisible, setDetailsVisible] = useState(true);
   const [isDensityTransitioning, setIsDensityTransitioning] = useState(false);
+  const [cursorInGrid, setCursorInGrid] = useState(false);
+  const [hoveredItemIndex, setHoveredItemIndex] = useState<number | null>(null);
   const [memory, setMemory] = useState<RegionMemory>(INITIAL_MEMORY);
   const [isPinching, setIsPinching] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -271,6 +274,8 @@ export function LoadoutWorld() {
   const focusedNavigationLocked = useRef(false);
   const focusedNavigationUnlockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const detailsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cursorTooltipRef = useRef<HTMLDivElement>(null);
+  const cursorTooltipHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusedSwipe = useRef<{
     pointerId: number;
     startY: number;
@@ -282,6 +287,19 @@ export function LoadoutWorld() {
     () => REGIONS.find((region) => region.id === activeRegionId) ?? null,
     [activeRegionId],
   );
+
+  const positionCursorTooltip = useCallback((x: number, y: number) => {
+    const tooltip = cursorTooltipRef.current;
+    if (!tooltip) return;
+    const offset = 16;
+    const edge = 12;
+    const width = tooltip.offsetWidth;
+    const height = tooltip.offsetHeight;
+    const left = Math.max(edge, Math.min(x + offset, window.innerWidth - width - edge));
+    const top = Math.max(edge, Math.min(y + offset, window.innerHeight - height - edge));
+    tooltip.style.setProperty("--cursor-x", `${left}px`);
+    tooltip.style.setProperty("--cursor-y", `${top}px`);
+  }, []);
 
   const regionAtPoint = useCallback((x: number, y: number) => {
     const target = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-region-id]");
@@ -376,6 +394,7 @@ export function LoadoutWorld() {
 
     sheet.style.transform = "";
     const update = () => {
+      setHoveredItemIndex(null);
       setIsDensityTransitioning(true);
       setActiveItemIndex(nextItemIndex);
       setDetailItemIndex(nextItemIndex);
@@ -422,6 +441,7 @@ export function LoadoutWorld() {
     }
 
     const update = () => {
+      setHoveredItemIndex(null);
       if (nextRegion) {
         const remembered = memory[nextRegion];
         const nextStage = targetStage ?? remembered.stage;
@@ -758,6 +778,7 @@ export function LoadoutWorld() {
 
       const params = new URLSearchParams(window.location.search);
       if (params.get("view") === "world") {
+        setHoveredItemIndex(null);
         setIsDensityTransitioning(true);
         setActiveRegionId(null);
         setStage(0);
@@ -777,6 +798,7 @@ export function LoadoutWorld() {
         : -1;
 
       setIsDensityTransitioning(true);
+      setHoveredItemIndex(null);
       setActiveRegionId(region.id);
       setStage(itemIndex >= 0 ? 1 : 0);
       setActiveItemIndex(itemIndex >= 0 ? itemIndex : 0);
@@ -821,6 +843,7 @@ export function LoadoutWorld() {
     if (focusedWheelTimer.current) clearTimeout(focusedWheelTimer.current);
     if (focusedNavigationUnlockTimer.current) clearTimeout(focusedNavigationUnlockTimer.current);
     if (detailsTimer.current) clearTimeout(detailsTimer.current);
+    if (cursorTooltipHideTimer.current) clearTimeout(cursorTooltipHideTimer.current);
   }, []);
 
   const onViewportKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -873,8 +896,36 @@ export function LoadoutWorld() {
                 viewTransitionName: `region-${activeRegion.id}`,
               } as CSSProperties}
             >
+              {stage === 0 ? (
+                <header
+                  className={styles.gridHeader}
+                  style={{
+                    "--columns": DENSITY_STAGES[stage],
+                    "--first-item-left": `${itemVisualAlignment(activeRegion.items[0]).left}%`,
+                  } as CSSProperties}
+                >
+                  <span>Things I carry everyday</span>
+                </header>
+              ) : null}
               <div
                 className={styles.itemLayout}
+                onPointerEnter={(event) => {
+                  if (stage !== 0 || event.pointerType === "touch") return;
+                  positionCursorTooltip(event.clientX, event.clientY);
+                  setCursorInGrid(true);
+                }}
+                onPointerMove={(event) => {
+                  if (stage !== 0 || event.pointerType === "touch") return;
+                  positionCursorTooltip(event.clientX, event.clientY);
+                }}
+                onPointerLeave={() => {
+                  if (cursorTooltipHideTimer.current) {
+                    clearTimeout(cursorTooltipHideTimer.current);
+                    cursorTooltipHideTimer.current = null;
+                  }
+                  setCursorInGrid(false);
+                  setHoveredItemIndex(null);
+                }}
                 style={{
                   "--columns": DENSITY_STAGES[stage],
                   "--active-item": activeItemIndex,
@@ -899,7 +950,34 @@ export function LoadoutWorld() {
                         "--focus-y": `${alignment.focusY}%`,
                       } as CSSProperties}
                       aria-label={`${item}, item ${index + 1} of ${activeRegion.items.length}`}
+                      onPointerEnter={(event) => {
+                        if (stage !== 0 || event.pointerType === "touch") return;
+                        if (cursorTooltipHideTimer.current) {
+                          clearTimeout(cursorTooltipHideTimer.current);
+                          cursorTooltipHideTimer.current = null;
+                        }
+                        positionCursorTooltip(event.clientX, event.clientY);
+                        setHoveredItemIndex(index);
+                      }}
+                      onPointerMove={(event) => {
+                        if (stage !== 0 || event.pointerType === "touch") return;
+                        positionCursorTooltip(event.clientX, event.clientY);
+                      }}
+                      onPointerLeave={() => {
+                        if (cursorTooltipHideTimer.current) {
+                          clearTimeout(cursorTooltipHideTimer.current);
+                        }
+                        cursorTooltipHideTimer.current = setTimeout(() => {
+                          setHoveredItemIndex(null);
+                          cursorTooltipHideTimer.current = null;
+                        }, 140);
+                      }}
                       onClick={(event) => {
+                        if (cursorTooltipHideTimer.current) {
+                          clearTimeout(cursorTooltipHideTimer.current);
+                          cursorTooltipHideTimer.current = null;
+                        }
+                        setHoveredItemIndex(null);
                         if (stage === 0) {
                           commitDensity(1, event.clientX, event.clientY);
                         } else {
@@ -987,26 +1065,59 @@ export function LoadoutWorld() {
           </section>
         ) : (
           <section ref={worldRef} className={styles.world} aria-label="Loadout regions">
-            <div className={styles.worldGrid}>
-              {REGIONS.map((region, regionIndex) => (
+            <h1
+              className={styles.worldTitle}
+              style={{
+                "--first-item-left": `${itemVisualAlignment(REGIONS[0].items[0]).left}%`,
+              } as CSSProperties}
+            >
+              <span className={styles.worldTitleRegion}>
+                <span>Things worth mentioning</span>
+              </span>
+            </h1>
+            <div
+              className={styles.worldGrid}
+              onPointerEnter={(event) => {
+                if (event.pointerType === "touch") return;
+                positionCursorTooltip(event.clientX, event.clientY);
+                setCursorInGrid(true);
+              }}
+              onPointerMove={(event) => {
+                if (event.pointerType === "touch") return;
+                positionCursorTooltip(event.clientX, event.clientY);
+              }}
+              onPointerLeave={() => {
+                setCursorInGrid(false);
+                setHoveredItemIndex(null);
+              }}
+            >
+              {REGIONS.filter((region) => region.id !== "coming-soon").map((region, regionIndex) => (
                 <button
                   key={region.id}
                   className={styles.regionCard}
                   data-region-id={region.id}
                   disabled={region.id === "coming-soon"}
-                  onClick={() => switchMode(region.id, 0)}
+                  onPointerEnter={(event) => {
+                    if (event.pointerType === "touch") return;
+                    positionCursorTooltip(event.clientX, event.clientY);
+                    setHoveredItemIndex(regionIndex);
+                  }}
+                  onPointerLeave={() => setHoveredItemIndex(null)}
+                  onClick={() => {
+                    setCursorInGrid(false);
+                    setHoveredItemIndex(null);
+                    switchMode(region.id, 0);
+                  }}
                 >
-                  <span className={styles.regionCardHeader}>
-                    <strong>{region.name}</strong>
-                    <span>{region.items.length}</span>
-                  </span>
                   <span
                     className={styles.miniGrid}
                     aria-hidden="true"
                     style={{ viewTransitionName: `region-${region.id}` } as CSSProperties}
                   >
                     {region.items.slice(0, 9).map((item, index) => {
-                      const imageSrc = region.id !== "coming-soon" ? EDC_IMAGES[item] : undefined;
+                      const imageSrc = region.id !== "coming-soon"
+                        ? GRAPHITE_IMAGES[baseItemName(item)]
+                        : undefined;
                       const presentation = ITEM_PRESENTATION[item];
                       return (
                         <span
@@ -1033,13 +1144,18 @@ export function LoadoutWorld() {
                       );
                     })}
                   </span>
-                  <span className={styles.regionNote}>{region.note}</span>
                 </button>
               ))}
             </div>
           </section>
         )}
       </div>
+      <CursorTooltip
+        ref={cursorTooltipRef}
+        expanded={hoveredItemIndex !== null}
+        visible={cursorInGrid && (activeRegion === null || stage === 0)}
+        detail="View"
+      />
     </main>
   );
 }
