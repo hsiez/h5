@@ -2,16 +2,26 @@
 
 import {
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { flushSync } from "react-dom";
 import Image from "next/image";
+import { CursorTooltip } from "../_components/cursor-tooltip";
 import styles from "./loadout.module.css";
+
+// Mode motion has one owner: Web Animations. Geometry comes from the rendered
+// source/destination, so responsive layouts and pinch previews need no offsets.
+const MODE_MOTION = {
+  enter: { duration: 450, easing: "cubic-bezier(.42, 0, .18, 1)" },
+  exit: { duration: 450, easing: "cubic-bezier(.2, .72, .18, 1)" },
+} as const;
 
 const DENSITY_STAGES = [3, 1] as const;
 const MIN_PREVIEW_SCALE = 0.56;
@@ -32,6 +42,15 @@ type RegionMemory = Record<RegionId, { stage: number; scrollTop: number }>;
 type GestureSource = "touch" | "wheel" | "safari";
 type GesturePhase = "idle" | "tracking" | "locked";
 
+type ItemContent = {
+  brand: string;
+  title: string;
+  description: string;
+  badges: string[];
+  why: string;
+  details: Array<[string, string]>;
+};
+
 type SafariGestureEvent = Event & {
   scale: number;
   clientX: number;
@@ -43,13 +62,13 @@ const REGION_DEFINITIONS: Array<Omit<Region, "items"> & { seed: string[] }> = [
     id: "edc",
     name: "Everyday carry",
     note: "6 objects · active kit",
-    seed: ["Belt", "Coat", "Hat", "Jeans", "Loafers", "Wallet"],
+    seed: ["Hat", "Coat", "Jeans", "Belt", "Loafers", "Wallet"],
   },
   {
     id: "cooking",
     name: "Cooking",
     note: "6 objects · temporary kit",
-    seed: ["Belt", "Coat", "Hat", "Jeans", "Loafers", "Wallet"],
+    seed: ["Hat", "Coat", "Jeans", "Belt", "Loafers", "Wallet"],
   },
   {
     id: "coming-soon",
@@ -90,17 +109,55 @@ const GRAPHITE_IMAGES: Record<string, string> = {
   Wallet: "/loadout/wallet-graphite-v2.png",
 };
 
-const ITEM_BRANDS: Record<string, string> = {
-  Belt: "Arcade",
-  Coat: "Kapital",
-  Jeans: "Oni",
-  Hat: "Reforge",
-  Wallet: "Coach",
-  Loafers: "Aurora",
-};
-
-const ITEM_LABELS: Record<string, string> = {
-  Hat: "Cap",
+const ITEM_CONTENT: Record<string, ItemContent> = {
+  Belt: {
+    brand: "Arcade",
+    title: "Braided belt",
+    description: "A low-profile stretch belt that disappears under layers and stays comfortable through long days in motion.",
+    badges: ["Owned —", "Daily", "In rotation"],
+    why: "It moves with me, stays flat under a shirt, and never asks for adjustment halfway through the day.",
+    details: [["Material", "Performance weave"], ["Closure", "Micro-adjust buckle"]],
+  },
+  Coat: {
+    brand: "Kapital",
+    title: "Coverall chore coat",
+    description: "Soft structure, generous pockets, and enough character to make a simple uniform feel considered.",
+    badges: ["Owned —", "Seasonal", "In rotation"],
+    why: "The relaxed shape makes layering easy, while the pockets carry enough that I can leave a bag behind.",
+    details: [["Cut", "Relaxed"], ["Use", "Three season"]],
+  },
+  Hat: {
+    brand: "Reforge",
+    title: "Prototype cap",
+    description: "A familiar shape with a quiet profile—easy to pack, easy to wear, and better after repeated use.",
+    badges: ["Owned —", "Frequent", "In rotation"],
+    why: "The soft crown packs without complaint and the low profile works without becoming the center of an outfit.",
+    details: [["Profile", "Low"], ["Fit", "Adjustable"]],
+  },
+  Jeans: {
+    brand: "Oni",
+    title: "Selvedge denim pant",
+    description: "A substantial pair of jeans chosen for irregular texture, patient break-in, and the record they keep over time.",
+    badges: ["Owned —", "Weekly", "Breaking in"],
+    why: "The irregular denim rewards attention. Its texture and fading make repeated wear feel like part of the design.",
+    details: [["Fabric", "Japanese denim"], ["Fit", "Relaxed taper"]],
+  },
+  Loafers: {
+    brand: "Aurora",
+    title: "Leather loafer",
+    description: "Unstructured loafers that bridge formal and casual use without asking the rest of the outfit to change.",
+    badges: ["Owned —", "Weekly", "In rotation"],
+    why: "They are relaxed enough for everyday wear but retain enough structure to make simple clothes feel finished.",
+    details: [["Construction", "Handsewn"], ["Sole", "Leather"]],
+  },
+  Wallet: {
+    brand: "Coach",
+    title: "Slim card wallet",
+    description: "A compact leather wallet with just enough organization for the cards and notes that actually leave the house.",
+    badges: ["Owned —", "Daily", "In rotation"],
+    why: "It holds the essentials without creating extra capacity that eventually turns into clutter.",
+    details: [["Format", "Bifold"], ["Carry", "Front or back pocket"]],
+  },
 };
 
 const ITEM_PRESENTATION: Record<string, { scale: number; x: string; y: string }> = {
@@ -112,6 +169,17 @@ const ITEM_PRESENTATION: Record<string, { scale: number; x: string; y: string }>
   Wallet: { scale: 1.2, x: "0%", y: "0%" },
 };
 
+const ITEM_ALPHA_BOUNDS: Record<string, { left: number; top: number }> = {
+  Belt: { left: 24.5, top: 8.84 },
+  Coat: { left: 8.81, top: 22.56 },
+  Hat: { left: 22.39, top: 17.69 },
+  Jeans: { left: 24.31, top: 11.74 },
+  Loafers: { left: 19.36, top: 16.86 },
+  Wallet: { left: 15.6, top: 28.02 },
+};
+
+const FOCUSED_VISUAL_TOP = 0;
+
 const INITIAL_MEMORY = Object.fromEntries(
   REGIONS.map((region) => [region.id, { stage: 0, scrollTop: 0 }]),
 ) as RegionMemory;
@@ -120,7 +188,30 @@ function itemSlug(item: string) {
   return item.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-function writeLoadoutUrl(regionId: RegionId | null, itemIndex?: number | null) {
+function baseItemName(item: string) {
+  return item.replace(/\s+\d+$/, "");
+}
+
+function itemVisualAlignment(item: string) {
+  const name = baseItemName(item);
+  const bounds = ITEM_ALPHA_BOUNDS[name] ?? { left: 0, top: 0 };
+  const presentation = ITEM_PRESENTATION[name] ?? { scale: 1, x: "0%", y: "0%" };
+  const translateX = Number.parseFloat(presentation.x) || 0;
+  const translateY = Number.parseFloat(presentation.y) || 0;
+  const left = 50 + (bounds.left - 50) * presentation.scale + translateX;
+  const top = 50 + (bounds.top - 50) * presentation.scale + translateY;
+
+  return {
+    left,
+    focusY: FOCUSED_VISUAL_TOP - top,
+  };
+}
+
+function writeLoadoutUrl(
+  regionId: RegionId | null,
+  itemIndex?: number | null,
+  replace = false,
+) {
   const url = new URL(window.location.href);
   url.search = "";
 
@@ -135,7 +226,11 @@ function writeLoadoutUrl(regionId: RegionId | null, itemIndex?: number | null) {
     if (item) url.searchParams.set("item", itemSlug(item));
   }
 
-  window.history.pushState({}, "", `${url.pathname}${url.search}`);
+  window.history[replace ? "replaceState" : "pushState"](
+    {},
+    "",
+    `${url.pathname}${url.search}`,
+  );
 }
 
 function distance(a: PointerEvent | ReactPointerEvent, b: PointerEvent | ReactPointerEvent) {
@@ -159,6 +254,17 @@ function useReducedMotion() {
 export function LoadoutWorld() {
   const [activeRegionId, setActiveRegionId] = useState<RegionId | null>("edc");
   const [stage, setStage] = useState(0);
+  const [activeItemIndex, setActiveItemIndex] = useState(0);
+  const [detailItemIndex, setDetailItemIndex] = useState(0);
+  const [detailsVisible, setDetailsVisible] = useState(true);
+  const [imagesInTransit, setImagesInTransit] = useState(false);
+  const [isDensityTransitioning, setIsDensityTransitioning] = useState(false);
+  const [regionTitleVisible, setRegionTitleVisible] = useState(true);
+  const modeAnimations = useRef<Animation[]>([]);
+  const modeAnimationGeneration = useRef(0);
+  const modeTransitionRunning = useRef(false);
+  const [cursorInGrid, setCursorInGrid] = useState(false);
+  const [hoveredItemIndex, setHoveredItemIndex] = useState<number | null>(null);
   const [memory, setMemory] = useState<RegionMemory>(INITIAL_MEMORY);
   const [isPinching, setIsPinching] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -176,16 +282,37 @@ export function LoadoutWorld() {
   const frame = useRef<number | null>(null);
   const pendingScale = useRef(1);
   const rawScale = useRef(1);
-  const wheelInputRef = useRef<(event: WheelEvent) => void>(() => undefined);
-  const safariStartRef = useRef<(event: SafariGestureEvent) => void>(() => undefined);
-  const safariChangeRef = useRef<(event: SafariGestureEvent) => void>(() => undefined);
-  const safariEndRef = useRef<(event: SafariGestureEvent) => void>(() => undefined);
+  const focusedWheelDelta = useRef(0);
+  const focusedWheelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusedNavigationLocked = useRef(false);
+  const focusedNavigationUnlockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const detailsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cursorTooltipRef = useRef<HTMLDivElement>(null);
+  const cursorTooltipHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusedSwipe = useRef<{
+    pointerId: number;
+    startY: number;
+    currentY: number;
+  } | null>(null);
   const reducedMotion = useReducedMotion();
 
   const activeRegion = useMemo(
     () => REGIONS.find((region) => region.id === activeRegionId) ?? null,
     [activeRegionId],
   );
+
+  const positionCursorTooltip = useCallback((x: number, y: number) => {
+    const tooltip = cursorTooltipRef.current;
+    if (!tooltip) return;
+    const offset = 16;
+    const edge = 12;
+    const width = tooltip.offsetWidth;
+    const height = tooltip.offsetHeight;
+    const left = Math.max(edge, Math.min(x + offset, window.innerWidth - width - edge));
+    const top = Math.max(edge, Math.min(y + offset, window.innerHeight - height - edge));
+    tooltip.style.setProperty("--cursor-x", `${left}px`);
+    tooltip.style.setProperty("--cursor-y", `${top}px`);
+  }, []);
 
   const regionAtPoint = useCallback((x: number, y: number) => {
     const target = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-region-id]");
@@ -225,7 +352,7 @@ export function LoadoutWorld() {
 
   const applyPreviewScale = useCallback((nextScale: number, x: number, y: number) => {
     const surface = activeRegionId ? sheetRef.current : worldRef.current;
-    if (!surface) return;
+    if (!surface || modeTransitionRunning.current) return;
 
     pendingScale.current = constrainPreviewScale(nextScale);
     gesture.current.x = x;
@@ -252,9 +379,15 @@ export function LoadoutWorld() {
       });
   }, []);
 
-  const commitDensity = useCallback((targetStage: number, focalX?: number, focalY?: number) => {
+  const commitDensity = useCallback((
+    targetStage: number,
+    focalX?: number,
+    focalY?: number,
+    historyItemIndex?: number,
+  ) => {
     const viewport = viewportRef.current;
     const sheet = sheetRef.current;
+    if (modeTransitionRunning.current) return;
     if (!viewport || !sheet || targetStage === stage) {
       if (sheet) sheet.style.transform = "";
       setIsPinching(false);
@@ -273,55 +406,88 @@ export function LoadoutWorld() {
       return itemDistance < bestDistance ? item : best;
     }, null);
     const anchorId = anchor?.dataset.itemId;
-    const anchorRect = anchor?.getBoundingClientRect();
-    const offsetWithinAnchor = anchorRect ? y - anchorRect.top : 0;
-    const first = new Map(candidates.map((item) => [item.dataset.itemId, item.getBoundingClientRect()]));
+    const anchorIndex = Number(anchorId?.split("-").at(-1));
+    const nextItemIndex = historyItemIndex ?? (targetStage === 1 && Number.isFinite(anchorIndex)
+      ? anchorIndex
+      : activeItemIndex);
 
     sheet.style.transform = "";
-    flushSync(() => setStage(targetStage));
-
-    if (anchorId) {
-      const nextAnchor = viewport.querySelector<HTMLElement>(`[data-item-id="${anchorId}"]`);
-      if (nextAnchor) {
-        const nextRect = nextAnchor.getBoundingClientRect();
-        window.scrollBy(0, nextRect.top + offsetWithinAnchor - y);
-      }
-    }
-
-    if (!reducedMotion) {
-      visibleItems().forEach((item) => {
-        const oldRect = first.get(item.dataset.itemId);
-        if (!oldRect) return;
-        const nextRect = item.getBoundingClientRect();
-        item.animate(
-          [
-            {
-              transform: `translate(${oldRect.left - nextRect.left}px, ${oldRect.top - nextRect.top}px) scale(${oldRect.width / nextRect.width}, ${oldRect.height / nextRect.height})`,
-            },
-            { transform: "translate(0, 0) scale(1)" },
-          ],
-          { duration: 460, easing: "cubic-bezier(.2,.75,.2,1)" },
-        );
+    // Both snapshots must contain stippling; reveal the photo only after arrival.
+    flushSync(() => setImagesInTransit(true));
+    const update = () => {
+      setHoveredItemIndex(null);
+      setIsDensityTransitioning(true);
+      setActiveItemIndex(nextItemIndex);
+      setDetailItemIndex(nextItemIndex);
+      setDetailsVisible(true);
+      setStage(targetStage);
+      window.scrollTo(0, 0);
+    };
+    const transitionDocument = document as Document & {
+      startViewTransition?: (callback: () => void) => { finished: Promise<void> };
+    };
+    if (reducedMotion || !transitionDocument.startViewTransition) {
+      flushSync(update);
+      requestAnimationFrame(() => {
+        setIsDensityTransitioning(false);
+        setImagesInTransit(false);
       });
+    } else {
+      document.documentElement.dataset.loadoutDensityTransition = targetStage === 1
+        ? "focus"
+        : "grid";
+      const transition = transitionDocument.startViewTransition(() => flushSync(update));
+      transition.finished.then(
+        () => {
+          delete document.documentElement.dataset.loadoutDensityTransition;
+          setIsDensityTransitioning(false);
+          setImagesInTransit(false);
+        },
+        () => {
+          delete document.documentElement.dataset.loadoutDensityTransition;
+          setIsDensityTransitioning(false);
+          setImagesInTransit(false);
+        },
+      );
     }
 
-    if (activeRegionId) {
-      const anchorIndex = Number(anchorId?.split("-").at(-1));
+    if (activeRegionId && historyItemIndex === undefined) {
       writeLoadoutUrl(
         activeRegionId,
-        targetStage === 1 && Number.isFinite(anchorIndex) ? anchorIndex : null,
+        targetStage === 1 ? nextItemIndex : null,
       );
     }
 
     setIsPinching(false);
-  }, [activeRegionId, reducedMotion, stage, visibleItems]);
+  }, [activeItemIndex, activeRegionId, reducedMotion, stage, visibleItems]);
 
   const switchMode = useCallback((
     nextRegion: RegionId | null,
     targetStage?: number,
     targetItemIndex?: number | null,
     focalY?: number,
+    fromHistory = false,
   ) => {
+    if (!fromHistory && (modeTransitionRunning.current || nextRegion === activeRegionId)) return;
+    const generation = ++modeAnimationGeneration.current;
+    // History navigation must interrupt motion rather than discard the new URL.
+    // Measure the current animated positions before cancelling below.
+    if (frame.current !== null) {
+      cancelAnimationFrame(frame.current);
+      frame.current = null;
+    }
+    const direction = nextRegion ? "enter" : "exit";
+    const regionId = nextRegion ?? activeRegionId;
+    const sourceSelector = nextRegion && !activeRegionId
+      ? `[data-region-id="${regionId}"] [data-world-item-index]`
+      : "[data-shared-item-index]";
+    const sourceRects = Array.from(
+      viewportRef.current?.querySelectorAll<HTMLElement>(sourceSelector) ?? [],
+      (item) => item.getBoundingClientRect(),
+    );
+
+    modeAnimations.current.forEach((animation) => animation.cancel());
+    modeAnimations.current = [];
     const viewport = viewportRef.current;
     if (activeRegionId && viewport) {
       setMemory((current) => ({
@@ -331,26 +497,20 @@ export function LoadoutWorld() {
     }
 
     const update = () => {
+      setImagesInTransit(true);
+      setRegionTitleVisible(false);
+      setHoveredItemIndex(null);
       if (nextRegion) {
         const remembered = memory[nextRegion];
         const nextStage = targetStage ?? remembered.stage;
         setActiveRegionId(nextRegion);
         setStage(nextStage);
-        requestAnimationFrame(() => {
-          if (targetItemIndex !== undefined && targetItemIndex !== null) {
-            const item = viewportRef.current?.querySelector<HTMLElement>(
-              `[data-item-id="${nextRegion}-${targetItemIndex}"]`,
-            );
-            if (item) {
-              const rect = item.getBoundingClientRect();
-              const landingY = focalY ?? window.innerHeight / 2;
-              window.scrollBy(0, rect.top + rect.height / 2 - landingY);
-              return;
-            }
-          }
-          window.scrollTo(0, targetStage === undefined ? remembered.scrollTop : 0);
-        });
-        writeLoadoutUrl(
+        if (targetItemIndex !== undefined && targetItemIndex !== null) {
+          setActiveItemIndex(targetItemIndex);
+          setDetailItemIndex(targetItemIndex);
+        }
+        if (fromHistory) setDetailsVisible(true);
+        if (!fromHistory) writeLoadoutUrl(
           nextRegion,
           nextStage === 1 ? targetItemIndex : null,
         );
@@ -358,7 +518,7 @@ export function LoadoutWorld() {
         setActiveRegionId(null);
         setStage(0);
         window.scrollTo(0, 0);
-        writeLoadoutUrl(null);
+        if (!fromHistory) writeLoadoutUrl(null);
       }
       setIsPinching(false);
     };
@@ -366,15 +526,66 @@ export function LoadoutWorld() {
     const surface = activeRegionId ? sheetRef.current : worldRef.current;
     if (surface) surface.style.transform = "";
 
-    const transitionDocument = document as Document & {
-      startViewTransition?: (callback: () => void) => { finished: Promise<void> };
-    };
-
-    if (reducedMotion || !transitionDocument.startViewTransition) {
-      flushSync(update);
-    } else {
-      transitionDocument.startViewTransition(() => flushSync(update));
+    // Commit and settle scroll before measuring, in the same frame. No destination
+    // frame is painted before its inverse transform has been installed.
+    modeTransitionRunning.current = true;
+    flushSync(update);
+    if (nextRegion) {
+      const item = targetItemIndex != null
+        ? viewportRef.current?.querySelector<HTMLElement>(
+          `[data-item-id="${nextRegion}-${targetItemIndex}"]`,
+        )
+        : null;
+      // Focused items are positioned by the carousel, not document scrolling.
+      if ((targetStage ?? memory[nextRegion].stage) === 1) {
+        window.scrollTo(0, 0);
+      } else if (item) {
+        const rect = item.getBoundingClientRect();
+        window.scrollBy(0, rect.top + rect.height / 2 - (focalY ?? window.innerHeight / 2));
+      } else {
+        window.scrollTo(0, targetStage === undefined ? memory[nextRegion].scrollTop : 0);
+      }
     }
+
+    const finish = () => {
+      if (generation !== modeAnimationGeneration.current) return;
+      modeAnimations.current.forEach((animation) => animation.cancel());
+      modeAnimations.current = [];
+      modeTransitionRunning.current = false;
+      delete viewportRef.current?.dataset.modeTransition;
+      setRegionTitleVisible(true);
+      setImagesInTransit(false);
+    };
+    if (reducedMotion) {
+      finish();
+      return;
+    }
+
+    const destinationSelector = nextRegion
+      ? "[data-shared-item-index]"
+      : `[data-region-id="${regionId}"] [data-world-item-index]`;
+    const destinations = Array.from(
+      viewportRef.current?.querySelectorAll<HTMLElement>(destinationSelector) ?? [],
+    );
+    if (viewportRef.current) viewportRef.current.dataset.modeTransition = direction;
+    // Read every destination before writing animations. Animate transforms rather
+    // than snapshot widths: the artwork visibly scales as it travels into place.
+    const destinationRects = destinations.map((item) => item.getBoundingClientRect());
+    modeAnimations.current = destinations.flatMap((destination, index) => {
+      const source = sourceRects[index];
+      const target = destinationRects[index];
+      if (!source || !source.width || !source.height || !target.width || !target.height) return [];
+      return [destination.animate([
+        {
+          transformOrigin: "0 0",
+          transform: `translate(${source.left - target.left}px, ${source.top - target.top}px) scale(${source.width / target.width}, ${source.height / target.height})`,
+        },
+        { transformOrigin: "0 0", transform: "none" },
+      ], { ...MODE_MOTION[direction], fill: "both" })];
+    });
+    // Cancellation also settles finished; never leave the interaction lock stuck.
+    void Promise.allSettled(modeAnimations.current.map((animation) => animation.finished)).then(finish);
+
   }, [activeRegionId, memory, reducedMotion, stage]);
 
   const resetPreview = useCallback(() => {
@@ -416,6 +627,7 @@ export function LoadoutWorld() {
   }, [activeRegionId, commitDensity, resetPreview, stage, switchMode]);
 
   const beginGesture = useCallback((source: GestureSource, x: number, y: number) => {
+    if (modeTransitionRunning.current) return false;
     const session = gestureSession.current;
     if (session.phase === "locked") return false;
     if (session.phase === "tracking") return session.source === source;
@@ -500,11 +712,46 @@ export function LoadoutWorld() {
     resetPreview();
   }, [resetPreview]);
 
+  const moveFocusedItem = useCallback((direction: 1 | -1) => {
+    if (stage !== 1 || !activeRegion || focusedNavigationLocked.current) return;
+    const nextIndex = Math.max(
+      0,
+      Math.min(activeRegion.items.length - 1, activeItemIndex + direction),
+    );
+    if (nextIndex === activeItemIndex) return;
+
+    focusedNavigationLocked.current = true;
+    setDetailsVisible(false);
+    setImagesInTransit(!reducedMotion);
+    setActiveItemIndex(nextIndex);
+    writeLoadoutUrl(activeRegion.id, nextIndex, true);
+    if (detailsTimer.current) clearTimeout(detailsTimer.current);
+    detailsTimer.current = setTimeout(() => {
+      setDetailItemIndex(nextIndex);
+      setDetailsVisible(true);
+    }, reducedMotion ? 0 : 150);
+    if (focusedNavigationUnlockTimer.current) {
+      clearTimeout(focusedNavigationUnlockTimer.current);
+    }
+    focusedNavigationUnlockTimer.current = setTimeout(() => {
+      focusedNavigationLocked.current = false;
+      focusedNavigationUnlockTimer.current = null;
+    }, reducedMotion ? 80 : 520);
+  }, [activeItemIndex, activeRegion, reducedMotion, stage]);
+
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.pointerType !== "touch") return;
     pointers.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
     event.currentTarget.setPointerCapture(event.pointerId);
+    if (stage === 1 && pointers.current.size === 1) {
+      focusedSwipe.current = {
+        pointerId: event.pointerId,
+        startY: event.clientY,
+        currentY: event.clientY,
+      };
+    }
     if (pointers.current.size === 2) {
+      focusedSwipe.current = null;
       const [a, b] = Array.from(pointers.current.values());
       const midpointX = (a.clientX + b.clientX) / 2;
       const midpointY = (a.clientY + b.clientY) / 2;
@@ -521,6 +768,10 @@ export function LoadoutWorld() {
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
     if (!pointers.current.has(event.pointerId)) return;
     pointers.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+    if (focusedSwipe.current?.pointerId === event.pointerId) {
+      focusedSwipe.current.currentY = event.clientY;
+      if (Math.abs(event.clientY - focusedSwipe.current.startY) > 8) event.preventDefault();
+    }
     if (pointers.current.size !== 2 || gestureSession.current.source !== "touch") return;
     event.preventDefault();
     const [a, b] = Array.from(pointers.current.values());
@@ -533,16 +784,43 @@ export function LoadoutWorld() {
 
   function onPointerEnd(event: ReactPointerEvent<HTMLDivElement>) {
     const wasPinching = pointers.current.size === 2;
+    const swipe = focusedSwipe.current?.pointerId === event.pointerId
+      ? focusedSwipe.current
+      : null;
     pointers.current.delete(event.pointerId);
-    if (wasPinching) finishGesture("touch", gesture.current.x, gesture.current.y);
+    focusedSwipe.current = null;
+    if (wasPinching) {
+      finishGesture("touch", gesture.current.x, gesture.current.y);
+    } else if (swipe) {
+      const delta = swipe.currentY - swipe.startY;
+      if (Math.abs(delta) >= 48) moveFocusedItem(delta < 0 ? 1 : -1);
+    }
   }
 
   function onPointerCancel(event: ReactPointerEvent<HTMLDivElement>) {
     pointers.current.delete(event.pointerId);
+    focusedSwipe.current = null;
     cancelGesture("touch");
   }
 
-  wheelInputRef.current = (event: WheelEvent) => {
+  const handleWheelInput = useCallback((event: WheelEvent) => {
+    if (modeTransitionRunning.current) {
+      if (event.cancelable) event.preventDefault();
+      return;
+    }
+    if (stage === 1 && !event.ctrlKey && !event.metaKey) {
+      if (event.cancelable) event.preventDefault();
+      focusedWheelDelta.current += event.deltaY;
+      if (focusedWheelTimer.current) clearTimeout(focusedWheelTimer.current);
+      focusedWheelTimer.current = setTimeout(() => {
+        focusedWheelDelta.current = 0;
+      }, 160);
+      if (Math.abs(focusedWheelDelta.current) >= 42) {
+        moveFocusedItem(focusedWheelDelta.current > 0 ? 1 : -1);
+        focusedWheelDelta.current = 0;
+      }
+      return;
+    }
     if (!event.ctrlKey && !event.metaKey) return;
     if (event.cancelable) event.preventDefault();
     const normalizedDelta = event.deltaMode === WheelEvent.DOM_DELTA_LINE
@@ -559,14 +837,14 @@ export function LoadoutWorld() {
 
     lockGestureUntilQuiet(420);
     stepWheelZoom(normalizedDelta < 0 ? 1 : -1, event.clientX, event.clientY);
-  };
+  }, [beginGesture, lockGestureUntilQuiet, moveFocusedItem, stage, stepWheelZoom]);
 
-  safariStartRef.current = (event: SafariGestureEvent) => {
+  const handleSafariStart = useCallback((event: SafariGestureEvent) => {
     if (event.cancelable) event.preventDefault();
     beginGesture("safari", event.clientX, event.clientY);
-  };
+  }, [beginGesture]);
 
-  safariChangeRef.current = (event: SafariGestureEvent) => {
+  const handleSafariChange = useCallback((event: SafariGestureEvent) => {
     if (event.cancelable) event.preventDefault();
     if (gestureSession.current.phase === "locked") {
       lockGestureUntilQuiet(420);
@@ -576,19 +854,69 @@ export function LoadoutWorld() {
     if (event.scale === 1) return;
     lockGestureUntilQuiet(420);
     stepWheelZoom(event.scale > 1 ? 1 : -1, event.clientX, event.clientY);
-  };
+  }, [lockGestureUntilQuiet, stepWheelZoom]);
 
-  safariEndRef.current = (event: SafariGestureEvent) => {
+  const handleSafariEnd = useCallback((event: SafariGestureEvent) => {
     if (event.cancelable) event.preventDefault();
     finishGesture("safari", gesture.current.x, gesture.current.y);
-  };
+  }, [finishGesture]);
+
+  const navigateFromHistory = useEffectEvent((region: RegionId | null, itemIndex: number) => {
+    const targetStage = itemIndex >= 0 ? 1 : 0;
+    if (region && region === activeRegionId) {
+      if (modeTransitionRunning.current) {
+        ++modeAnimationGeneration.current;
+        modeAnimations.current.forEach((animation) => animation.cancel());
+        modeAnimations.current = [];
+        modeTransitionRunning.current = false;
+        delete viewportRef.current?.dataset.modeTransition;
+        setRegionTitleVisible(true);
+      }
+      if (targetStage !== stage) {
+        // Use exactly the same shared-element snapshots as click/pinch navigation.
+        commitDensity(targetStage, undefined, undefined, itemIndex >= 0 ? itemIndex : activeItemIndex);
+      } else if (itemIndex >= 0) {
+        setImagesInTransit(!reducedMotion && itemIndex !== activeItemIndex);
+        setActiveItemIndex(itemIndex);
+        setDetailItemIndex(itemIndex);
+        setDetailsVisible(true);
+      }
+      return;
+    }
+    switchMode(region, targetStage, itemIndex >= 0 ? itemIndex : null, undefined, true);
+  });
 
   useEffect(() => {
-    const restoreFromUrl = () => {
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    const restoreFromUrl = (fromHistory = false) => {
+      if (detailsTimer.current) {
+        clearTimeout(detailsTimer.current);
+        detailsTimer.current = null;
+      }
+      if (focusedNavigationUnlockTimer.current) {
+        clearTimeout(focusedNavigationUnlockTimer.current);
+        focusedNavigationUnlockTimer.current = null;
+      }
+      if (focusedWheelTimer.current) {
+        clearTimeout(focusedWheelTimer.current);
+        focusedWheelTimer.current = null;
+      }
+      focusedNavigationLocked.current = false;
+      focusedWheelDelta.current = 0;
+
       const params = new URLSearchParams(window.location.search);
       if (params.get("view") === "world") {
+        if (fromHistory) {
+          navigateFromHistory(null, -1);
+          return;
+        }
+        setHoveredItemIndex(null);
+        setIsDensityTransitioning(true);
         setActiveRegionId(null);
         setStage(0);
+        setDetailsVisible(true);
+        requestAnimationFrame(() => setIsDensityTransitioning(false));
         requestAnimationFrame(() => window.scrollTo(0, 0));
         return;
       }
@@ -602,48 +930,86 @@ export function LoadoutWorld() {
         ? region.items.findIndex((item) => itemSlug(item) === requestedItem)
         : -1;
 
+      if (fromHistory) {
+        navigateFromHistory(region.id, itemIndex);
+        return;
+      }
+      setIsDensityTransitioning(true);
+      setHoveredItemIndex(null);
       setActiveRegionId(region.id);
       setStage(itemIndex >= 0 ? 1 : 0);
+      setActiveItemIndex(itemIndex >= 0 ? itemIndex : 0);
+      setDetailItemIndex(itemIndex >= 0 ? itemIndex : 0);
+      setDetailsVisible(true);
       requestAnimationFrame(() => {
-        if (itemIndex < 0) {
-          window.scrollTo(0, 0);
-          return;
+        window.scrollTo(0, 0);
+        if (fromHistory && itemIndex >= 0) {
+          viewportRef.current?.focus({ preventScroll: true });
         }
-        const item = viewportRef.current?.querySelector<HTMLElement>(
-          `[data-item-id="${region.id}-${itemIndex}"]`,
-        );
-        item?.scrollIntoView({ block: "center" });
+        setIsDensityTransitioning(false);
       });
     };
 
     restoreFromUrl();
-    window.addEventListener("popstate", restoreFromUrl);
-    return () => window.removeEventListener("popstate", restoreFromUrl);
+    const handlePopState = () => restoreFromUrl(true);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
   }, []);
 
   useEffect(() => {
-    const onWheel = (event: WheelEvent) => wheelInputRef.current(event);
-    const onGestureStart = (event: Event) => safariStartRef.current(event as SafariGestureEvent);
-    const onGestureChange = (event: Event) => safariChangeRef.current(event as SafariGestureEvent);
-    const onGestureEnd = (event: Event) => safariEndRef.current(event as SafariGestureEvent);
+    const onGestureStart = (event: Event) => handleSafariStart(event as SafariGestureEvent);
+    const onGestureChange = (event: Event) => handleSafariChange(event as SafariGestureEvent);
+    const onGestureEnd = (event: Event) => handleSafariEnd(event as SafariGestureEvent);
 
-    window.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    window.addEventListener("wheel", handleWheelInput, { passive: false, capture: true });
     window.addEventListener("gesturestart", onGestureStart, { passive: false });
     window.addEventListener("gesturechange", onGestureChange, { passive: false });
     window.addEventListener("gestureend", onGestureEnd, { passive: false });
 
     return () => {
-      window.removeEventListener("wheel", onWheel, { capture: true });
+      window.removeEventListener("wheel", handleWheelInput, { capture: true });
       window.removeEventListener("gesturestart", onGestureStart);
       window.removeEventListener("gesturechange", onGestureChange);
       window.removeEventListener("gestureend", onGestureEnd);
     };
-  }, []);
+  }, [handleSafariChange, handleSafariEnd, handleSafariStart, handleWheelInput]);
 
   useEffect(() => () => {
+    modeAnimations.current.forEach((animation) => animation.cancel());
     if (frame.current !== null) cancelAnimationFrame(frame.current);
     if (gestureUnlockTimer.current) clearTimeout(gestureUnlockTimer.current);
+    if (focusedWheelTimer.current) clearTimeout(focusedWheelTimer.current);
+    if (focusedNavigationUnlockTimer.current) clearTimeout(focusedNavigationUnlockTimer.current);
+    if (detailsTimer.current) clearTimeout(detailsTimer.current);
+    if (cursorTooltipHideTimer.current) clearTimeout(cursorTooltipHideTimer.current);
   }, []);
+
+  const onViewportKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (stage !== 1 || !activeRegion) return;
+    if (event.key === "ArrowDown" || event.key === "PageDown") {
+      event.preventDefault();
+      moveFocusedItem(1);
+    } else if (event.key === "ArrowUp" || event.key === "PageUp") {
+      event.preventDefault();
+      moveFocusedItem(-1);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setImagesInTransit(!reducedMotion && activeItemIndex !== 0);
+      setActiveItemIndex(0);
+      setDetailItemIndex(0);
+      writeLoadoutUrl(activeRegion.id, 0, true);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      const lastIndex = activeRegion.items.length - 1;
+      setImagesInTransit(!reducedMotion && activeItemIndex !== lastIndex);
+      setActiveItemIndex(lastIndex);
+      setDetailItemIndex(lastIndex);
+      writeLoadoutUrl(activeRegion.id, lastIndex, true);
+    }
+  }, [activeItemIndex, activeRegion, moveFocusedItem, reducedMotion, stage]);
 
   return (
     <main className={styles.page}>
@@ -653,6 +1019,9 @@ export function LoadoutWorld() {
         data-mode={activeRegionId ? "region" : "world"}
         data-stage={stage}
         data-pinching={isPinching ? "true" : "false"}
+        data-density-transitioning={isDensityTransitioning ? "true" : "false"}
+        tabIndex={stage === 1 ? 0 : undefined}
+        onKeyDown={onViewportKeyDown}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerEnd}
@@ -663,30 +1032,99 @@ export function LoadoutWorld() {
             className={styles.region}
             aria-label={`${activeRegion.name} items`}
           >
+            {stage === 0 ? (
+              <header
+                className={styles.gridHeader}
+                data-visible={regionTitleVisible && !isDensityTransitioning ? "true" : "false"}
+                style={{
+                  "--columns": DENSITY_STAGES[stage],
+                  "--first-item-left": `${itemVisualAlignment(activeRegion.items[0]).left}%`,
+                } as CSSProperties}
+              >
+                <span>Things I carry everyday</span>
+              </header>
+            ) : null}
             <div
               ref={sheetRef}
               className={styles.sheet}
-              style={{
-                "--columns": DENSITY_STAGES[stage],
-                viewTransitionName: `region-${activeRegion.id}`,
-              } as CSSProperties}
             >
-              {activeRegion.items.map((item, index) => {
-                const imageSrc = activeRegion.id !== "coming-soon" ? EDC_IMAGES[item] : undefined;
-                const presentation = ITEM_PRESENTATION[item];
-                return (
+              <div
+                className={styles.itemLayout}
+                onTransitionEnd={(event) => {
+                  if (event.target === event.currentTarget && event.propertyName === "transform") {
+                    setImagesInTransit(false);
+                  }
+                }}
+                onPointerEnter={(event) => {
+                  if (stage !== 0 || event.pointerType === "touch") return;
+                  positionCursorTooltip(event.clientX, event.clientY);
+                  setCursorInGrid(true);
+                }}
+                onPointerMove={(event) => {
+                  if (stage !== 0 || event.pointerType === "touch") return;
+                  positionCursorTooltip(event.clientX, event.clientY);
+                }}
+                onPointerLeave={() => {
+                  if (cursorTooltipHideTimer.current) {
+                    clearTimeout(cursorTooltipHideTimer.current);
+                    cursorTooltipHideTimer.current = null;
+                  }
+                  setCursorInGrid(false);
+                  setHoveredItemIndex(null);
+                }}
+                style={{
+                  "--columns": DENSITY_STAGES[stage],
+                  "--active-item": activeItemIndex,
+                } as CSSProperties}
+              >
+                {activeRegion.items.map((item, index) => {
+                  const imageSrc = activeRegion.id !== "coming-soon" ? EDC_IMAGES[item] : undefined;
+                  const presentation = ITEM_PRESENTATION[item];
+                  const alignment = itemVisualAlignment(item);
+                  return (
                     <button
                       key={`${activeRegion.id}-${index}`}
                       className={styles.item}
                       data-item-id={`${activeRegion.id}-${index}`}
+                      data-active={index === activeItemIndex ? "true" : "false"}
+                      data-photo-ready={stage === 1 && index === activeItemIndex && !imagesInTransit ? "true" : "false"}
+                      tabIndex={stage === 1 && index !== activeItemIndex ? -1 : 0}
                       style={{
                         "--item-index": index,
                         "--item-scale": presentation?.scale ?? 1,
                         "--item-x": presentation?.x ?? "0%",
                         "--item-y": presentation?.y ?? "0%",
+                        "--focus-y": `${alignment.focusY}%`,
                       } as CSSProperties}
                       aria-label={`${item}, item ${index + 1} of ${activeRegion.items.length}`}
+                      onPointerEnter={(event) => {
+                        if (stage !== 0 || event.pointerType === "touch") return;
+                        if (cursorTooltipHideTimer.current) {
+                          clearTimeout(cursorTooltipHideTimer.current);
+                          cursorTooltipHideTimer.current = null;
+                        }
+                        positionCursorTooltip(event.clientX, event.clientY);
+                        setHoveredItemIndex(index);
+                      }}
+                      onPointerMove={(event) => {
+                        if (stage !== 0 || event.pointerType === "touch") return;
+                        positionCursorTooltip(event.clientX, event.clientY);
+                      }}
+                      onPointerLeave={() => {
+                        if (cursorTooltipHideTimer.current) {
+                          clearTimeout(cursorTooltipHideTimer.current);
+                        }
+                        cursorTooltipHideTimer.current = setTimeout(() => {
+                          setHoveredItemIndex(null);
+                          cursorTooltipHideTimer.current = null;
+                        }, 140);
+                      }}
                       onClick={(event) => {
+                        if (cursorTooltipHideTimer.current) {
+                          clearTimeout(cursorTooltipHideTimer.current);
+                          cursorTooltipHideTimer.current = null;
+                        }
+                        setHoveredItemIndex(null);
                         if (stage === 0) {
                           commitDensity(1, event.clientX, event.clientY);
                         } else {
@@ -696,8 +1134,12 @@ export function LoadoutWorld() {
                     >
                       <span
                         className={styles.itemMedia}
+                        data-shared-item-index={index}
                         data-has-image={imageSrc ? "true" : "false"}
                         aria-hidden="true"
+                        style={{
+                          viewTransitionName: `loadout-${activeRegion.id}-${index}`,
+                        } as CSSProperties}
                       >
                         {imageSrc ? (
                           <>
@@ -722,32 +1164,108 @@ export function LoadoutWorld() {
                         )}
                       </span>
                     </button>
+                  );
+                })}
+              </div>
+              {stage === 1 ? (() => {
+                const detailItem = activeRegion.items[detailItemIndex];
+                const content = ITEM_CONTENT[baseItemName(detailItem)];
+                const alignment = itemVisualAlignment(detailItem);
+                if (!content) return null;
+                return (
+                  <aside
+                    className={styles.focusedDetails}
+                    data-visible={detailsVisible && !isDensityTransitioning ? "true" : "false"}
+                    aria-live="polite"
+                  >
+                    <header className={styles.detailsHeader}>
+                      <div
+                        className={styles.detailsHeaderInner}
+                        style={{ "--visual-left": `${alignment.left}%` } as CSSProperties}
+                      >
+                        <h1>{content.title}</h1>
+                      </div>
+                    </header>
+                    <div className={styles.detailsContent}>
+                      <div className={styles.detailsBody}>
+                        <section className={styles.detailSection}>
+                          <h2>Story</h2>
+                          <p>{content.description}</p>
+                        </section>
+                        <section className={styles.detailSection}>
+                          <h2>Utility</h2>
+                          <p>{content.why}</p>
+                        </section>
+                        <div className={styles.badges}>
+                          {content.badges.map((badge) => <span key={badge}>{badge}</span>)}
+                        </div>
+                      </div>
+                    </div>
+                  </aside>
                 );
-              })}
+              })() : null}
+              {stage === 1 ? (
+                <p className={styles.focusedPosition} aria-live="polite">
+                  {activeItemIndex + 1} / {activeRegion.items.length}
+                </p>
+              ) : null}
             </div>
           </section>
         ) : (
           <section ref={worldRef} className={styles.world} aria-label="Loadout regions">
-            <div className={styles.worldGrid}>
-              {REGIONS.map((region, regionIndex) => (
+            <h1
+              className={styles.worldTitle}
+              data-visible={regionTitleVisible ? "true" : "false"}
+              style={{
+                "--first-item-left": `${itemVisualAlignment(REGIONS[0].items[0]).left}%`,
+              } as CSSProperties}
+            >
+              <span className={styles.worldTitleRegion}>
+                <span>Things worth mentioning</span>
+              </span>
+            </h1>
+            <div
+              className={styles.worldGrid}
+              onPointerEnter={(event) => {
+                if (event.pointerType === "touch") return;
+                positionCursorTooltip(event.clientX, event.clientY);
+                setCursorInGrid(true);
+              }}
+              onPointerMove={(event) => {
+                if (event.pointerType === "touch") return;
+                positionCursorTooltip(event.clientX, event.clientY);
+              }}
+              onPointerLeave={() => {
+                setCursorInGrid(false);
+                setHoveredItemIndex(null);
+              }}
+            >
+              {REGIONS.filter((region) => region.id !== "coming-soon").map((region, regionIndex) => (
                 <button
                   key={region.id}
                   className={styles.regionCard}
                   data-region-id={region.id}
                   disabled={region.id === "coming-soon"}
-                  onClick={() => switchMode(region.id, 0)}
+                  onPointerEnter={(event) => {
+                    if (event.pointerType === "touch") return;
+                    positionCursorTooltip(event.clientX, event.clientY);
+                    setHoveredItemIndex(regionIndex);
+                  }}
+                  onPointerLeave={() => setHoveredItemIndex(null)}
+                  onClick={() => {
+                    setCursorInGrid(false);
+                    setHoveredItemIndex(null);
+                    switchMode(region.id, 0);
+                  }}
                 >
-                  <span className={styles.regionCardHeader}>
-                    <strong>{region.name}</strong>
-                    <span>{region.items.length}</span>
-                  </span>
                   <span
                     className={styles.miniGrid}
                     aria-hidden="true"
-                    style={{ viewTransitionName: `region-${region.id}` } as CSSProperties}
                   >
                     {region.items.slice(0, 9).map((item, index) => {
-                      const imageSrc = region.id !== "coming-soon" ? EDC_IMAGES[item] : undefined;
+                      const imageSrc = region.id !== "coming-soon"
+                        ? GRAPHITE_IMAGES[baseItemName(item)]
+                        : undefined;
                       const presentation = ITEM_PRESENTATION[item];
                       return (
                         <span
@@ -774,13 +1292,20 @@ export function LoadoutWorld() {
                       );
                     })}
                   </span>
-                  <span className={styles.regionNote}>{region.note}</span>
                 </button>
               ))}
             </div>
           </section>
         )}
       </div>
+      <CursorTooltip
+        ref={cursorTooltipRef}
+        expanded={hoveredItemIndex !== null}
+        visible={cursorInGrid && (activeRegion === null || stage === 0)}
+        detail={activeRegion === null && hoveredItemIndex !== null
+          ? (["every day", "cooking"][hoveredItemIndex] ?? "view")
+          : "view"}
+      />
     </main>
   );
 }

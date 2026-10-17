@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Watermark } from "./_components/watermark";
 
@@ -18,6 +19,13 @@ const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
 });
 
+const iowanOldStyle = localFont({
+  src: "./fonts/iowan-old-style-regular.ttf",
+  display: "swap",
+  variable: "--font-iowan-old-style",
+  weight: "400",
+});
+
 export const metadata: Metadata = {
   title: "Harley Siezar",
   description: "AI Engineer working on Reforge Build.",
@@ -31,7 +39,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif.variable} ${iowanOldStyle.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
         {children}
