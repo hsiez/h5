@@ -6,6 +6,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   useState,
@@ -14,6 +15,13 @@ import { flushSync } from "react-dom";
 import Image from "next/image";
 import { CursorTooltip } from "../_components/cursor-tooltip";
 import styles from "./loadout.module.css";
+
+// Mode motion has one owner: Web Animations. Geometry comes from the rendered
+// source/destination, so responsive layouts and pinch previews need no offsets.
+const MODE_MOTION = {
+  enter: { duration: 450, easing: "cubic-bezier(.42, 0, .18, 1)" },
+  exit: { duration: 450, easing: "cubic-bezier(.2, .72, .18, 1)" },
+} as const;
 
 const DENSITY_STAGES = [3, 1] as const;
 const MIN_PREVIEW_SCALE = 0.56;
@@ -249,7 +257,12 @@ export function LoadoutWorld() {
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [detailItemIndex, setDetailItemIndex] = useState(0);
   const [detailsVisible, setDetailsVisible] = useState(true);
+  const [imagesInTransit, setImagesInTransit] = useState(false);
   const [isDensityTransitioning, setIsDensityTransitioning] = useState(false);
+  const [regionTitleVisible, setRegionTitleVisible] = useState(true);
+  const modeAnimations = useRef<Animation[]>([]);
+  const modeAnimationGeneration = useRef(0);
+  const modeTransitionRunning = useRef(false);
   const [cursorInGrid, setCursorInGrid] = useState(false);
   const [hoveredItemIndex, setHoveredItemIndex] = useState<number | null>(null);
   const [memory, setMemory] = useState<RegionMemory>(INITIAL_MEMORY);
@@ -339,7 +352,7 @@ export function LoadoutWorld() {
 
   const applyPreviewScale = useCallback((nextScale: number, x: number, y: number) => {
     const surface = activeRegionId ? sheetRef.current : worldRef.current;
-    if (!surface) return;
+    if (!surface || modeTransitionRunning.current) return;
 
     pendingScale.current = constrainPreviewScale(nextScale);
     gesture.current.x = x;
@@ -366,9 +379,15 @@ export function LoadoutWorld() {
       });
   }, []);
 
-  const commitDensity = useCallback((targetStage: number, focalX?: number, focalY?: number) => {
+  const commitDensity = useCallback((
+    targetStage: number,
+    focalX?: number,
+    focalY?: number,
+    historyItemIndex?: number,
+  ) => {
     const viewport = viewportRef.current;
     const sheet = sheetRef.current;
+    if (modeTransitionRunning.current) return;
     if (!viewport || !sheet || targetStage === stage) {
       if (sheet) sheet.style.transform = "";
       setIsPinching(false);
@@ -388,11 +407,13 @@ export function LoadoutWorld() {
     }, null);
     const anchorId = anchor?.dataset.itemId;
     const anchorIndex = Number(anchorId?.split("-").at(-1));
-    const nextItemIndex = targetStage === 1 && Number.isFinite(anchorIndex)
+    const nextItemIndex = historyItemIndex ?? (targetStage === 1 && Number.isFinite(anchorIndex)
       ? anchorIndex
-      : activeItemIndex;
+      : activeItemIndex);
 
     sheet.style.transform = "";
+    // Both snapshots must contain stippling; reveal the photo only after arrival.
+    flushSync(() => setImagesInTransit(true));
     const update = () => {
       setHoveredItemIndex(null);
       setIsDensityTransitioning(true);
@@ -407,16 +428,30 @@ export function LoadoutWorld() {
     };
     if (reducedMotion || !transitionDocument.startViewTransition) {
       flushSync(update);
-      requestAnimationFrame(() => setIsDensityTransitioning(false));
+      requestAnimationFrame(() => {
+        setIsDensityTransitioning(false);
+        setImagesInTransit(false);
+      });
     } else {
+      document.documentElement.dataset.loadoutDensityTransition = targetStage === 1
+        ? "focus"
+        : "grid";
       const transition = transitionDocument.startViewTransition(() => flushSync(update));
       transition.finished.then(
-        () => setIsDensityTransitioning(false),
-        () => setIsDensityTransitioning(false),
+        () => {
+          delete document.documentElement.dataset.loadoutDensityTransition;
+          setIsDensityTransitioning(false);
+          setImagesInTransit(false);
+        },
+        () => {
+          delete document.documentElement.dataset.loadoutDensityTransition;
+          setIsDensityTransitioning(false);
+          setImagesInTransit(false);
+        },
       );
     }
 
-    if (activeRegionId) {
+    if (activeRegionId && historyItemIndex === undefined) {
       writeLoadoutUrl(
         activeRegionId,
         targetStage === 1 ? nextItemIndex : null,
@@ -431,7 +466,28 @@ export function LoadoutWorld() {
     targetStage?: number,
     targetItemIndex?: number | null,
     focalY?: number,
+    fromHistory = false,
   ) => {
+    if (!fromHistory && (modeTransitionRunning.current || nextRegion === activeRegionId)) return;
+    const generation = ++modeAnimationGeneration.current;
+    // History navigation must interrupt motion rather than discard the new URL.
+    // Measure the current animated positions before cancelling below.
+    if (frame.current !== null) {
+      cancelAnimationFrame(frame.current);
+      frame.current = null;
+    }
+    const direction = nextRegion ? "enter" : "exit";
+    const regionId = nextRegion ?? activeRegionId;
+    const sourceSelector = nextRegion && !activeRegionId
+      ? `[data-region-id="${regionId}"] [data-world-item-index]`
+      : "[data-shared-item-index]";
+    const sourceRects = Array.from(
+      viewportRef.current?.querySelectorAll<HTMLElement>(sourceSelector) ?? [],
+      (item) => item.getBoundingClientRect(),
+    );
+
+    modeAnimations.current.forEach((animation) => animation.cancel());
+    modeAnimations.current = [];
     const viewport = viewportRef.current;
     if (activeRegionId && viewport) {
       setMemory((current) => ({
@@ -441,6 +497,8 @@ export function LoadoutWorld() {
     }
 
     const update = () => {
+      setImagesInTransit(true);
+      setRegionTitleVisible(false);
       setHoveredItemIndex(null);
       if (nextRegion) {
         const remembered = memory[nextRegion];
@@ -451,21 +509,8 @@ export function LoadoutWorld() {
           setActiveItemIndex(targetItemIndex);
           setDetailItemIndex(targetItemIndex);
         }
-        requestAnimationFrame(() => {
-          if (targetItemIndex !== undefined && targetItemIndex !== null) {
-            const item = viewportRef.current?.querySelector<HTMLElement>(
-              `[data-item-id="${nextRegion}-${targetItemIndex}"]`,
-            );
-            if (item) {
-              const rect = item.getBoundingClientRect();
-              const landingY = focalY ?? window.innerHeight / 2;
-              window.scrollBy(0, rect.top + rect.height / 2 - landingY);
-              return;
-            }
-          }
-          window.scrollTo(0, targetStage === undefined ? remembered.scrollTop : 0);
-        });
-        writeLoadoutUrl(
+        if (fromHistory) setDetailsVisible(true);
+        if (!fromHistory) writeLoadoutUrl(
           nextRegion,
           nextStage === 1 ? targetItemIndex : null,
         );
@@ -473,7 +518,7 @@ export function LoadoutWorld() {
         setActiveRegionId(null);
         setStage(0);
         window.scrollTo(0, 0);
-        writeLoadoutUrl(null);
+        if (!fromHistory) writeLoadoutUrl(null);
       }
       setIsPinching(false);
     };
@@ -481,15 +526,66 @@ export function LoadoutWorld() {
     const surface = activeRegionId ? sheetRef.current : worldRef.current;
     if (surface) surface.style.transform = "";
 
-    const transitionDocument = document as Document & {
-      startViewTransition?: (callback: () => void) => { finished: Promise<void> };
-    };
-
-    if (reducedMotion || !transitionDocument.startViewTransition) {
-      flushSync(update);
-    } else {
-      transitionDocument.startViewTransition(() => flushSync(update));
+    // Commit and settle scroll before measuring, in the same frame. No destination
+    // frame is painted before its inverse transform has been installed.
+    modeTransitionRunning.current = true;
+    flushSync(update);
+    if (nextRegion) {
+      const item = targetItemIndex != null
+        ? viewportRef.current?.querySelector<HTMLElement>(
+          `[data-item-id="${nextRegion}-${targetItemIndex}"]`,
+        )
+        : null;
+      // Focused items are positioned by the carousel, not document scrolling.
+      if ((targetStage ?? memory[nextRegion].stage) === 1) {
+        window.scrollTo(0, 0);
+      } else if (item) {
+        const rect = item.getBoundingClientRect();
+        window.scrollBy(0, rect.top + rect.height / 2 - (focalY ?? window.innerHeight / 2));
+      } else {
+        window.scrollTo(0, targetStage === undefined ? memory[nextRegion].scrollTop : 0);
+      }
     }
+
+    const finish = () => {
+      if (generation !== modeAnimationGeneration.current) return;
+      modeAnimations.current.forEach((animation) => animation.cancel());
+      modeAnimations.current = [];
+      modeTransitionRunning.current = false;
+      delete viewportRef.current?.dataset.modeTransition;
+      setRegionTitleVisible(true);
+      setImagesInTransit(false);
+    };
+    if (reducedMotion) {
+      finish();
+      return;
+    }
+
+    const destinationSelector = nextRegion
+      ? "[data-shared-item-index]"
+      : `[data-region-id="${regionId}"] [data-world-item-index]`;
+    const destinations = Array.from(
+      viewportRef.current?.querySelectorAll<HTMLElement>(destinationSelector) ?? [],
+    );
+    if (viewportRef.current) viewportRef.current.dataset.modeTransition = direction;
+    // Read every destination before writing animations. Animate transforms rather
+    // than snapshot widths: the artwork visibly scales as it travels into place.
+    const destinationRects = destinations.map((item) => item.getBoundingClientRect());
+    modeAnimations.current = destinations.flatMap((destination, index) => {
+      const source = sourceRects[index];
+      const target = destinationRects[index];
+      if (!source || !source.width || !source.height || !target.width || !target.height) return [];
+      return [destination.animate([
+        {
+          transformOrigin: "0 0",
+          transform: `translate(${source.left - target.left}px, ${source.top - target.top}px) scale(${source.width / target.width}, ${source.height / target.height})`,
+        },
+        { transformOrigin: "0 0", transform: "none" },
+      ], { ...MODE_MOTION[direction], fill: "both" })];
+    });
+    // Cancellation also settles finished; never leave the interaction lock stuck.
+    void Promise.allSettled(modeAnimations.current.map((animation) => animation.finished)).then(finish);
+
   }, [activeRegionId, memory, reducedMotion, stage]);
 
   const resetPreview = useCallback(() => {
@@ -531,6 +627,7 @@ export function LoadoutWorld() {
   }, [activeRegionId, commitDensity, resetPreview, stage, switchMode]);
 
   const beginGesture = useCallback((source: GestureSource, x: number, y: number) => {
+    if (modeTransitionRunning.current) return false;
     const session = gestureSession.current;
     if (session.phase === "locked") return false;
     if (session.phase === "tracking") return session.source === source;
@@ -625,6 +722,7 @@ export function LoadoutWorld() {
 
     focusedNavigationLocked.current = true;
     setDetailsVisible(false);
+    setImagesInTransit(!reducedMotion);
     setActiveItemIndex(nextIndex);
     writeLoadoutUrl(activeRegion.id, nextIndex, true);
     if (detailsTimer.current) clearTimeout(detailsTimer.current);
@@ -706,6 +804,10 @@ export function LoadoutWorld() {
   }
 
   const handleWheelInput = useCallback((event: WheelEvent) => {
+    if (modeTransitionRunning.current) {
+      if (event.cancelable) event.preventDefault();
+      return;
+    }
     if (stage === 1 && !event.ctrlKey && !event.metaKey) {
       if (event.cancelable) event.preventDefault();
       focusedWheelDelta.current += event.deltaY;
@@ -759,7 +861,34 @@ export function LoadoutWorld() {
     finishGesture("safari", gesture.current.x, gesture.current.y);
   }, [finishGesture]);
 
+  const navigateFromHistory = useEffectEvent((region: RegionId | null, itemIndex: number) => {
+    const targetStage = itemIndex >= 0 ? 1 : 0;
+    if (region && region === activeRegionId) {
+      if (modeTransitionRunning.current) {
+        ++modeAnimationGeneration.current;
+        modeAnimations.current.forEach((animation) => animation.cancel());
+        modeAnimations.current = [];
+        modeTransitionRunning.current = false;
+        delete viewportRef.current?.dataset.modeTransition;
+        setRegionTitleVisible(true);
+      }
+      if (targetStage !== stage) {
+        // Use exactly the same shared-element snapshots as click/pinch navigation.
+        commitDensity(targetStage, undefined, undefined, itemIndex >= 0 ? itemIndex : activeItemIndex);
+      } else if (itemIndex >= 0) {
+        setImagesInTransit(!reducedMotion && itemIndex !== activeItemIndex);
+        setActiveItemIndex(itemIndex);
+        setDetailItemIndex(itemIndex);
+        setDetailsVisible(true);
+      }
+      return;
+    }
+    switchMode(region, targetStage, itemIndex >= 0 ? itemIndex : null, undefined, true);
+  });
+
   useEffect(() => {
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
     const restoreFromUrl = (fromHistory = false) => {
       if (detailsTimer.current) {
         clearTimeout(detailsTimer.current);
@@ -778,6 +907,10 @@ export function LoadoutWorld() {
 
       const params = new URLSearchParams(window.location.search);
       if (params.get("view") === "world") {
+        if (fromHistory) {
+          navigateFromHistory(null, -1);
+          return;
+        }
         setHoveredItemIndex(null);
         setIsDensityTransitioning(true);
         setActiveRegionId(null);
@@ -797,6 +930,10 @@ export function LoadoutWorld() {
         ? region.items.findIndex((item) => itemSlug(item) === requestedItem)
         : -1;
 
+      if (fromHistory) {
+        navigateFromHistory(region.id, itemIndex);
+        return;
+      }
       setIsDensityTransitioning(true);
       setHoveredItemIndex(null);
       setActiveRegionId(region.id);
@@ -816,7 +953,10 @@ export function LoadoutWorld() {
     restoreFromUrl();
     const handlePopState = () => restoreFromUrl(true);
     window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
   }, []);
 
   useEffect(() => {
@@ -838,6 +978,7 @@ export function LoadoutWorld() {
   }, [handleSafariChange, handleSafariEnd, handleSafariStart, handleWheelInput]);
 
   useEffect(() => () => {
+    modeAnimations.current.forEach((animation) => animation.cancel());
     if (frame.current !== null) cancelAnimationFrame(frame.current);
     if (gestureUnlockTimer.current) clearTimeout(gestureUnlockTimer.current);
     if (focusedWheelTimer.current) clearTimeout(focusedWheelTimer.current);
@@ -856,17 +997,19 @@ export function LoadoutWorld() {
       moveFocusedItem(-1);
     } else if (event.key === "Home") {
       event.preventDefault();
+      setImagesInTransit(!reducedMotion && activeItemIndex !== 0);
       setActiveItemIndex(0);
       setDetailItemIndex(0);
       writeLoadoutUrl(activeRegion.id, 0, true);
     } else if (event.key === "End") {
       event.preventDefault();
       const lastIndex = activeRegion.items.length - 1;
+      setImagesInTransit(!reducedMotion && activeItemIndex !== lastIndex);
       setActiveItemIndex(lastIndex);
       setDetailItemIndex(lastIndex);
       writeLoadoutUrl(activeRegion.id, lastIndex, true);
     }
-  }, [activeRegion, moveFocusedItem, stage]);
+  }, [activeItemIndex, activeRegion, moveFocusedItem, reducedMotion, stage]);
 
   return (
     <main className={styles.page}>
@@ -889,26 +1032,29 @@ export function LoadoutWorld() {
             className={styles.region}
             aria-label={`${activeRegion.name} items`}
           >
+            {stage === 0 ? (
+              <header
+                className={styles.gridHeader}
+                data-visible={regionTitleVisible && !isDensityTransitioning ? "true" : "false"}
+                style={{
+                  "--columns": DENSITY_STAGES[stage],
+                  "--first-item-left": `${itemVisualAlignment(activeRegion.items[0]).left}%`,
+                } as CSSProperties}
+              >
+                <span>Things I carry everyday</span>
+              </header>
+            ) : null}
             <div
               ref={sheetRef}
               className={styles.sheet}
-              style={{
-                viewTransitionName: `region-${activeRegion.id}`,
-              } as CSSProperties}
             >
-              {stage === 0 ? (
-                <header
-                  className={styles.gridHeader}
-                  style={{
-                    "--columns": DENSITY_STAGES[stage],
-                    "--first-item-left": `${itemVisualAlignment(activeRegion.items[0]).left}%`,
-                  } as CSSProperties}
-                >
-                  <span>Things I carry everyday</span>
-                </header>
-              ) : null}
               <div
                 className={styles.itemLayout}
+                onTransitionEnd={(event) => {
+                  if (event.target === event.currentTarget && event.propertyName === "transform") {
+                    setImagesInTransit(false);
+                  }
+                }}
                 onPointerEnter={(event) => {
                   if (stage !== 0 || event.pointerType === "touch") return;
                   positionCursorTooltip(event.clientX, event.clientY);
@@ -941,6 +1087,7 @@ export function LoadoutWorld() {
                       className={styles.item}
                       data-item-id={`${activeRegion.id}-${index}`}
                       data-active={index === activeItemIndex ? "true" : "false"}
+                      data-photo-ready={stage === 1 && index === activeItemIndex && !imagesInTransit ? "true" : "false"}
                       tabIndex={stage === 1 && index !== activeItemIndex ? -1 : 0}
                       style={{
                         "--item-index": index,
@@ -987,6 +1134,7 @@ export function LoadoutWorld() {
                     >
                       <span
                         className={styles.itemMedia}
+                        data-shared-item-index={index}
                         data-has-image={imageSrc ? "true" : "false"}
                         aria-hidden="true"
                         style={{
@@ -1067,6 +1215,7 @@ export function LoadoutWorld() {
           <section ref={worldRef} className={styles.world} aria-label="Loadout regions">
             <h1
               className={styles.worldTitle}
+              data-visible={regionTitleVisible ? "true" : "false"}
               style={{
                 "--first-item-left": `${itemVisualAlignment(REGIONS[0].items[0]).left}%`,
               } as CSSProperties}
@@ -1112,7 +1261,6 @@ export function LoadoutWorld() {
                   <span
                     className={styles.miniGrid}
                     aria-hidden="true"
-                    style={{ viewTransitionName: `region-${region.id}` } as CSSProperties}
                   >
                     {region.items.slice(0, 9).map((item, index) => {
                       const imageSrc = region.id !== "coming-soon"
@@ -1154,7 +1302,9 @@ export function LoadoutWorld() {
         ref={cursorTooltipRef}
         expanded={hoveredItemIndex !== null}
         visible={cursorInGrid && (activeRegion === null || stage === 0)}
-        detail="View"
+        detail={activeRegion === null && hoveredItemIndex !== null
+          ? (["every day", "cooking"][hoveredItemIndex] ?? "view")
+          : "view"}
       />
     </main>
   );

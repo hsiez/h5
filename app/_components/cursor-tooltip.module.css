@@ -11,11 +11,13 @@
   justify-content: space-between;
   gap: 10px;
   padding: 0;
-  border: 0;
+  border: 1px solid rgb(20 20 20 / 0.055);
   border-radius: 999px;
-  background: #4690f3;
-  box-shadow: none;
-  color: #174885;
+  background-color: #03934d;
+  box-shadow:
+    0 1px 2px rgb(20 20 20 / 0.05),
+    0 12px 28px -22px rgb(20 20 20 / 0.45);
+  color: #151515;
   opacity: 0;
   pointer-events: none;
   transform: translate3d(var(--cursor-x, 0), var(--cursor-y, 0), 0) scale(0.96);
@@ -25,19 +27,19 @@
     width 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
     height 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
     padding 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-radius 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
     opacity 100ms ease;
   will-change: width, height, transform;
 }
 
-.tooltip::before {
+.tooltip::after {
   position: absolute;
-  top: 1px;
-  left: 25%;
-  right: 25%;
-  height: 2px;
-  border-radius: 999px;
-  background: #fff;
+  z-index: 2;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' seed='7'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.2'/%3E%3C/svg%3E");
   content: "";
+  mix-blend-mode: soft-light;
+  pointer-events: none;
 }
 
 .tooltip[data-visible="true"] {
@@ -46,27 +48,47 @@
 }
 
 .tooltip[data-expanded="true"] {
-  width: 58px;
-  height: 34px;
+  width: 68px;
+  height: 41px;
   padding: 4px;
+  border-radius: 24px 999px 999px 999px;
+  background-color: #03934d;
+}
+
+.tooltip[data-expanded="true"][data-wide="true"] {
+  width: 100px;
 }
 
 .tooltip span {
-  flex: 0 0 auto;
+  position: relative;
+  min-width: 0;
+  flex: 1 1 auto;
   padding: 7px 11px 8px;
   border-radius: 999px;
-  background: #a1d7ff;
+  background: #f09235;
   box-shadow: none;
-  color: #174885;
-  font-size: 12px;
-  font-weight: 500;
+  color: #fff;
+  font-family: var(--font-sans), "Geist", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
   line-height: 1;
+  text-align: center;
   white-space: nowrap;
   opacity: 0;
   transform: scale(0.72);
   transition:
     opacity 100ms ease,
     transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.tooltip span::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.6);
+  content: "";
+  mask-image: conic-gradient(from 0deg at 50% 50%, #000 0deg, transparent 52deg, transparent 250deg, #000 312deg, #000 360deg);
+  -webkit-mask-image: conic-gradient(from 0deg at 50% 50%, #000 0deg, transparent 52deg, transparent 250deg, #000 312deg, #000 360deg);
 }
 
 .tooltip[data-expanded="true"] span {

@@ -124,6 +124,7 @@
   /* ---- Motion ---- */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-title: opacity 150ms ease;
 }
 
 /* =========================================================================
@@ -164,6 +165,34 @@ body {
   font-weight: var(--font-weight-normal);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+html[data-loadout-density-transition]::view-transition-old(root) {
+  animation: none;
+  opacity: 0;
+}
+
+html[data-loadout-density-transition]::view-transition-new(root) {
+  animation: none;
+  opacity: 1;
+}
+
+/* Move one snapshot per item. Blending old/new artwork exposes the different
+   image alignment in the grid and focused layouts as a double outline. */
+html[data-loadout-density-transition]::view-transition-old(*) {
+  animation: none;
+  opacity: 0;
+}
+
+html[data-loadout-density-transition]::view-transition-new(*) {
+  animation: none;
+  opacity: 1;
+  mix-blend-mode: normal;
+}
+
+html[data-loadout-density-transition]::view-transition-group(*) {
+  animation-duration: 620ms;
+  animation-timing-function: cubic-bezier(.2, .72, .16, 1);
 }
 
 .seattle-word {

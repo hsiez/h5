@@ -16,6 +16,7 @@ export const CursorTooltip = forwardRef<HTMLDivElement, CursorTooltipProps>(
         ref={ref}
         className={styles.tooltip}
         data-expanded={expanded ? "true" : "false"}
+        data-wide={detail && detail.length > 4 ? "true" : "false"}
         data-visible={visible ? "true" : "false"}
         role="tooltip"
         aria-hidden={visible ? undefined : "true"}

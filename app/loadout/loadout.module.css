@@ -30,13 +30,20 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(24px, 6vw, 80px);
-  max-width: 1240px;
+  width: 100%;
+  max-width: calc(116svh - 64px);
   margin: 0 auto clamp(32px, 5vw, 64px);
   font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
   font-size: clamp(32px, 4vw, 56px);
   font-weight: 400;
   line-height: 1;
   letter-spacing: -0.035em;
+  opacity: 0;
+  transition: var(--transition-title);
+}
+
+.worldTitle[data-visible="true"] {
+  opacity: 1;
 }
 
 .worldTitleRegion {
@@ -65,12 +72,18 @@
   display: grid;
   grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
   gap: clamp(3px, 0.45vw, 8px);
-  padding: clamp(24px, 4vw, 56px) clamp(8px, 2vw, 28px) calc(var(--spacing) * 9);
+  padding: clamp(40px, 8vw, 112px) clamp(8px, 2vw, 28px) calc(var(--spacing) * 9);
   font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
-  font-size: clamp(26px, 3vw, 44px);
+  font-size: clamp(32px, 4vw, 56px);
   font-weight: 400;
   line-height: 1.05;
   letter-spacing: -0.035em;
+  opacity: 0;
+  transition: var(--transition-title);
+}
+
+.gridHeader[data-visible="true"] {
+  opacity: 1;
 }
 
 .gridHeader > span {
@@ -115,6 +128,15 @@
     hsl(calc(38 + (var(--item-index) * 23)), calc(8% + (var(--item-index) * 2%)), calc(91% - (var(--item-index) * .45%)));
 }
 
+/* Keep offscreen items rendered while they travel from the world thumbnail. */
+.viewport[data-mode-transition] .item {
+  content-visibility: visible;
+}
+
+.viewport[data-mode-transition] {
+  pointer-events: none;
+}
+
 .itemMedia::after {
   content: "";
   width: 38%;
@@ -143,6 +165,13 @@
 .itemPhoto,
 .itemDither {
   transition: opacity 180ms ease;
+}
+
+/* Reset immediately to stippling before movement/snapshot capture.
+   Only the settled, focused item crossfades into its photograph. */
+.item:not([data-photo-ready="true"]) .itemPhoto,
+.item:not([data-photo-ready="true"]) .itemDither {
+  transition: none;
 }
 
 .itemPhoto {
@@ -230,11 +259,11 @@
     scale(var(--item-scale, 1));
 }
 
-.viewport[data-stage="1"] .itemPhoto {
+.item[data-photo-ready="true"] .itemPhoto {
   opacity: 1;
 }
 
-.viewport[data-stage="1"] .itemDither {
+.item[data-photo-ready="true"] .itemDither {
   opacity: 0;
 }
 
@@ -253,7 +282,7 @@
   align-content: center;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 180ms ease;
+  transition: var(--transition-title);
 }
 
 .focusedDetails[data-visible="true"] {
@@ -433,7 +462,8 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(36px, 7vw, 96px) clamp(24px, 6vw, 80px);
-  max-width: 1240px;
+  width: 100%;
+  max-width: calc(116svh - 64px);
   margin-inline: auto;
 }
 
@@ -539,6 +569,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .worldTitle,
+  .gridHeader,
+  .focusedDetails { transition: none; }
   .sheet,
   .world { scroll-behavior: auto; }
   .viewport[data-stage="1"] .itemLayout { transition: none; }

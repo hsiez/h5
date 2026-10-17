@@ -55,7 +55,7 @@ function StaticCursorTooltip(args: CursorTooltipProps) {
     const tooltip = tooltipRef.current;
     if (!tooltip) return;
     tooltip.style.setProperty("--cursor-x", "calc(50vw - 34px)");
-    tooltip.style.setProperty("--cursor-y", "calc(50vh - 28px)");
+    tooltip.style.setProperty("--cursor-y", "calc(50vh - 20px)");
   }, []);
 
   return (
@@ -72,7 +72,7 @@ const meta = {
     layout: "fullscreen",
   },
   args: {
-    detail: "View",
+    detail: "view",
     expanded: true,
     visible: true,
   },
