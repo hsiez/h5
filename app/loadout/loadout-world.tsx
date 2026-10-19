@@ -1142,7 +1142,7 @@ export function LoadoutWorld() {
                         <h1>{content.title}</h1>
                       </div>
                     </header>
-                    <div className={styles.detailsContent} data-review-scroll tabIndex={0} aria-label="Item review">
+                    <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll tabIndex={0} aria-label="Item review">
                       <div className={styles.detailsBody}>
                         <section className={styles.detailSection}>
                           {content.about.map((paragraph, index) => <p key={index}>
