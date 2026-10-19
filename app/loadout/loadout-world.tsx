@@ -15,6 +15,8 @@ import { flushSync } from "react-dom";
 import Image from "next/image";
 import { CursorTooltip } from "../_components/cursor-tooltip";
 import styles from "./loadout.module.css";
+import { ITEM_REVIEWS } from "./reviews";
+import { InlineReference } from "./inline-reference";
 
 // Mode motion has one owner: Web Animations. Geometry comes from the rendered
 // source/destination, so responsive layouts and pinch previews need no offsets.
@@ -41,15 +43,6 @@ type Region = {
 type RegionMemory = Record<RegionId, { stage: number; scrollTop: number }>;
 type GestureSource = "touch" | "wheel" | "safari";
 type GesturePhase = "idle" | "tracking" | "locked";
-
-type ItemContent = {
-  brand: string;
-  title: string;
-  description: string;
-  badges: string[];
-  why: string;
-  details: Array<[string, string]>;
-};
 
 type SafariGestureEvent = Event & {
   scale: number;
@@ -107,57 +100,6 @@ const GRAPHITE_IMAGES: Record<string, string> = {
   Jeans: "/loadout/jeans-graphite-v2.png",
   Loafers: "/loadout/loafers-graphite-v2.png",
   Wallet: "/loadout/wallet-graphite-v2.png",
-};
-
-const ITEM_CONTENT: Record<string, ItemContent> = {
-  Belt: {
-    brand: "Arcade",
-    title: "Braided belt",
-    description: "A low-profile stretch belt that disappears under layers and stays comfortable through long days in motion.",
-    badges: ["Owned —", "Daily", "In rotation"],
-    why: "It moves with me, stays flat under a shirt, and never asks for adjustment halfway through the day.",
-    details: [["Material", "Performance weave"], ["Closure", "Micro-adjust buckle"]],
-  },
-  Coat: {
-    brand: "Kapital",
-    title: "Coverall chore coat",
-    description: "Soft structure, generous pockets, and enough character to make a simple uniform feel considered.",
-    badges: ["Owned —", "Seasonal", "In rotation"],
-    why: "The relaxed shape makes layering easy, while the pockets carry enough that I can leave a bag behind.",
-    details: [["Cut", "Relaxed"], ["Use", "Three season"]],
-  },
-  Hat: {
-    brand: "Reforge",
-    title: "Prototype cap",
-    description: "A familiar shape with a quiet profile—easy to pack, easy to wear, and better after repeated use.",
-    badges: ["Owned —", "Frequent", "In rotation"],
-    why: "The soft crown packs without complaint and the low profile works without becoming the center of an outfit.",
-    details: [["Profile", "Low"], ["Fit", "Adjustable"]],
-  },
-  Jeans: {
-    brand: "Oni",
-    title: "Selvedge denim pant",
-    description: "A substantial pair of jeans chosen for irregular texture, patient break-in, and the record they keep over time.",
-    badges: ["Owned —", "Weekly", "Breaking in"],
-    why: "The irregular denim rewards attention. Its texture and fading make repeated wear feel like part of the design.",
-    details: [["Fabric", "Japanese denim"], ["Fit", "Relaxed taper"]],
-  },
-  Loafers: {
-    brand: "Aurora",
-    title: "Leather loafer",
-    description: "Unstructured loafers that bridge formal and casual use without asking the rest of the outfit to change.",
-    badges: ["Owned —", "Weekly", "In rotation"],
-    why: "They are relaxed enough for everyday wear but retain enough structure to make simple clothes feel finished.",
-    details: [["Construction", "Handsewn"], ["Sole", "Leather"]],
-  },
-  Wallet: {
-    brand: "Coach",
-    title: "Slim card wallet",
-    description: "A compact leather wallet with just enough organization for the cards and notes that actually leave the house.",
-    badges: ["Owned —", "Daily", "In rotation"],
-    why: "It holds the essentials without creating extra capacity that eventually turns into clutter.",
-    details: [["Format", "Bifold"], ["Carry", "Front or back pocket"]],
-  },
 };
 
 const ITEM_PRESENTATION: Record<string, { scale: number; x: string; y: string }> = {
@@ -293,6 +235,9 @@ export function LoadoutWorld() {
     pointerId: number;
     startY: number;
     currentY: number;
+    startX: number;
+    currentX: number;
+    horizontal: boolean;
   } | null>(null);
   const reducedMotion = useReducedMotion();
 
@@ -724,6 +669,7 @@ export function LoadoutWorld() {
     setDetailsVisible(false);
     setImagesInTransit(!reducedMotion);
     setActiveItemIndex(nextIndex);
+    if (window.matchMedia("(max-width: 760px)").matches) window.scrollTo(0, 0);
     writeLoadoutUrl(activeRegion.id, nextIndex, true);
     if (detailsTimer.current) clearTimeout(detailsTimer.current);
     detailsTimer.current = setTimeout(() => {
@@ -740,14 +686,20 @@ export function LoadoutWorld() {
   }, [activeItemIndex, activeRegion, reducedMotion, stage]);
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    const horizontal = window.matchMedia("(max-width: 760px)").matches;
+    if (event.target instanceof Element && event.target.closest("[data-review-scroll]") && !horizontal) return;
+    if (event.target instanceof Element && event.target.closest("a, [data-review-scroll] button")) return;
     if (event.pointerType !== "touch") return;
     pointers.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
-    event.currentTarget.setPointerCapture(event.pointerId);
+    if (!horizontal || pointers.current.size > 1) event.currentTarget.setPointerCapture(event.pointerId);
     if (stage === 1 && pointers.current.size === 1) {
       focusedSwipe.current = {
         pointerId: event.pointerId,
         startY: event.clientY,
         currentY: event.clientY,
+        startX: event.clientX,
+        currentX: event.clientX,
+        horizontal,
       };
     }
     if (pointers.current.size === 2) {
@@ -770,7 +722,8 @@ export function LoadoutWorld() {
     pointers.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
     if (focusedSwipe.current?.pointerId === event.pointerId) {
       focusedSwipe.current.currentY = event.clientY;
-      if (Math.abs(event.clientY - focusedSwipe.current.startY) > 8) event.preventDefault();
+      focusedSwipe.current.currentX = event.clientX;
+      if (!focusedSwipe.current.horizontal && Math.abs(event.clientY - focusedSwipe.current.startY) > 8) event.preventDefault();
     }
     if (pointers.current.size !== 2 || gestureSession.current.source !== "touch") return;
     event.preventDefault();
@@ -792,7 +745,10 @@ export function LoadoutWorld() {
     if (wasPinching) {
       finishGesture("touch", gesture.current.x, gesture.current.y);
     } else if (swipe) {
-      const delta = swipe.currentY - swipe.startY;
+      const dx = event.clientX - swipe.startX;
+      const dy = event.clientY - swipe.startY;
+      const delta = swipe.horizontal ? dx : dy;
+      if (swipe.horizontal && Math.abs(dx) <= Math.abs(dy) * 1.5) return;
       if (Math.abs(delta) >= 48) moveFocusedItem(delta < 0 ? 1 : -1);
     }
   }
@@ -804,6 +760,8 @@ export function LoadoutWorld() {
   }
 
   const handleWheelInput = useCallback((event: WheelEvent) => {
+    if (stage === 1 && window.matchMedia("(max-width: 760px)").matches && !event.ctrlKey && !event.metaKey) return;
+    if (event.target instanceof Element && event.target.closest("[data-review-scroll]")) return;
     if (modeTransitionRunning.current) {
       if (event.cancelable) event.preventDefault();
       return;
@@ -988,6 +946,7 @@ export function LoadoutWorld() {
   }, []);
 
   const onViewportKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.target instanceof Element && event.target.closest("[data-review-scroll]")) return;
     if (stage !== 1 || !activeRegion) return;
     if (event.key === "ArrowDown" || event.key === "PageDown") {
       event.preventDefault();
@@ -1095,6 +1054,7 @@ export function LoadoutWorld() {
                         "--item-x": presentation?.x ?? "0%",
                         "--item-y": presentation?.y ?? "0%",
                         "--focus-y": `${alignment.focusY}%`,
+                        "--visual-left": `${alignment.left}%`,
                       } as CSSProperties}
                       aria-label={`${item}, item ${index + 1} of ${activeRegion.items.length}`}
                       onPointerEnter={(event) => {
@@ -1169,8 +1129,7 @@ export function LoadoutWorld() {
               </div>
               {stage === 1 ? (() => {
                 const detailItem = activeRegion.items[detailItemIndex];
-                const content = ITEM_CONTENT[baseItemName(detailItem)];
-                const alignment = itemVisualAlignment(detailItem);
+                const content = ITEM_REVIEWS[baseItemName(detailItem)];
                 if (!content) return null;
                 return (
                   <aside
@@ -1179,26 +1138,24 @@ export function LoadoutWorld() {
                     aria-live="polite"
                   >
                     <header className={styles.detailsHeader}>
-                      <div
-                        className={styles.detailsHeaderInner}
-                        style={{ "--visual-left": `${alignment.left}%` } as CSSProperties}
-                      >
+                      <div className={styles.detailsHeaderInner}>
                         <h1>{content.title}</h1>
                       </div>
                     </header>
-                    <div className={styles.detailsContent}>
+                    <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll tabIndex={0} aria-label="Item review">
                       <div className={styles.detailsBody}>
                         <section className={styles.detailSection}>
-                          <h2>Story</h2>
-                          <p>{content.description}</p>
+                          {content.about.map((paragraph, index) => <p key={index}>
+                            {index === 0 && <><em className={styles.reviewLeadIn}>I acquired</em>{" "}</>}
+                            {paragraph.map((part, partIndex) => typeof part === "string" ? part :
+                              <InlineReference key={partIndex} text={part.text} note={part.note} />)}
+                          </p>)}
                         </section>
-                        <section className={styles.detailSection}>
-                          <h2>Utility</h2>
-                          <p>{content.why}</p>
-                        </section>
-                        <div className={styles.badges}>
-                          {content.badges.map((badge) => <span key={badge}>{badge}</span>)}
-                        </div>
+                        {(["pros", "cons"] as const).map((section) => (
+                          <section key={section} className={styles.detailSection}>
+                            <p><em className={styles.reviewLeadIn}>{section === "pros" ? "I love" : "Only notes:"}</em>{" "}{content[section].join(" ")}</p>
+                          </section>
+                        ))}
                       </div>
                     </div>
                   </aside>
