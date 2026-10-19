@@ -32,7 +32,7 @@
   gap: clamp(24px, 6vw, 80px);
   width: 100%;
   max-width: calc(116svh - 64px);
-  margin: 0 auto clamp(32px, 5vw, 64px);
+  margin: 0 auto var(--spacing-title-content);
   font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
   font-size: clamp(32px, 4vw, 56px);
   font-weight: 400;
@@ -72,7 +72,7 @@
   display: grid;
   grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
   gap: clamp(3px, 0.45vw, 8px);
-  padding: clamp(40px, 8vw, 112px) clamp(8px, 2vw, 28px) calc(var(--spacing) * 9);
+  padding: clamp(40px, 8vw, 112px) clamp(8px, 2vw, 28px) var(--spacing-title-content);
   font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
   font-size: clamp(32px, 4vw, 56px);
   font-weight: 400;
@@ -196,7 +196,6 @@
   --focused-image-width: min(600px, 50vw, 61svh);
   --focused-image-height: calc(var(--focused-image-width) * 242 / 218);
   --focused-column-gap: var(--spacing-focus-columns);
-  --focused-title-content-gap: var(--spacing-focus-title-content);
   height: 100svh;
   min-height: 0;
   overflow: hidden;
@@ -233,7 +232,7 @@
   grid-template-columns: minmax(0, 1.16fr) minmax(280px, .84fr);
   grid-template-rows: var(--focused-header-height) var(--focused-image-height);
   column-gap: var(--focused-column-gap);
-  row-gap: var(--focused-title-content-gap);
+  row-gap: calc(var(--spacing-title-content) + var(--spacing-title-content-optical));
   align-content: center;
   align-items: center;
   max-width: 1120px;
@@ -278,7 +277,7 @@
   grid-template-columns: minmax(0, 1.16fr) minmax(280px, .84fr);
   grid-template-rows: var(--focused-header-height) var(--focused-image-height);
   column-gap: var(--focused-column-gap);
-  row-gap: var(--focused-title-content-gap);
+  row-gap: calc(var(--spacing-title-content) + var(--spacing-title-content-optical));
   align-content: center;
   pointer-events: none;
   opacity: 0;
@@ -342,45 +341,21 @@
 }
 
 .detailSection + .detailSection {
-  margin-top: 36px;
-}
-
-.detailSection h2 {
-  margin: 0 0 6px;
-  color: var(--color-text-primary);
-  font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
-  font-size: var(--text-base);
-  font-weight: 400;
-  line-height: 1.2;
-  letter-spacing: .06em;
-  text-transform: uppercase;
+  margin-top: 32px;
 }
 
 .detailSection p {
+  text-wrap: pretty;
   max-width: 38ch;
   margin: 0;
-  color: rgba(21, 21, 21, 0.78);
+  color: var(--color-text-primary);
   font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
   font-size: var(--text-base);
-  line-height: 1.55;
+  line-height: 1.8;
   letter-spacing: -.01em;
 }
 
-.detailSection ul {
-  max-width: 360px;
-  margin: 0;
-  padding-left: 1.15em;
-  color: rgba(21, 21, 21, 0.78);
-  font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
-  font-size: var(--text-base);
-  line-height: 1.55;
-}
 
-.detailSection li + li {
-  margin-top: 4px;
-}
-
-.detailSection li::marker { color: var(--muted); }
 .detailSection li span { color: var(--muted); }
 
 .focusedPosition {
@@ -398,15 +373,10 @@
 @media (max-width: 960px) {
   .viewport[data-stage="1"] {
     --focused-column-gap: var(--spacing-focus-columns-compact);
-    --focused-title-content-gap: var(--spacing-focus-title-content-compact);
   }
 }
 
 @media (max-width: 760px) {
-  .viewport[data-stage="1"] {
-    --focused-title-content-gap: var(--spacing-focus-title-content-mobile);
-  }
-
   .viewport[data-stage="1"] .item {
     grid-template-columns: 1fr;
     grid-template-rows: var(--focused-header-height) 1fr;
@@ -575,4 +545,166 @@
   .sheet,
   .world { scroll-behavior: auto; }
   .viewport[data-stage="1"] .itemLayout { transition: none; }
+}
+
+/* Longer reviews scroll independently of the item carousel. */
+.detailsContent {
+  max-height: min(var(--focused-image-height), 60svh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+  touch-action: pan-y;
+  padding: 0 16px 24px 0;
+}
+.detailSection p + p { margin-top: 14px; }
+.inlineReference { position: relative; }
+.inlineReference button {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 4px;
+  cursor: help;
+}
+.inlineReference button:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.referenceNote {
+  position: absolute;
+  z-index: 5;
+  top: 100%;
+  left: 0;
+  width: min(240px, 30vw);
+  box-shadow: var(--shadow-md);
+  display: block;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-muted);
+  font-size: .9em;
+  line-height: 1.5;
+}
+.referenceNote[hidden] { display: none; }
+
+/* Lead-ins remain in the sentence flow, rather than separate headings. */
+.reviewLeadIn {
+  color: var(--color-neutral-400);
+  margin-inline-end: 9.6px;
+  font-family: inherit;
+  font-size: 32px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 36px;
+}
+
+/* Focused view: a fixed left title anchor and more room for the review. */
+@media (min-width: 761px) {
+  .viewport[data-stage="1"] {
+    --focused-header-height: auto;
+    --focused-image-width: min(600px, 50vw, 61svh);
+    --focused-column-gap: 20px;
+  }
+
+  .viewport[data-stage="1"] .item,
+  .focusedDetails {
+    width: 100%;
+    max-width: 1440px;
+    box-sizing: border-box;
+    padding: clamp(40px, 8vw, 112px) clamp(20px, 5vw, 72px) 32px;
+    grid-template-columns: var(--focused-image-width) minmax(0, 1fr);
+    grid-template-rows: calc(clamp(32px, 4vw, 56px) * 1.05) minmax(0, 1fr);
+    align-content: start;
+  }
+
+  .viewport[data-stage="1"] .itemMedia {
+    justify-self: start;
+    align-self: safe center;
+    transform: translateX(calc(-1 * var(--visual-left, 0%)));
+  }
+
+  .detailsHeader { align-self: start; }
+  .detailsHeaderInner {
+    grid-column: 1 / -1;
+    width: auto;
+    justify-self: start;
+    padding: 0;
+  }
+  .detailsHeaderInner h1 {
+    max-width: none;
+    font-size: clamp(32px, 4vw, 56px);
+    line-height: 1.05;
+    letter-spacing: -.035em;
+  }
+  .detailsContent {
+    align-self: safe center;
+    height: min(var(--focused-image-height), 100%);
+    max-height: 100%;
+    min-height: 0;
+  }
+  .detailSection p { max-width: 32em; }
+}
+
+/* Phone focus: document scrolling for the review, horizontal item movement. */
+@media (max-width: 760px) {
+  .detailSection + .detailSection { margin-top: calc(var(--spacing) * 12); }
+  .viewport[data-stage="1"] {
+    --mobile-title-height: 112px;
+    --focused-image-width: min(84vw, 420px);
+    --focused-image-height: calc(var(--focused-image-width) * 242 / 218);
+    height: auto;
+    min-height: 100svh;
+    overflow: clip;
+    touch-action: pan-y pinch-zoom;
+  }
+  .viewport[data-stage="1"] .region,
+  .viewport[data-stage="1"] .sheet { height: auto; }
+  .viewport[data-stage="1"] .sheet { position: relative; }
+  .viewport[data-stage="1"] .itemLayout {
+    position: absolute;
+    inset: 0 0 auto;
+    height: calc(32px + var(--mobile-title-height) + var(--spacing-title-content) + var(--focused-image-height));
+    flex-direction: row;
+    transform: translateX(calc(var(--active-item) * -100%));
+  }
+  .viewport[data-stage="1"] .item {
+    flex: 0 0 100%;
+    height: 100%;
+    min-width: 100%;
+    box-sizing: border-box;
+    padding: 32px 24px 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--mobile-title-height) var(--focused-image-height);
+    row-gap: var(--spacing-title-content);
+    align-content: start;
+  }
+  .viewport[data-stage="1"] .itemMedia {
+    width: var(--focused-image-width);
+    justify-self: center;
+    align-self: start;
+  }
+  .focusedDetails {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 32px 24px 64px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--mobile-title-height) var(--focused-image-height) auto;
+    row-gap: var(--spacing-title-content);
+    align-content: start;
+  }
+  .detailsHeaderInner { width: auto; justify-self: start; padding: 0; }
+  .detailsHeader { align-self: start; }
+  .detailsContent {
+    grid-row: 3;
+    align-self: start;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+  }
+  .detailSection p { max-width: 32em; }
+  .focusedPosition { position: fixed; }
 }
