@@ -1,0 +1,4 @@
+.stage { min-height: 440px; padding: 72px; background: var(--color-surface); color: var(--color-text-primary); }
+.intro { max-width: 620px; margin: 0 0 28px; font-family: Georgia, serif; font-size: 20px; line-height: 1.6; }
+.entity { padding: 3px 6px; border-radius: 3px; background: var(--color-neutral-150); white-space: nowrap; }
+@media (max-width: 600px) { .stage { padding: 24px; } }
