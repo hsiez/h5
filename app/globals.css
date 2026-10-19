@@ -57,6 +57,7 @@
   --color-neutral-0: #ffffff;
   --color-neutral-50: #fafafa;
   --color-neutral-100: #f4f4f4;
+  --color-neutral-150: #ededed;
   --color-neutral-200: #e6e6e6;
   --color-neutral-300: #d1d1d1;
   --color-neutral-400: #a1a1a1;
@@ -77,6 +78,7 @@
      white (popovers, modals over content). Opacity blends with whatever
      is behind it. White-bg only — these would vanish on dark surfaces. */
   --color-border-subtle: rgba(20, 20, 20, 0.04);  /* floating cards */
+  --color-border-soft: rgba(20, 20, 20, 0.055);   /* thumbnails and map cards */
   --color-border: rgba(20, 20, 20, 0.08);         /* default hairline */
   --color-border-strong: rgba(20, 20, 20, 0.16);  /* secondary buttons, focus rings */
 

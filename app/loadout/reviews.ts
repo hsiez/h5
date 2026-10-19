@@ -1,20 +1,25 @@
-export type ReviewText = string | { text: string; note: string };
+export type ReviewText = string | {
+  text: string;
+  entity:
+    | { kind: "location"; name: string; city: string; latitude: number; longitude: number; zoom: number }
+    | { kind: "image"; src: string; alt: string; caption: string; sourceUrl: string };
+};
 export type ItemReview = { title: string; about: ReviewText[][]; pros: string[]; cons: string[] };
 
 export const ITEM_REVIEWS: Record<string, ItemReview> = {
   Coat: {
     title: "Coverall chore coat",
     about: [
-      ["this coat at Kapital in Ginza on the last day of our Japan trip. It was the last one in stock, and I almost passed because the red was so far outside my usual palette. It has become my favorite piece in my closet—and a reliable conversation starter."],
+      ["this coat at ", { text: "Kapital in Ginza", entity: { kind: "location", name: "Kapital Ginza", city: "Tokyo, Japan", latitude: 35.6715, longitude: 139.773, zoom: 14.5 } }, " on the last day of our Japan trip. It was the last one in stock, and I almost passed because the red was so far outside my usual palette. It has become my favorite piece in my closet—and a reliable conversation starter."],
       ["I proposed to my now-wife on that trip. It’s nice to carry that memory around."],
-      ["It also brings a few things to mind: ", { text: "Caravaggio", note: "The contrast between dark and light, with a vibrant red cutting through it." }, ", ", { text: "Carracci’s fishing scene", note: "The workwear in that painting feels uncannily close to this coat, centuries later." }, ", and ", { text: "Edward Elric’s red coat", note: "That long, draping red coat. I loved Fullmetal Alchemist: Brotherhood." }, "."],
+      ["It also brings a few things to mind: Caravaggio’s dark and light, ", { text: "Carracci’s fishing scene", entity: { kind: "image", src: "https://upload.wikimedia.org/wikipedia/commons/2/21/Annibale_Carracci_-_Fishing_-_WGA4414.jpg", alt: "Annibale Carracci's painting Fishing, showing people in a riverside landscape", caption: "Fishing · Annibale Carracci, c. 1585–1588", sourceUrl: "https://commons.wikimedia.org/wiki/File:Annibale_Carracci_-_Fishing_-_WGA4414.jpg" } }, ", and Edward Elric’s red coat. I loved Fullmetal Alchemist: Brotherhood."],
     ],
     pros: ["how soft the wool feels—some of the least scratchy I’ve worn.", "Snap buttons: more elegant than a zipper, quicker than regular buttons.", "Corduroy cuffs feel soft against my hands.", "My favorite detail is the silk lining near the collar."],
     cons: ["I wear it so often that the red now dictates the rest of my wardrobe."],
   },
   Jeans: {
     title: "Oni Kiraku super wide jeans",
-    about: [["these 222-BKOL “Kiraku” super wide jeans in black olive in Ueno. They’re my first pair of selvedge denim."]],
+    about: [["these 222-BKOL “Kiraku” super wide jeans in black olive in ", { text: "Ueno", entity: { kind: "location", name: "Ueno", city: "Tokyo, Japan", latitude: 35.71, longitude: 139.776, zoom: 13.5 } }, ". They’re my first pair of selvedge denim."]],
     pros: ["how light and flowy these feel, almost like pajama bottoms. So comfortable.", "The legs are wide, but the fit feels more structured around the hips and waist. I like that support in high-waisted pants.", "The earthy color works with the rest of my closet."],
     cons: ["the light fabric and wide cut make it harder to get the whiskers and stacks I’d hoped to develop."],
   },

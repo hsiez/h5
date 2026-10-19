@@ -12,6 +12,20 @@ const config: StorybookConfig = {
   ],
   framework: "@storybook/nextjs-vite",
   staticDirs: ["../public"],
+  viteFinal: async (config, { configType }) => {
+    if (configType === "DEVELOPMENT") {
+      config.server ??= {};
+      config.server.proxy = {
+        ...config.server.proxy,
+        "/stadia": {
+          target: "https://tiles.stadiamaps.com",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/stadia/, ""),
+        },
+      };
+    }
+    return config;
+  },
 };
 
 export default config;

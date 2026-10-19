@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { HoverVideo } from "./_components/hover-video";
 import { SketchOutline } from "./_components/sketch-outline";
+import { ThumbnailFrame } from "./_components/thumbnail-frame";
+import { PaperFrame } from "./_components/paper-frame";
 
 type SideQuestMedia =
   | {
@@ -102,9 +104,6 @@ const ROLE_ABBREVIATIONS: Record<string, string> = {
   "ai engineer": "ai eng",
 };
 
-const PRESSABLE_PAPER_CLASS =
-  "rounded-lg border border-[rgba(20,20,20,0.055)] bg-[#f5f5f1] shadow-[inset_0_2px_0_rgba(255,255,255,0.9),inset_2px_0_0_rgba(255,255,255,0.45),inset_-2px_0_0_rgba(255,255,255,0.28),0_1px_2px_rgba(20,20,20,0.05),0_12px_28px_-22px_rgba(20,20,20,0.45)]";
-
 function MissionRow({
   role,
   company,
@@ -157,7 +156,7 @@ function MissionsPanel() {
 
 function SideQuestThumbnail({ media }: { media: SideQuest["media"] }) {
   return (
-    <div className="relative aspect-[16/9] overflow-hidden rounded-md border border-[rgba(20,20,20,0.055)] bg-(--color-surface-muted) shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]">
+    <ThumbnailFrame className="aspect-[16/9]">
       {media.type === "video" ? (
         <HoverVideo
           src={media.src}
@@ -174,18 +173,19 @@ function SideQuestThumbnail({ media }: { media: SideQuest["media"] }) {
           className="object-cover"
         />
       )}
-    </div>
+    </ThumbnailFrame>
   );
 }
 
 function SideQuestRow({ name, href, media }: SideQuest) {
   return (
     <li>
-      <a
+      <PaperFrame
+        as="a"
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className={`${PRESSABLE_PAPER_CLASS} flex flex-col gap-3 px-2 pb-4 pt-2 text-(--color-text-primary)`}
+        className="flex flex-col gap-3 px-2 pb-4 pt-2 text-(--color-text-primary)"
       >
         <SideQuestThumbnail media={media} />
         <span className="flex items-baseline gap-2 pl-1">
@@ -197,7 +197,7 @@ function SideQuestRow({ name, href, media }: SideQuest) {
             ↗
           </span>
         </span>
-      </a>
+      </PaperFrame>
     </li>
   );
 }

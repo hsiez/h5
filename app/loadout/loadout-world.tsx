@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useEffectEvent,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -240,6 +241,10 @@ export function LoadoutWorld() {
     horizontal: boolean;
   } | null>(null);
   const reducedMotion = useReducedMotion();
+
+  useLayoutEffect(() => {
+    viewportRef.current?.style.setProperty("--review-scroll", "0px");
+  }, [activeRegionId, activeItemIndex, stage]);
 
   const activeRegion = useMemo(
     () => REGIONS.find((region) => region.id === activeRegionId) ?? null,
@@ -1142,13 +1147,15 @@ export function LoadoutWorld() {
                         <h1>{content.title}</h1>
                       </div>
                     </header>
-                    <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll tabIndex={0} aria-label="Item review">
+                    <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll tabIndex={0} aria-label="Item review" onScroll={(event) => {
+                      viewportRef.current?.style.setProperty("--review-scroll", `${event.currentTarget.scrollTop}px`);
+                    }}>
                       <div className={styles.detailsBody}>
                         <section className={styles.detailSection}>
                           {content.about.map((paragraph, index) => <p key={index}>
                             {index === 0 && <><em className={styles.reviewLeadIn}>I acquired</em>{" "}</>}
                             {paragraph.map((part, partIndex) => typeof part === "string" ? part :
-                              <InlineReference key={partIndex} text={part.text} note={part.note} />)}
+                              <InlineReference key={partIndex} text={part.text} entity={part.entity} />)}
                           </p>)}
                         </section>
                         {(["pros", "cons"] as const).map((section) => (

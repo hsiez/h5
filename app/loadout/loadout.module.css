@@ -557,37 +557,66 @@
   padding: 0 16px 24px 0;
 }
 .detailSection p + p { margin-top: 14px; }
-.inlineReference { position: relative; }
-.inlineReference button {
-  display: inline;
-  padding: 0;
+/* Inline entity previews float above the scrollable review and viewport. */
+.inlineEntityTrigger {
+  /* Fit the chip inside the 1.8em paragraph line: 1em text + 0.2em on each side. */
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.22em;
+  padding: 0.2em 0.28em;
   border: 0;
-  background: none;
-  color: inherit;
+  border-radius: 0.2em;
+  background: var(--color-neutral-150);
+  color: var(--color-text-primary);
   font: inherit;
-  text-decoration: underline dotted;
-  text-underline-offset: 4px;
-  cursor: help;
+  line-height: 1;
+  vertical-align: baseline;
+  cursor: pointer;
 }
-.inlineReference button:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
-.referenceNote {
-  position: absolute;
-  z-index: 5;
-  top: 100%;
-  left: 0;
-  width: min(240px, 30vw);
-  box-shadow: var(--shadow-md);
-  display: block;
-  margin: 0;
-  padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+.inlineEntityTrigger svg {
+  color: var(--color-neutral-500);
+  width: 0.76em;
+  height: 0.76em;
+  flex: none;
+  align-self: center;
+  stroke-width: 1.5;
+}
+.inlineEntityTrigger:hover,
+.inlineEntityTrigger[aria-expanded="true"] { background: var(--color-neutral-200); }
+.inlineEntityTrigger:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.entityHoverPanel {
+  position: fixed;
+  z-index: 100;
+  overflow-y: auto;
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+.imagePaperShell { width: 100%; padding: 8px; }
+.imagePopup { width: 100%; overflow: hidden; }
+.locationLoading {
+  display: grid;
+  width: 100%;
+  height: 318px;
+  place-items: center;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
   background: var(--color-surface-muted);
-  font-size: .9em;
-  line-height: 1.5;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
 }
-.referenceNote[hidden] { display: none; }
-
+.entityArtwork {
+  height: 180px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #e9e6df;
+}
+.entityArtwork img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 /* Lead-ins remain in the sentence flow, rather than separate headings. */
 .reviewLeadIn {
   color: var(--color-neutral-400);
@@ -644,6 +673,37 @@
     min-height: 0;
   }
   .detailSection p { max-width: 32em; }
+}
+
+/* On narrower desktops the review flows beside the item, then below it. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .viewport[data-stage="1"] .itemMedia {
+    align-self: start;
+    transform: translate(
+      calc(-1 * var(--visual-left, 0%)),
+      calc(-1 * var(--review-scroll, 0px))
+    );
+  }
+  .viewport[data-stage="1"] .item[data-active="true"] .itemMedia { z-index: 3; }
+  .detailsContent {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    align-self: start;
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 0 0 32px;
+  }
+  .detailsBody { display: flow-root; }
+  .detailsBody::before {
+    content: "";
+    float: left;
+    width: calc(var(--focused-image-width) + var(--focused-column-gap));
+    height: var(--focused-image-height);
+  }
+  .detailSection { display: contents; }
+  .detailSection + .detailSection p:first-child { margin-top: 32px; }
+  .detailSection p { max-width: none; }
 }
 
 /* Phone focus: document scrolling for the review, horizontal item movement. */
