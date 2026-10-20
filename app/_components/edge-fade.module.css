@@ -1,0 +1,12 @@
+.fade {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 var(--fade-blur, 40px) var(--fade-spread, 26px) #fff;
+}
+
+.compact {
+  --fade-blur: 16px;
+  --fade-spread: 12px;
+}

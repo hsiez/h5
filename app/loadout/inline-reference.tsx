@@ -5,15 +5,19 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { DEFAULT_LOCATION_MAP_STYLE } from "../_components/location-map-style";
+import edgeFadeStyles from "../_components/edge-fade.module.css";
 import { PaperFrame } from "../_components/paper-frame";
 import { ThumbnailFrame } from "../_components/thumbnail-frame";
 import type { ReviewText } from "./reviews";
 import styles from "./loadout.module.css";
 
 type Entity = Exclude<ReviewText, string>["entity"];
-type Placement = { left: number; top: number; width: number; maxHeight: number };
+type Placement = { left: number; top: number; width: number; maxHeight: number; constrained: boolean };
 
-const POPUP_GAP = 12;
+const POPUP_GAP = 6;
+const VIEWPORT_INSET = 12;
+const CLOSE_DELAY_MS = 50;
+const FADE_MS = 200;
 
 const LocationMapCard = dynamic(
   () => import("../_components/location-map-card").then((module) => module.LocationMapCard),
@@ -41,17 +45,50 @@ export function InlineReference({ text, entity }: { text: string; entity: Entity
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [open, setOpen] = useState(false);
-  const [placement, setPlacement] = useState<Placement>({ left: 0, top: 0, width: 376, maxHeight: 320 });
+  const unmountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const enterFrame = useRef<number | null>(null);
+  const closing = useRef(false);
+  const [mounted, setMounted] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [placement, setPlacement] = useState<Placement>({ left: 0, top: 0, width: 376, maxHeight: 320, constrained: false });
 
-  const clearCloseTimer = () => {
+  const clearCloseTimer = useCallback(() => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     closeTimer.current = null;
-  };
-  const closeSoon = () => {
+  }, []);
+  const clearUnmountTimer = useCallback(() => {
+    if (unmountTimer.current) clearTimeout(unmountTimer.current);
+    unmountTimer.current = null;
+  }, []);
+  const cancelEnterFrame = useCallback(() => {
+    if (enterFrame.current !== null) cancelAnimationFrame(enterFrame.current);
+    enterFrame.current = null;
+  }, []);
+  const hide = useCallback(() => {
+    if (closing.current) return;
+    closing.current = true;
     clearCloseTimer();
-    closeTimer.current = setTimeout(() => setOpen(false), 140);
-  };
+    clearUnmountTimer();
+    cancelEnterFrame();
+    setVisible(false);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setMounted(false);
+    } else {
+      unmountTimer.current = setTimeout(() => setMounted(false), FADE_MS);
+    }
+  }, [cancelEnterFrame, clearCloseTimer, clearUnmountTimer]);
+  const show = useCallback(() => {
+    closing.current = false;
+    clearCloseTimer();
+    clearUnmountTimer();
+    if (mounted) setVisible(true);
+    else setMounted(true);
+  }, [clearCloseTimer, clearUnmountTimer, mounted]);
+  const closeSoon = useCallback(() => {
+    if (closing.current) return;
+    clearCloseTimer();
+    closeTimer.current = setTimeout(hide, CLOSE_DELAY_MS);
+  }, [clearCloseTimer, hide]);
   const positionPanel = useCallback(() => {
     const anchor = trigger.current?.getBoundingClientRect();
     if (!anchor) return;
@@ -60,32 +97,33 @@ export function InlineReference({ text, entity }: { text: string; entity: Entity
     const edgeTop = viewport?.offsetTop ?? 0;
     const edgeRight = edgeLeft + (viewport?.width ?? window.innerWidth);
     const edgeBottom = edgeTop + (viewport?.height ?? window.innerHeight);
-    const width = Math.min(376, edgeRight - edgeLeft - POPUP_GAP * 2);
+    const width = Math.min(376, edgeRight - edgeLeft - VIEWPORT_INSET * 2);
     const height = panel.current?.scrollHeight ?? 320;
-    const left = Math.max(edgeLeft + POPUP_GAP, Math.min(anchor.left, edgeRight - width - POPUP_GAP));
-    const roomBelow = Math.max(0, edgeBottom - anchor.bottom - POPUP_GAP * 2);
-    const roomAbove = Math.max(0, anchor.top - edgeTop - POPUP_GAP * 2);
+    const left = Math.max(edgeLeft + VIEWPORT_INSET, Math.min(anchor.left, edgeRight - width - VIEWPORT_INSET));
+    const roomBelow = Math.max(0, edgeBottom - anchor.bottom - POPUP_GAP - VIEWPORT_INSET);
+    const roomAbove = Math.max(0, anchor.top - edgeTop - POPUP_GAP - VIEWPORT_INSET);
     const showBelow = height <= roomBelow || roomBelow >= roomAbove;
-    const maxHeight = Math.max(0, edgeBottom - edgeTop - POPUP_GAP * 2);
+    const maxHeight = Math.max(0, edgeBottom - edgeTop - VIEWPORT_INSET * 2);
+    const constrained = height > maxHeight;
     const visibleHeight = Math.min(height, maxHeight);
     const preferredTop = showBelow
       ? anchor.bottom + POPUP_GAP
       : anchor.top - POPUP_GAP - visibleHeight;
-    const top = Math.max(edgeTop + POPUP_GAP, Math.min(preferredTop, edgeBottom - POPUP_GAP - visibleHeight));
-    setPlacement((current) => current.left === left && current.top === top && current.width === width && current.maxHeight === maxHeight
-      ? current : { left, top, width, maxHeight });
+    const top = Math.max(edgeTop + VIEWPORT_INSET, Math.min(preferredTop, edgeBottom - VIEWPORT_INSET - visibleHeight));
+    setPlacement((current) => current.left === left && current.top === top && current.width === width && current.maxHeight === maxHeight && current.constrained === constrained
+      ? current : { left, top, width, maxHeight, constrained });
   }, []);
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!mounted) return;
     positionPanel();
     const onPointerDown = (event: PointerEvent) => {
       if (event.target instanceof Node &&
           !trigger.current?.contains(event.target) &&
-          !panel.current?.contains(event.target)) setOpen(false);
+          !panel.current?.contains(event.target)) hide();
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { setOpen(false); trigger.current?.focus(); }
+      if (event.key === "Escape") { trigger.current?.focus(); hide(); }
     };
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -105,8 +143,25 @@ export function InlineReference({ text, entity }: { text: string; entity: Entity
       window.visualViewport?.removeEventListener("scroll", positionPanel);
       resizeObserver.disconnect();
     };
-  }, [open, positionPanel]);
-  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+  }, [mounted, positionPanel, hide]);
+  useLayoutEffect(() => {
+    if (!mounted) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reveal = () => {
+      enterFrame.current = null;
+      setVisible(true);
+    };
+    enterFrame.current = requestAnimationFrame(() => {
+      if (reducedMotion) reveal();
+      else enterFrame.current = requestAnimationFrame(reveal);
+    });
+    return cancelEnterFrame;
+  }, [mounted, cancelEnterFrame]);
+  useEffect(() => () => {
+    clearCloseTimer();
+    clearUnmountTimer();
+    cancelEnterFrame();
+  }, [cancelEnterFrame, clearCloseTimer, clearUnmountTimer]);
 
   return <>
     <button
@@ -114,25 +169,27 @@ export function InlineReference({ text, entity }: { text: string; entity: Entity
       type="button"
       className={styles.inlineEntityTrigger}
       aria-haspopup="dialog"
-      aria-expanded={open}
-      aria-controls={open ? id : undefined}
-      onMouseEnter={() => { clearCloseTimer(); setOpen(true); }}
+      aria-expanded={visible}
+      aria-controls={mounted ? id : undefined}
+      onMouseEnter={show}
       onMouseLeave={closeSoon}
-      onFocus={() => { clearCloseTimer(); setOpen(true); }}
+      onFocus={show}
       onBlur={(event) => {
         if (!panel.current?.contains(event.relatedTarget)) closeSoon();
       }}
-      onClick={() => { clearCloseTimer(); setOpen(true); }}
+      onClick={show}
     ><EntityIcon kind={entity.kind} /><span>{text}</span></button>
-    {open && createPortal(
+    {mounted && createPortal(
       <div
         ref={panel}
         id={id}
         role="dialog"
         aria-label={entity.kind === "location" ? `${entity.name} map preview` : entity.caption}
-        className={styles.entityHoverPanel}
-        style={{ left: placement.left, top: placement.top, width: placement.width, maxHeight: placement.maxHeight }}
-        onMouseEnter={clearCloseTimer}
+        className={`${styles.entityHoverPanel} ${placement.constrained ? styles.entityHoverPanelConstrained : ""}`}
+        data-visible={visible}
+        aria-hidden={!visible}
+        style={{ left: placement.left, top: placement.top, width: placement.width, maxHeight: placement.constrained ? placement.maxHeight : undefined }}
+        onMouseEnter={show}
         onMouseLeave={closeSoon}
       >
         {entity.kind === "location" ? (
@@ -145,10 +202,11 @@ export function InlineReference({ text, entity }: { text: string; entity: Entity
             zoom={entity.zoom}
           />
         ) : (
-          <PaperFrame className={styles.imagePaperShell}>
+          <PaperFrame elevation="popover" className={styles.imagePaperShell}>
             <ThumbnailFrame className={styles.imagePopup}>
               <div className={styles.entityArtwork}>
-                <Image src={entity.src} alt={entity.alt} width={720} height={480} unoptimized />
+                <Image src={entity.src} alt={entity.alt} width={entity.width} height={entity.height} unoptimized />
+                <div className={`${edgeFadeStyles.fade} ${edgeFadeStyles.compact}`} aria-hidden="true" />
               </div>
             </ThumbnailFrame>
           </PaperFrame>
