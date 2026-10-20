@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
-import { Watermark } from "./_components/watermark";
+import { SiteFooter } from "./_components/site-footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,9 +43,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col font-sans">
         {children}
-        <footer className="flex justify-center px-6 pb-2 pt-48 sm:pt-60">
-          <Watermark className="w-full max-w-2xl text-[#f5f5ed]" />
-        </footer>
+        <SiteFooter />
       </body>
     </html>
   );

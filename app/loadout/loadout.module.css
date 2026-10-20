@@ -341,7 +341,7 @@
 }
 
 .detailSection + .detailSection {
-  margin-top: 32px;
+  margin-top: 40px;
 }
 
 .detailSection p {
@@ -584,13 +584,20 @@
 .inlineEntityTrigger:hover,
 .inlineEntityTrigger[aria-expanded="true"] { background: var(--color-neutral-200); }
 .inlineEntityTrigger:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.entityWithPunctuation { white-space: nowrap; }
 .entityHoverPanel {
   position: fixed;
   z-index: 100;
-  overflow-y: auto;
+  opacity: 0;
+  transition: opacity 200ms ease-out;
   color: var(--color-text-primary);
   font-family: var(--font-sans);
 }
+.entityHoverPanel[data-visible="true"] { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .entityHoverPanel { transition: none; }
+}
+.entityHoverPanelConstrained { overflow-y: auto; }
 .imagePaperShell { width: 100%; padding: 8px; }
 .imagePopup { width: 100%; overflow: hidden; }
 .locationLoading {
@@ -605,17 +612,14 @@
   font-size: 12px;
 }
 .entityArtwork {
-  height: 180px;
+  position: relative;
   overflow: hidden;
-  display: grid;
-  place-items: center;
   background: #e9e6df;
 }
 .entityArtwork img {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: contain;
+  height: auto;
 }
 /* Lead-ins remain in the sentence flow, rather than separate headings. */
 .reviewLeadIn {
@@ -702,13 +706,13 @@
     height: var(--focused-image-height);
   }
   .detailSection { display: contents; }
-  .detailSection + .detailSection p:first-child { margin-top: 32px; }
+  .detailSection + .detailSection p:first-child { margin-top: 40px; }
   .detailSection p { max-width: none; }
 }
 
 /* Phone focus: document scrolling for the review, horizontal item movement. */
 @media (max-width: 760px) {
-  .detailSection + .detailSection { margin-top: calc(var(--spacing) * 12); }
+  .detailSection + .detailSection { margin-top: calc(var(--spacing) * 14); }
   .viewport[data-stage="1"] {
     --mobile-title-height: 112px;
     --focused-image-width: min(84vw, 420px);

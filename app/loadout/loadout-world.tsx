@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
@@ -16,7 +17,7 @@ import { flushSync } from "react-dom";
 import Image from "next/image";
 import { CursorTooltip } from "../_components/cursor-tooltip";
 import styles from "./loadout.module.css";
-import { ITEM_REVIEWS } from "./reviews";
+import { ITEM_REVIEWS, type ReviewText } from "./reviews";
 import { InlineReference } from "./inline-reference";
 
 // Mode motion has one owner: Web Animations. Geometry comes from the rendered
@@ -192,6 +193,22 @@ function useReducedMotion() {
   }, []);
 
   return reduced;
+}
+
+function ReviewParts({ parts }: { parts: ReviewText[] }) {
+  return parts.map((part, index) => {
+    if (typeof part === "string") {
+      const previous = parts[index - 1];
+      const attachedPunctuation = previous && typeof previous !== "string" ? part.match(/^[,.;:!?]+/)?.[0] ?? "" : "";
+      return <Fragment key={index}>{part.slice(attachedPunctuation.length)}</Fragment>;
+    }
+
+    const next = parts[index + 1];
+    const attachedPunctuation = typeof next === "string" ? next.match(/^[,.;:!?]+/)?.[0] ?? "" : "";
+    return <span key={index} className={styles.entityWithPunctuation}>
+      <InlineReference text={part.text} entity={part.entity} />{attachedPunctuation}
+    </span>;
+  });
 }
 
 export function LoadoutWorld() {
@@ -1154,13 +1171,15 @@ export function LoadoutWorld() {
                         <section className={styles.detailSection}>
                           {content.about.map((paragraph, index) => <p key={index}>
                             {index === 0 && <><em className={styles.reviewLeadIn}>I acquired</em>{" "}</>}
-                            {paragraph.map((part, partIndex) => typeof part === "string" ? part :
-                              <InlineReference key={partIndex} text={part.text} entity={part.entity} />)}
+                            <ReviewParts parts={paragraph} />
                           </p>)}
                         </section>
                         {(["pros", "cons"] as const).map((section) => (
                           <section key={section} className={styles.detailSection}>
-                            <p><em className={styles.reviewLeadIn}>{section === "pros" ? "I love" : "Only notes:"}</em>{" "}{content[section].join(" ")}</p>
+                            <p><em className={styles.reviewLeadIn}>{section === "pros" ? "I love" : "Only notes:"}</em>{" "}{content[section].map((piece, pieceIndex) => <Fragment key={pieceIndex}>
+                              {pieceIndex > 0 && " "}
+                              {typeof piece === "string" ? piece : <ReviewParts parts={piece} />}
+                            </Fragment>)}</p>
                           </section>
                         ))}
                       </div>

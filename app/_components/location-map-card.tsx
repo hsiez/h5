@@ -5,6 +5,7 @@ import { AttributionControl, Map, Marker, setWorkerUrl, type StyleSpecification 
 import { ThumbnailFrame } from "./thumbnail-frame";
 import { PaperFrame } from "./paper-frame";
 import "maplibre-gl/dist/maplibre-gl.css";
+import edgeFadeStyles from "./edge-fade.module.css";
 import styles from "./location-map-card.module.css";
 
 export type LocationMapCardProps = {
@@ -19,7 +20,6 @@ export type LocationMapCardProps = {
   water: string;
   buildings: string;
   labels: string;
-  pin: string;
   showLabels: boolean;
   showAttributionInfo: boolean;
 };
@@ -108,10 +108,21 @@ export function LocationMapCard(props: LocationMapCardProps) {
   useEffect(() => {
     if (!map.current) return;
     marker.current?.remove();
-    marker.current = new Marker({ color: props.pin, scale: 0.7 })
+    const link = document.createElement("a");
+    link.className = styles.mapsMarker;
+    link.href = googleMapsUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.setAttribute("aria-label", `Open ${props.place} in Google Maps (new tab)`);
+    link.title = `Open ${props.place} in Google Maps`;
+    const icon = document.createElement("span");
+    icon.className = styles.mapsMarkerIcon;
+    icon.setAttribute("aria-hidden", "true");
+    link.appendChild(icon);
+    marker.current = new Marker({ element: link, anchor: "bottom" })
       .setLngLat([props.longitude, props.latitude])
       .addTo(map.current);
-  }, [props.pin, props.longitude, props.latitude]);
+  }, [googleMapsUrl, props.place, props.longitude, props.latitude]);
 
   useEffect(() => {
     const instance = map.current;
@@ -127,15 +138,15 @@ export function LocationMapCard(props: LocationMapCardProps) {
   }, [props.background, props.roads, props.parks, props.water, props.buildings, props.labels, props.showLabels]);
 
   return <>
-      <PaperFrame className={styles.paperShell}>
+      <PaperFrame elevation="popover" className={styles.paperShell}>
         <ThumbnailFrame className={styles.popup}>
           <div className={styles.mapFrame}>
             <div ref={mapContainer} className={styles.map} />
-            <div className={styles.mapFade} aria-hidden="true" />
+            <div className={edgeFadeStyles.fade} aria-hidden="true" />
+            <div className={styles.labelFade} aria-hidden="true" />
             {error && <div className={styles.error}>Map tiles could not load: {error}</div>}
             <div className={styles.meta}>
               <div className={styles.placeDetails}><strong>{props.place}</strong><span>{props.city}</span></div>
-              <a className={styles.mapsButton} href={googleMapsUrl} target="_blank" rel="noopener noreferrer">Google Maps</a>
             </div>
           </div>
         </ThumbnailFrame>

@@ -18,7 +18,6 @@ const meta: Meta<typeof LocationMapPrototype> = {
     water: { control: "color" },
     buildings: { control: "color" },
     labels: { control: "color" },
-    pin: { control: "color" },
     showAttributionInfo: { control: "boolean" },
   },
 };
