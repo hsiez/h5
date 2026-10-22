@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import styles from './things-for-you.module.css';
 
 type Item = {
@@ -21,8 +21,33 @@ export function StorefrontItem({ item }: { item: Item }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const available = item.status === 'available';
-  const alertable = item.status === 'pending' || item.status === 'reserved';
+  const [status, setStatus] = useState(item.status);
+  const available = status === 'available';
+  const alertable = status === 'pending' || status === 'reserved';
+
+  useEffect(() => {
+    let active = true;
+    async function refreshStatus() {
+      if (document.visibilityState === 'hidden') return;
+      try {
+        const response = await fetch('/api/storefront/items', { cache: 'no-store' });
+        if (!response.ok) return;
+        const body: { items?: { slug: string; status: Item['status'] }[] } = await response.json();
+        const current = body.items?.find(candidate => candidate.slug === item.slug);
+        if (active && current) setStatus(current.status);
+      } catch { /* Keep the last known status while offline. */ }
+    }
+    void refreshStatus();
+    window.addEventListener('focus', refreshStatus);
+    document.addEventListener('visibilitychange', refreshStatus);
+    const timer = window.setInterval(refreshStatus, 10_000);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', refreshStatus);
+      document.removeEventListener('visibilitychange', refreshStatus);
+      window.clearInterval(timer);
+    };
+  }, [item.slug]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,6 +84,7 @@ export function StorefrontItem({ item }: { item: Item }) {
           : <span className={styles.imagePlaceholder}>Photograph coming soon</span>}
       </div>
       <div className={styles.details}>
+        <p className={styles.status} role="status">{status === 'available' ? 'Available' : status === 'pending' ? 'Pending' : status === 'reserved' ? 'Reserved' : 'Claimed'}</p>
         <p className={styles.description}>{item.description}</p>
         <dl className={styles.facts}>
           <div><dt>Price</dt><dd>A coffee and a story</dd></div>
