@@ -1,9 +1,9 @@
 import { createServer } from 'node:http';
 
-const upstream = 'http://127.0.0.1:3000/api/storefront/cal-webhook';
+const upstream = 'http://127.0.0.1:3000/api/storefront/webhooks/cal';
 
 createServer(async (request, response) => {
-  if (request.method !== 'POST' || request.url !== '/api/storefront/cal-webhook') {
+  if (request.method !== 'POST' || request.url !== '/api/storefront/webhooks/cal') {
     response.writeHead(404).end();
     return;
   }
