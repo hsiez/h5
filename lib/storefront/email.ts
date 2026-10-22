@@ -1,5 +1,5 @@
 import { db, transaction } from "./db";
-import { newToken } from "./core";
+import { FlowError, newToken } from "./core";
 
 function baseUrl() {
   const { VERCEL_ENV, VERCEL_PROJECT_PRODUCTION_URL, VERCEL_BRANCH_URL, VERCEL_URL, STOREFRONT_BASE_URL } = process.env;
@@ -36,7 +36,12 @@ export async function deliverPendingEmail(limit = 20) {
       method:'POST', headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','Idempotency-Key':row.id},
       body:JSON.stringify({from,to:row.email,subject,html:`<p>${escapeHtml(lead)}</p><p><a href="${escapeHtml(link)}">Choose a time and suggest a public place</a></p><p>The link expires in 48 hours. A booking request does not guarantee the item.</p>${footer}`})
     });
-    if (!response.ok) throw new Error(`Resend failed with HTTP ${response.status}`);
+    if (!response.ok) {
+      const detail = await response.json().catch(() => null) as {message?:unknown} | null;
+      const message = typeof detail?.message === 'string' ? detail.message.slice(0, 500) : 'No reason returned';
+      console.error(`Resend rejected storefront email (HTTP ${response.status}): ${message}`);
+      throw new FlowError('Email is unavailable right now. Please try again later.',503);
+    }
     await transaction(async client => {
       await client.query('UPDATE storefront_outbox SET sent_at=now() WHERE id=$1 AND sent_at IS NULL',[row.id]);
       if (row.kind === 'availability_alert') await client.query(`UPDATE item_availability_alerts SET last_notified_version=o.availability_version
