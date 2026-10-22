@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { StorefrontAdmin } from "./storefront-admin";
 
 interface LogEntry {
   id: string;
@@ -198,6 +199,8 @@ export default function AdminPage() {
           </div>
         </div>
       </section>
+
+      <StorefrontAdmin token={token} />
 
       {log.length > 0 && (
         <section className="space-y-4">
