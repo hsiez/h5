@@ -17,8 +17,12 @@ function event(triggerEvent:string, uid:string, email:string, when:string, ref=c
     startTime:'2026-11-01T17:00:00Z',bookingFieldsResponses:{claim_ref:ref,seattle_place:'Public café in Seattle'}}};
 }
 
-describe('storefront flow with Postgres', () => {
+const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+
+describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
   beforeAll(async () => {
+    process.env.DATABASE_URL = testDatabaseUrl;
+    process.env.STOREFRONT_LINK_SECRET ||= 'storefront-integration-test-secret';
     process.env.STOREFRONT_CAL_EVENT_TYPE_ID=String(eventTypeId);
     process.env.STOREFRONT_CAL_BOOKING_URL='https://cal.com/test/coffee';
     const row = await db().query<{id:string}>(`INSERT INTO storefront_items(slug,title,status,published_at)
