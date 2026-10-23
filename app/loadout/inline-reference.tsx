@@ -8,6 +8,7 @@ import { DEFAULT_LOCATION_MAP_STYLE } from "../_components/location-map-style";
 import edgeFadeStyles from "../_components/edge-fade.module.css";
 import { PaperFrame } from "../_components/paper-frame";
 import { ThumbnailFrame } from "../_components/thumbnail-frame";
+import entityStyles from "../_components/inline-entity-trigger.module.css";
 import type { ReviewText } from "./reviews";
 import styles from "./loadout.module.css";
 
@@ -167,7 +168,7 @@ export function InlineReference({ text, entity }: { text: string; entity: Entity
     <button
       ref={trigger}
       type="button"
-      className={styles.inlineEntityTrigger}
+      className={entityStyles.trigger}
       aria-haspopup="dialog"
       aria-expanded={visible}
       aria-controls={mounted ? id : undefined}

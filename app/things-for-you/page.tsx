@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { connection } from 'next/server';
 import { db } from '@/lib/storefront/db';
-import { StorefrontItem } from './storefront-item';
+import { StorefrontItem, type StorefrontItemStatus } from './storefront-item';
 import styles from './things-for-you.module.css';
 
 export const metadata: Metadata = {
@@ -16,32 +16,47 @@ type Item = {
   size_label: string | null;
   condition_note: string | null;
   measurements: Record<string, string>;
-  status: 'available' | 'pending' | 'reserved' | 'claimed';
-  image: string | null;
-  image_alt: string | null;
+  status: StorefrontItemStatus;
+  photos: { src: string; alt: string }[];
+  handoff_photo: string | null;
+  handoff_alt: string | null;
 };
 
 export default async function ThingsForYouPage() {
   await connection();
   if (process.env.VERCEL_ENV === 'preview') await ensurePreviewItem();
   const result = await db().query<Item>(`SELECT i.slug,i.title,i.description,i.size_label,i.condition_note,i.measurements,i.status,
-    m.blob_path AS image,m.alt_text AS image_alt
+    COALESCE(m.photos, '[]'::json) AS photos,
+    h.photo_blob_path AS handoff_photo,h.photo_alt_text AS handoff_alt
     FROM storefront_items i
-    LEFT JOIN LATERAL (SELECT blob_path,alt_text FROM storefront_item_media
-      WHERE item_id=i.id ORDER BY sort_order,created_at LIMIT 1) m ON true
+    LEFT JOIN LATERAL (SELECT json_agg(json_build_object('src',blob_path,'alt',alt_text) ORDER BY sort_order,created_at) AS photos
+      FROM storefront_item_media WHERE item_id=i.id) m ON true
+    LEFT JOIN item_handoffs h ON h.item_id=i.id
     WHERE i.published_at IS NOT NULL ORDER BY i.published_at DESC`);
 
   return <main className={styles.page}>
-    <div className={styles.shell}>
-      <header className={styles.header}>
-        <p className={styles.eyebrow}>Loadout / Things for you</p>
-        <h1>Things for you</h1>
-        <p className={styles.intro}>A few things ready for another life. The price is a coffee and a story, in Seattle.</p>
-      </header>
-      <div className={styles.items}>
-        {result.rows.length ? result.rows.map(item => <StorefrontItem key={item.slug} item={item} />)
-          : <p className={styles.empty}>Nothing is available just yet.</p>}
-      </div>
+    <header className={styles.header}>
+      <h1>Things for you</h1>
+      <p className={styles.intro}>A few things ready for another life. The price is a coffee and a story, in Seattle.</p>
+    </header>
+    <div className={styles.items}>
+      {result.rows.length ? result.rows.map(item => <StorefrontItem key={item.slug}
+          slug={item.slug}
+          title={item.title}
+          story={item.description}
+          reason=""
+          photos={item.photos}
+          size={item.size_label || ''}
+          condition={item.condition_note || ''}
+          measurements={Object.entries(item.measurements || {}).map(([label, value]) => ({ label, value }))}
+          status={item.status}
+          owner={item.handoff_photo ? {
+            name: 'its new owner',
+            photo: { src: item.handoff_photo, alt: item.handoff_alt || 'The new owner at the handoff' },
+            coffeeStory: 'A coffee and a story shared in Seattle.',
+          } : undefined}
+      />)
+        : <p className={styles.empty}>Nothing is available just yet.</p>}
     </div>
   </main>;
 }

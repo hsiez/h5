@@ -1,40 +1,65 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useState, type FormEvent } from 'react';
-import styles from './things-for-you.module.css';
+import { useEffect, useId, useState, type FormEvent } from 'react';
+import { PaperFrame } from '../_components/paper-frame';
+import { StippleFrame } from '../_components/stipple-button';
+import entityStyles from '../_components/inline-entity-trigger.module.css';
+import styles from './storefront-item.module.css';
 
-type Item = {
-  slug: string;
+export type StorefrontItemStatus = 'available' | 'pending' | 'reserved' | 'claimed';
+export type StorefrontButtonVariant = 'layered' | 'overlay';
+type Action = 'claim' | 'notify';
+type Submission = 'idle' | 'loading' | 'success' | 'error';
+
+export type StorefrontItemProps = {
+  status: StorefrontItemStatus;
+  buttonVariant?: StorefrontButtonVariant;
   title: string;
-  description: string;
-  size_label: string | null;
-  condition_note: string | null;
-  measurements: Record<string, string>;
-  status: 'available' | 'pending' | 'reserved' | 'claimed';
-  image: string | null;
-  image_alt: string | null;
+  story: string;
+  reason: string;
+  photos: { src: string; alt: string }[];
+  size: string;
+  condition: string;
+  measurements: { label: string; value: string }[];
+  owner?: { name: string; photo?: { src: string; alt: string }; coffeeStory: string };
+  slug?: string;
+  initialAction?: Action | null;
+  initialSubmission?: Submission;
 };
 
-export function StorefrontItem({ item }: { item: Item }) {
-  const [email, setEmail] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  const [status, setStatus] = useState(item.status);
-  const available = status === 'available';
-  const alertable = status === 'pending' || status === 'reserved';
+const STATUS_LABEL: Record<StorefrontItemStatus, string> = {
+  available: 'Available',
+  pending: 'Pending',
+  reserved: 'Reserved',
+  claimed: 'Claimed',
+};
 
+export function StorefrontItem({
+  status, buttonVariant = 'layered', title, story, reason, photos, size, condition, measurements, owner, slug,
+  initialAction = null, initialSubmission = 'idle',
+}: StorefrontItemProps) {
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [action, setAction] = useState<Action | null>(initialAction);
+  const [submission, setSubmission] = useState<Submission>(initialSubmission);
+  const [email, setEmail] = useState('');
+  const [formError, setFormError] = useState('');
+  const [liveStatus, setLiveStatus] = useState(status);
+  const emailId = useId();
+  const ownerId = useId();
+  const measurementsId = useId();
+  const photo = photos[photoIndex];
   useEffect(() => {
+    if (!slug) return;
     let active = true;
     async function refreshStatus() {
       if (document.visibilityState === 'hidden') return;
       try {
         const response = await fetch('/api/storefront/items', { cache: 'no-store' });
         if (!response.ok) return;
-        const body: { items?: { slug: string; status: Item['status'] }[] } = await response.json();
-        const current = body.items?.find(candidate => candidate.slug === item.slug);
-        if (active && current) setStatus(current.status);
+        const body: { items?: { slug: string; status: StorefrontItemStatus }[] } = await response.json();
+        const current = body.items?.find(item => item.slug === slug);
+        if (active && current) setLiveStatus(current.status);
       } catch { /* Keep the last known status while offline. */ }
     }
     void refreshStatus();
@@ -47,65 +72,139 @@ export function StorefrontItem({ item }: { item: Item }) {
       document.removeEventListener('visibilitychange', refreshStatus);
       window.clearInterval(timer);
     };
-  }, [item.slug]);
+  }, [slug]);
+
+  const currentStatus = slug ? liveStatus : status;
+  const expectedAction = currentStatus === 'available' ? 'claim' : currentStatus === 'pending' || currentStatus === 'reserved' ? 'notify' : null;
+  const activeAction = action === expectedAction ? action : null;
+  const primaryButtonClassName = `${styles.primaryButton}${buttonVariant === 'overlay' ? ` ${styles.originalButton}` : ''}`;
+
+  function open(nextAction: Action) {
+    setSubmission('idle');
+    setFormError('');
+    setEmail('');
+    setAction(nextAction);
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBusy(true);
-    setError('');
-    setMessage('');
+    if (!email.trim()) return;
+    setSubmission('loading');
+    setFormError('');
+    if (!slug) {
+      await new Promise(resolve => window.setTimeout(resolve, 700));
+      setSubmission('success');
+      return;
+    }
     try {
-      const action = available ? 'claim' : 'alert';
-      const response = await fetch(`/api/storefront/items/${encodeURIComponent(item.slug)}/${action}`, {
+      const endpoint = activeAction === 'claim' ? 'claim' : 'alert';
+      const response = await fetch(`/api/storefront/items/${encodeURIComponent(slug)}/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || 'Please try again.');
-      setMessage(available
-        ? 'Check your email for a link to choose a time and suggest a public place.'
-        : 'You’ll get an email if this item becomes available again.');
+      setSubmission('success');
       setEmail('');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Please try again.');
-    } finally {
-      setBusy(false);
+      setFormError(cause instanceof Error ? cause.message : 'Please try again.');
+      setSubmission('error');
     }
   }
 
-  const measurements = Object.entries(item.measurements || {});
-
-  return <article className={styles.item}>
-    <h2>{item.title}</h2>
-    <div className={styles.columns}>
-      <div className={styles.media}>
-        {item.image ? <Image src={item.image} alt={item.image_alt || item.title} fill sizes="(max-width: 720px) 90vw, 45vw" className={styles.image} />
-          : <span className={styles.imagePlaceholder}>Photograph coming soon</span>}
-      </div>
-      <div className={styles.details}>
-        <p className={styles.status} role="status">{status === 'available' ? 'Available' : status === 'pending' ? 'Pending' : status === 'reserved' ? 'Reserved' : 'Claimed'}</p>
-        <p className={styles.description}>{item.description}</p>
-        <dl className={styles.facts}>
-          <div><dt>Price</dt><dd>A coffee and a story</dd></div>
-          {item.size_label && <div><dt>Size</dt><dd>{item.size_label}</dd></div>}
-          {item.condition_note && <div><dt>Condition</dt><dd>{item.condition_note}</dd></div>}
-          {measurements.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-        </dl>
-        {available || alertable ? <form className={styles.form} onSubmit={submit}>
-          <label htmlFor={`email-${item.slug}`}>{available ? 'Your email' : 'Get an availability email'}</label>
-          <div className={styles.formRow}>
-            <input id={`email-${item.slug}`} type="email" autoComplete="email" required value={email}
-              onChange={event => setEmail(event.target.value)} placeholder="you@example.com" disabled={busy} />
-            <button type="submit" disabled={busy}>{busy ? 'Sending…' : available ? 'Claim' : 'Notify me'}</button>
+  return <div className={styles.page}>
+    <article className={styles.item}>
+      <h1>{title}</h1>
+      <div className={styles.columns}>
+        <div className={styles.gallery}>
+          <div className={styles.photo}>
+            {photo ? <Image src={photo.src} alt={photo.alt} fill sizes="(max-width: 760px) 100vw, 52vw" className={styles.image} priority />
+              : <span className={styles.photoEmpty}>Photograph coming soon</span>}
           </div>
-          <p className={styles.formHint}>{available
-            ? 'We’ll email a private link. You’ll choose a time and public Seattle meeting place on Cal.com.'
-            : 'This is an alert, not a waitlist or a reservation.'}</p>
-        </form> : <p className={styles.claimed}>Claimed</p>}
-        {message && <p className={styles.feedback} role="status">{message}</p>}
-        {error && <p className={styles.error} role="alert">{error}</p>}
+          {photos.length > 1 && <div className={styles.galleryControls} aria-label="Item photos">
+            <button type="button" onClick={() => setPhotoIndex((photoIndex + photos.length - 1) % photos.length)} aria-label="Previous photo">←</button>
+            <span>{photoIndex + 1} / {photos.length}</span>
+            <button type="button" onClick={() => setPhotoIndex((photoIndex + 1) % photos.length)} aria-label="Next photo">→</button>
+          </div>}
+        </div>
+
+        <div className={styles.content}>
+          {(story || reason) && <section className={styles.introduction} aria-label="About this item">
+            <h2>I’m forfeiting</h2>
+            {story && <p>{story}</p>}
+            {reason && <p>{reason}</p>}
+          </section>}
+
+          <section className={styles.claiming} aria-label="Adoption details">
+            <section className={styles.availability} aria-label="Item facts">
+              <dl className={styles.listingFacts}>
+                <div><dt>Price</dt><dd>A coffee and a story</dd></div>
+                {size && <div><dt>Size</dt><dd>{size}</dd></div>}
+                {condition && <div><dt>Condition</dt><dd>{condition}</dd></div>}
+                {measurements.length > 0 && <div className={styles.measurementsRow}>
+                  <dt>Measurements</dt>
+                  <dd>
+                    <div className={styles.measurementsEntity}>
+                      <button type="button" className={entityStyles.trigger} aria-label="View measurements" aria-describedby={measurementsId}>View</button>
+                      <PaperFrame elevation="popover" className={styles.measurementsPopover}>
+                        <dl id={measurementsId} className={styles.measurementsList}>
+                          {measurements.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+                        </dl>
+                      </PaperFrame>
+                    </div>
+                  </dd>
+                </div>}
+              </dl>
+            </section>
+
+            <section className={styles.actionRow} aria-label="Item status and action" aria-live="polite">
+              <div className={styles.statusRow}>
+                <span className={styles.status}>{STATUS_LABEL[currentStatus]}</span>
+              </div>
+              {currentStatus === 'claimed' ? <p className={styles.claimedText}>
+                Passed on to{' '}
+                {owner ? <span className={styles.ownerEntity}>
+                  <button type="button" className={entityStyles.trigger} aria-describedby={ownerId} aria-label={`About ${owner.name}`}>
+                    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="1.7" y="2.2" width="12.6" height="11.6" rx="1.4" /><circle cx="5.4" cy="5.9" r="1.1" /><path d="m2.4 11.5 3.1-3 2.2 2 2.2-2.2 3.4 3.4" /></svg>
+                    {owner.name}
+                  </button>
+                  <span className={styles.ownerCard} id={ownerId} role="tooltip">
+                    <span className={styles.ownerPhoto}>
+                      {owner.photo ? <Image src={owner.photo.src} alt={owner.photo.alt} fill sizes="300px" /> : <span>Meetup photo goes here</span>}
+                    </span>
+                    <span className={styles.ownerCardText}>{owner.coffeeStory}</span>
+                  </span>
+                </span> : 'its new owner'} after coffee and a story.
+              </p> : !activeAction ? currentStatus === 'available'
+                ? <button className={primaryButtonClassName} type="button" onClick={() => open('claim')}>
+                  {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
+                  <span className={styles.buttonLabel}>Adopt item</span>
+                </button>
+                : <button className={styles.secondaryButton} type="button" onClick={() => open('notify')}>Notify me if it’s available</button>
+              : submission === 'success' ? <p className={styles.success} role="status">
+                {activeAction === 'claim' ? 'Check your email for your private scheduling link.' : 'You’ll get one email if this item becomes available again.'}
+              </p> : <form className={styles.emailForm} onSubmit={submit}>
+                <label htmlFor={emailId}>Email address</label>
+                <div className={styles.emailControls}>
+                  <input id={emailId} type="email" autoComplete="email" value={email}
+                    onChange={event => setEmail(event.target.value)} placeholder="you@example.com"
+                    disabled={submission === 'loading'} required autoFocus />
+                  <button className={`${primaryButtonClassName}${submission === 'loading' ? ` ${styles.loadingButton}` : ''}`} type="submit" disabled={submission === 'loading'}>
+                    {submission === 'loading' && <StippleFrame className={styles.loadingStipple} seed={`storefront-${activeAction}-sending`} />}
+                    {buttonVariant === 'layered' && submission !== 'loading' && <span className={styles.buttonGrain} aria-hidden="true" />}
+                    <span className={styles.buttonLabel}>{submission === 'loading' ? 'Sending…' : activeAction === 'claim' ? 'Send link' : 'Notify me'}</span>
+                  </button>
+                  <button className={styles.cancelButton} type="button" onClick={() => setAction(null)} disabled={submission === 'loading'}>Cancel</button>
+                </div>
+                {submission === 'error' && <p className={styles.formError} role="alert">{formError || 'The email could not be sent. Please try again.'}</p>}
+              </form>}
+              {(currentStatus === 'pending' || currentStatus === 'reserved') && <p className={styles.actionNote}>One availability email if it opens up again. This is not a waitlist.</p>}
+            </section>
+          </section>
+
+        </div>
       </div>
-    </div>
-  </article>;
+    </article>
+  </div>;
 }
