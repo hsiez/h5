@@ -611,8 +611,8 @@
 /* Focused view: title and review share the right column. */
 @media (min-width: 761px) {
   .viewport[data-stage="1"] {
-    --focused-top-padding: calc(var(--loadout-title-top) + var(--focused-title-height) + var(--spacing-title-content));
-    --focused-title-height: calc(clamp(32px, 4vw, 56px) * 1.05);
+    --focused-top-padding: calc(var(--loadout-title-top) + clamp(32px, 4vw, 56px) * 1.05 + var(--spacing-title-content));
+    --focused-title-height: var(--focused-measured-title-height, calc(clamp(32px, 4vw, 56px) * 1.05));
     --focused-title-gap: 24px;
     --focused-horizontal-padding: clamp(20px, 5vw, 72px);
     --focused-column-gap: clamp(20px, 3vw, 48px);

@@ -228,6 +228,7 @@ export function LoadoutWorld() {
   const [memory, setMemory] = useState<RegionMemory>(INITIAL_MEMORY);
   const [isPinching, setIsPinching] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const focusedTitleRef = useRef<HTMLHeadingElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { clientX: number; clientY: number }>());
@@ -262,6 +263,23 @@ export function LoadoutWorld() {
   useLayoutEffect(() => {
     viewportRef.current?.style.setProperty("--review-scroll", "0px");
   }, [activeRegionId, activeItemIndex, stage]);
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    const title = focusedTitleRef.current;
+    if (stage !== 1 || !viewport || !title) return;
+
+    const updateHeight = (height: number) => {
+      viewport.style.setProperty("--focused-measured-title-height", `${height}px`);
+    };
+    updateHeight(title.offsetHeight);
+    const observer = new ResizeObserver(([entry]) => updateHeight(entry.contentRect.height));
+    observer.observe(title);
+    return () => {
+      observer.disconnect();
+      viewport.style.removeProperty("--focused-measured-title-height");
+    };
+  }, [activeRegionId, detailItemIndex, stage]);
 
   const activeRegion = useMemo(
     () => REGIONS.find((region) => region.id === activeRegionId) ?? null,
@@ -1161,7 +1179,7 @@ export function LoadoutWorld() {
                   >
                     <header className={styles.detailsHeader}>
                       <div className={styles.detailsHeaderInner}>
-                        <h1>{content.title}</h1>
+                        <h1 ref={focusedTitleRef}>{content.title}</h1>
                       </div>
                     </header>
                     <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll tabIndex={0} aria-label="Item review" onScroll={(event) => {
