@@ -119,7 +119,7 @@ export function StorefrontItem({
       <div className={styles.columns}>
         <div className={styles.gallery}>
           <div className={styles.photo}>
-            {photo ? <Image src={photo.src} alt={photo.alt} fill sizes="(max-width: 760px) 100vw, 52vw" className={styles.image} priority />
+            {photo ? <Image src={photo.src} alt={photo.alt} fill sizes="(max-width: 760px) 100vw, 52vw" className={styles.image} unoptimized={photo.src.startsWith('https://')} priority />
               : <span className={styles.photoEmpty}>Photograph coming soon</span>}
           </div>
           {photos.length > 1 && <div className={styles.galleryControls} aria-label="Item photos">
@@ -171,7 +171,7 @@ export function StorefrontItem({
                   </button>
                   <span className={styles.ownerCard} id={ownerId} role="tooltip">
                     <span className={styles.ownerPhoto}>
-                      {owner.photo ? <Image src={owner.photo.src} alt={owner.photo.alt} fill sizes="300px" /> : <span>Meetup photo goes here</span>}
+                      {owner.photo ? <Image src={owner.photo.src} alt={owner.photo.alt} fill sizes="300px" unoptimized={owner.photo.src.startsWith('https://')} /> : <span>Meetup photo goes here</span>}
                     </span>
                     <span className={styles.ownerCardText}>{owner.coffeeStory}</span>
                   </span>
