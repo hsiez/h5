@@ -1,4 +1,5 @@
 .page {
+  --loadout-title-top: clamp(40px, 8vw, 112px);
   --ink: #151515;
   --muted: #777772;
   --line: rgba(21, 21, 21, 0.1);
@@ -72,7 +73,7 @@
   display: grid;
   grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
   gap: clamp(3px, 0.45vw, 8px);
-  padding: clamp(40px, 8vw, 112px) clamp(8px, 2vw, 28px) var(--spacing-title-content);
+  padding: var(--loadout-title-top) clamp(8px, 2vw, 28px) var(--spacing-title-content);
   font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
   font-size: clamp(32px, 4vw, 56px);
   font-weight: 400;
@@ -246,6 +247,7 @@
   width: var(--focused-image-width);
   align-self: start;
   justify-self: end;
+  overflow: visible;
   border-radius: 14px;
 }
 
@@ -606,15 +608,18 @@
   line-height: 36px;
 }
 
-/* Focused view: a fixed left title anchor and more room for the review. */
+/* Focused view: title and review share the right column. */
 @media (min-width: 761px) {
   .viewport[data-stage="1"] {
-    --focused-header-height: auto;
-    --focused-image-width: min(600px, 50vw, 61svh);
-    --focused-column-gap: 20px;
-    /* Center the image between the viewport edge and the review column. */
-    --focused-left-inset: calc((100vw - min(1440px, 100vw)) / 2 + clamp(20px, 5vw, 72px));
-    --focused-media-x: calc((var(--focused-column-gap) - var(--focused-left-inset)) / 2);
+    --focused-top-padding: calc(var(--loadout-title-top) + var(--focused-title-height) + var(--spacing-title-content));
+    --focused-title-height: calc(clamp(32px, 4vw, 56px) * 1.05);
+    --focused-title-gap: 24px;
+    --focused-horizontal-padding: clamp(20px, 5vw, 72px);
+    --focused-column-gap: clamp(20px, 3vw, 48px);
+    --focused-text-width: min(560px, 42vw);
+    --focused-grid-width: min(100vw, 1440px);
+    --focused-image-column-width: calc(var(--focused-grid-width) - 2 * var(--focused-horizontal-padding) - var(--focused-column-gap) - var(--focused-text-width));
+    --focused-image-width: min(600px, var(--focused-image-column-width), 61svh, calc((100svh - var(--focused-top-padding) - 32px - var(--focused-title-height) - var(--focused-title-gap)) * 218 / 242));
   }
 
   .viewport[data-stage="1"] .item,
@@ -622,21 +627,28 @@
     width: 100%;
     max-width: 1440px;
     box-sizing: border-box;
-    padding: clamp(40px, 8vw, 112px) clamp(20px, 5vw, 72px) 32px;
-    grid-template-columns: var(--focused-image-width) minmax(0, 1fr);
-    grid-template-rows: calc(clamp(32px, 4vw, 56px) * 1.05) minmax(0, 1fr);
+    margin-inline: auto;
+    padding: var(--focused-top-padding) var(--focused-horizontal-padding) 32px;
+    grid-template-columns: minmax(0, 1fr) var(--focused-text-width);
+    grid-template-rows: var(--focused-title-height) var(--focused-image-height);
+    row-gap: var(--focused-title-gap);
     align-content: start;
   }
 
   .viewport[data-stage="1"] .itemMedia {
-    justify-self: start;
-    align-self: safe center;
-    transform: translateX(var(--focused-media-x));
+    grid-row: 1 / 3;
+    justify-self: center;
+    align-self: start;
+    transform: none;
   }
 
-  .detailsHeader { align-self: start; }
+  .detailsHeader {
+    grid-column: 2;
+    grid-row: 1;
+    display: block;
+    align-self: start;
+  }
   .detailsHeaderInner {
-    grid-column: 1 / -1;
     width: auto;
     justify-self: start;
     padding: 0;
@@ -648,9 +660,9 @@
     letter-spacing: -.035em;
   }
   .detailsContent {
-    align-self: safe center;
-    height: min(var(--focused-image-height), 100%);
-    max-height: 100%;
+    align-self: start;
+    height: var(--focused-image-height);
+    max-height: var(--focused-image-height);
     min-height: 0;
   }
   .detailSection p { max-width: 32em; }
@@ -658,12 +670,11 @@
 
 /* On narrower desktops the review flows beside the item, then below it. */
 @media (min-width: 761px) and (max-width: 1100px) {
+  .viewport[data-stage="1"] .item,
+  .focusedDetails { grid-template-rows: var(--focused-title-height) minmax(0, 1fr); }
   .viewport[data-stage="1"] .itemMedia {
     align-self: start;
-    transform: translate(
-      var(--focused-media-x),
-      calc(-1 * var(--review-scroll, 0px))
-    );
+    transform: translateY(calc(-1 * var(--review-scroll, 0px)));
   }
   .viewport[data-stage="1"] .item[data-active="true"] .itemMedia { z-index: 3; }
   .detailsContent {
@@ -679,8 +690,8 @@
   .detailsBody::before {
     content: "";
     float: left;
-    width: calc(var(--focused-image-width) + var(--focused-column-gap));
-    height: var(--focused-image-height);
+    width: calc(var(--focused-image-column-width) + var(--focused-column-gap));
+    height: max(0px, calc(var(--focused-image-height) - var(--focused-title-height) - var(--focused-title-gap)));
   }
   .detailSection { display: contents; }
   .detailSection + .detailSection p:first-child { margin-top: 40px; }
@@ -721,6 +732,7 @@
     align-content: start;
   }
   .viewport[data-stage="1"] .itemMedia {
+    grid-row: 2;
     width: var(--focused-image-width);
     justify-self: center;
     align-self: start;
