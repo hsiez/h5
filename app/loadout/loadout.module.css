@@ -612,6 +612,9 @@
     --focused-header-height: auto;
     --focused-image-width: min(600px, 50vw, 61svh);
     --focused-column-gap: 20px;
+    /* Center the image between the viewport edge and the review column. */
+    --focused-left-inset: calc((100vw - min(1440px, 100vw)) / 2 + clamp(20px, 5vw, 72px));
+    --focused-media-x: calc((var(--focused-column-gap) - var(--focused-left-inset)) / 2);
   }
 
   .viewport[data-stage="1"] .item,
@@ -628,7 +631,7 @@
   .viewport[data-stage="1"] .itemMedia {
     justify-self: start;
     align-self: safe center;
-    transform: translateX(calc(-1 * var(--visual-left, 0%)));
+    transform: translateX(var(--focused-media-x));
   }
 
   .detailsHeader { align-self: start; }
@@ -658,7 +661,7 @@
   .viewport[data-stage="1"] .itemMedia {
     align-self: start;
     transform: translate(
-      calc(-1 * var(--visual-left, 0%)),
+      var(--focused-media-x),
       calc(-1 * var(--review-scroll, 0px))
     );
   }
