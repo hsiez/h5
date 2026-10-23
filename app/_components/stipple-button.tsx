@@ -128,7 +128,9 @@ export function StippleFrame({
         const edgeInfluence = Math.exp(-edgeDistance / (band * edgeFalloff));
         const horizontal = x / rect.width;
         const vertical = y / rect.height;
-        const shadowBias = 0.56 + vertical * 0.34;
+        // Light falls from the upper left, leaving the raised lower-right rim darker.
+        const lightDirection = Math.max(0, Math.min(1, (horizontal + vertical) / 2));
+        const shadowBias = 0.32 + lightDirection * 0.54;
         const centerHighlight = Math.exp(
           -(
             Math.pow((horizontal - 0.5) / 0.58, 2)
@@ -146,12 +148,12 @@ export function StippleFrame({
         ) * Math.exp(
           -Math.pow(Math.abs((horizontal - 0.5) / 0.53), 8),
         ) * Math.exp(-Math.pow((1 - vertical) / highlightReach, 4));
-        const faceTone = 0.12 + vertical * 0.1;
-        const uniformRim = edgeInfluence * edgeStrength;
+        const faceTone = 0.08 + lightDirection * 0.16;
+        const uniformRim = edgeInfluence * edgeStrength * (0.24 + lightDirection * 1.04);
         const innerShadow = (1 - edgeInfluence) * shadowBias * 0.13;
         const highlightLift = (centerHighlight * centerStrength
           + topBorderHighlight * 0.72
-          + bottomBorderHighlight * 0.72) * (1 - highlightDensity);
+          + bottomBorderHighlight * 0.2) * (1 - highlightDensity);
         const inkDensity = Math.max(
           0.006,
           Math.min(0.96, faceTone + uniformRim + innerShadow - highlightLift),
