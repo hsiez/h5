@@ -17,7 +17,9 @@ import { flushSync } from "react-dom";
 import Image from "next/image";
 import { CursorTooltip } from "../_components/cursor-tooltip";
 import styles from "./loadout.module.css";
-import { ITEM_REVIEWS, type ReviewText } from "./reviews";
+import { type ReviewText } from "./reviews";
+import type { Catalog } from "@/lib/catalog/types";
+import { StorefrontItem } from "../things-for-you/storefront-item";
 import { InlineReference } from "./inline-reference";
 
 // Mode motion has one owner: Web Animations. Geometry comes from the rendered
@@ -33,12 +35,14 @@ const MAX_PREVIEW_SCALE = 5.4;
 const ONE_LEVEL_STRENGTH = Math.log(1.055);
 const TWO_LEVEL_STRENGTH = Math.log(1.3);
 
-type RegionId = "edc" | "cooking" | "coming-soon";
+type RegionId = string;
 
 type Region = {
   id: RegionId;
   name: string;
   note: string;
+  heading: string;
+  kind: "review" | "storefront";
   items: string[];
 };
 
@@ -52,56 +56,13 @@ type SafariGestureEvent = Event & {
   clientY: number;
 };
 
-const REGION_DEFINITIONS: Array<Omit<Region, "items"> & { seed: string[] }> = [
-  {
-    id: "edc",
-    name: "Everyday carry",
-    note: "6 objects · active kit",
-    seed: ["Hat", "Coat", "Jeans", "Belt", "Loafers", "Wallet"],
-  },
-  {
-    id: "cooking",
-    name: "Cooking",
-    note: "6 objects · temporary kit",
-    seed: ["Hat", "Coat", "Jeans", "Belt", "Loafers", "Wallet"],
-  },
-  {
-    id: "coming-soon",
-    name: "Coming soon",
-    note: "New region in progress",
-    seed: ["Reserved"],
-  },
-];
-
-function buildItems(seed: string[], count: number) {
-  return Array.from({ length: count }, (_, index) => {
-    const name = seed[index % seed.length];
-    const cycle = Math.floor(index / seed.length);
-    return cycle === 0 ? name : `${name} ${cycle + 1}`;
-  });
-}
-
-const REGIONS: Region[] = REGION_DEFINITIONS.map((region, index) => ({
-  ...region,
-  items: buildItems(region.seed, [6, 6, 9][index]),
-}));
-
-const EDC_IMAGES: Record<string, string> = {
-  Belt: "/loadout/belt.png",
-  Coat: "/loadout/coat-v2.png",
-  Hat: "/loadout/hat.png",
-  Jeans: "/loadout/pants-v2.png",
-  Loafers: "/loadout/shoes.png",
-  Wallet: "/loadout/wallet-v4.png",
-};
-
 const GRAPHITE_IMAGES: Record<string, string> = {
-  Belt: "/loadout/belt-graphite-v2.png",
-  Coat: "/loadout/coat-graphite-v2.png",
-  Hat: "/loadout/hat-graphite-v2.png",
-  Jeans: "/loadout/jeans-graphite-v2.png",
-  Loafers: "/loadout/loafers-graphite-v2.png",
-  Wallet: "/loadout/wallet-graphite-v2.png",
+  Belt: "/api/catalog/media?pathname=catalog%2F2dbb3111-a5f1-4926-99f2-e55cdaf8fcf4-2RyRpQQ9H1e2FrsofIbfDjCx9jv9LP.png",
+  Coat: "/api/catalog/media?pathname=catalog%2F292e0874-ae4d-493a-8dfa-0fff8210e256-6DZc9B4XoTXANKCqFwyrsQrQcvJAJu.png",
+  Hat: "/api/catalog/media?pathname=catalog%2Fa10806a5-3ccc-4ad4-aeaf-897cdded03b4-nTjjUHjdgBjdbVRF5opDnQoB7hCkEA.png",
+  Jeans: "/api/catalog/media?pathname=catalog%2F1054caef-e8a1-45bf-a35b-0d0343ecc014-WZNjH6nuvAxobJbVXlUjcViDUdBm4C.png",
+  Loafers: "/api/catalog/media?pathname=catalog%2Fa03c2461-1273-4d8a-baaf-f5454b31572b-uE0AKW2Cvniclt2iIlp6i4PVAEa9BL.png",
+  Wallet: "/api/catalog/media?pathname=catalog%2F3a5b674b-fb47-4d6a-b8a9-4235ad096014-bJIaR5bGePrQV25jVrjjTRmeetMEG1.png",
 };
 
 const ITEM_PRESENTATION: Record<string, { scale: number; x: string; y: string }> = {
@@ -124,10 +85,6 @@ const ITEM_ALPHA_BOUNDS: Record<string, { left: number; top: number }> = {
 
 const FOCUSED_VISUAL_TOP = 0;
 
-const INITIAL_MEMORY = Object.fromEntries(
-  REGIONS.map((region) => [region.id, { stage: 0, scrollTop: 0 }]),
-) as RegionMemory;
-
 function itemSlug(item: string) {
   return item.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
@@ -136,7 +93,7 @@ function baseItemName(item: string) {
   return item.replace(/\s+\d+$/, "");
 }
 
-function itemVisualAlignment(item: string) {
+function legacyVisualAlignment(item: string) {
   const name = baseItemName(item);
   const bounds = ITEM_ALPHA_BOUNDS[name] ?? { left: 0, top: 0 };
   const presentation = ITEM_PRESENTATION[name] ?? { scale: 1, x: "0%", y: "0%" };
@@ -151,7 +108,8 @@ function itemVisualAlignment(item: string) {
   };
 }
 
-function writeLoadoutUrl(
+function writeCatalogUrl(
+  REGIONS: Region[],
   regionId: RegionId | null,
   itemIndex?: number | null,
   replace = false,
@@ -211,8 +169,13 @@ function ReviewParts({ parts }: { parts: ReviewText[] }) {
   });
 }
 
-export function LoadoutWorld() {
-  const [activeRegionId, setActiveRegionId] = useState<RegionId | null>("edc");
+export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:boolean}) {
+  const REGIONS = useMemo<Region[]>(() => catalog.regions.map(region => ({id:region.id,name:region.name,heading:region.heading,note:region.description,kind:region.kind,items:catalog.items.filter(item=>item.regionId===region.id).map(item=>item.slug)})), [catalog]);
+  const itemsBySlug = useMemo(() => Object.fromEntries(catalog.items.map(item=>[item.slug,item])), [catalog]);
+  const itemVisualAlignment = useCallback((slug?:string) => legacyVisualAlignment((slug && itemsBySlug[slug]?.legacyKey) || slug || ''), [itemsBySlug]);
+  const writeLoadoutUrl = useCallback((region:RegionId|null,itemIndex?:number|null,replace=false) => writeCatalogUrl(REGIONS,region,itemIndex,replace), [REGIONS]);
+  const [selectedPhoto,setSelectedPhoto] = useState({item: "", index: 0});
+  const [activeRegionId, setActiveRegionId] = useState<RegionId | null>(REGIONS[0]?.id ?? null);
   const [stage, setStage] = useState(0);
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   const [detailItemIndex, setDetailItemIndex] = useState(0);
@@ -225,7 +188,7 @@ export function LoadoutWorld() {
   const modeTransitionRunning = useRef(false);
   const [cursorInGrid, setCursorInGrid] = useState(false);
   const [hoveredItemIndex, setHoveredItemIndex] = useState<number | null>(null);
-  const [memory, setMemory] = useState<RegionMemory>(INITIAL_MEMORY);
+  const [memory, setMemory] = useState<RegionMemory>(()=>Object.fromEntries(REGIONS.map(region=>[region.id,{stage:0,scrollTop:0}])));
   const [isPinching, setIsPinching] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const focusedTitleRef = useRef<HTMLHeadingElement>(null);
@@ -283,8 +246,10 @@ export function LoadoutWorld() {
 
   const activeRegion = useMemo(
     () => REGIONS.find((region) => region.id === activeRegionId) ?? null,
-    [activeRegionId],
+    [activeRegionId, REGIONS],
   );
+
+  const photoIndex = selectedPhoto.item === activeRegion?.items[activeItemIndex] ? selectedPhoto.index : 0;
 
   const positionCursorTooltip = useCallback((x: number, y: number) => {
     const tooltip = cursorTooltipRef.current;
@@ -372,7 +337,7 @@ export function LoadoutWorld() {
   ) => {
     const viewport = viewportRef.current;
     const sheet = sheetRef.current;
-    if (modeTransitionRunning.current) return;
+    if (modeTransitionRunning.current || (targetStage === 1 && !activeRegion?.items.length)) return;
     if (!viewport || !sheet || targetStage === stage) {
       if (sheet) sheet.style.transform = "";
       setIsPinching(false);
@@ -444,7 +409,7 @@ export function LoadoutWorld() {
     }
 
     setIsPinching(false);
-  }, [activeItemIndex, activeRegionId, reducedMotion, stage, visibleItems]);
+  }, [activeItemIndex, activeRegionId, activeRegion?.items.length, reducedMotion, stage, visibleItems, writeLoadoutUrl]);
 
   const switchMode = useCallback((
     nextRegion: RegionId | null,
@@ -486,7 +451,7 @@ export function LoadoutWorld() {
       setRegionTitleVisible(false);
       setHoveredItemIndex(null);
       if (nextRegion) {
-        const remembered = memory[nextRegion];
+        const remembered = memory[nextRegion] ?? {stage:0,scrollTop:0};
         const nextStage = targetStage ?? remembered.stage;
         setActiveRegionId(nextRegion);
         setStage(nextStage);
@@ -571,7 +536,7 @@ export function LoadoutWorld() {
     // Cancellation also settles finished; never leave the interaction lock stuck.
     void Promise.allSettled(modeAnimations.current.map((animation) => animation.finished)).then(finish);
 
-  }, [activeRegionId, memory, reducedMotion, stage]);
+  }, [activeRegionId, memory, reducedMotion, stage, writeLoadoutUrl]);
 
   const resetPreview = useCallback(() => {
     const surface = activeRegionId ? sheetRef.current : worldRef.current;
@@ -601,7 +566,7 @@ export function LoadoutWorld() {
       switchMode(null);
     } else if (!activeRegionId) {
       switchMode(
-        gestureSession.current.targetRegion ?? "edc",
+        gestureSession.current.targetRegion ?? REGIONS[0]?.id ?? null,
         targetPosition - 1,
         targetPosition === 2 ? gestureSession.current.targetItemIndex : null,
         y,
@@ -609,7 +574,7 @@ export function LoadoutWorld() {
     } else {
       commitDensity(targetPosition - 1, x, y);
     }
-  }, [activeRegionId, commitDensity, resetPreview, stage, switchMode]);
+  }, [activeRegionId, commitDensity, resetPreview, stage, switchMode, REGIONS]);
 
   const beginGesture = useCallback((source: GestureSource, x: number, y: number) => {
     if (modeTransitionRunning.current) return false;
@@ -657,7 +622,7 @@ export function LoadoutWorld() {
       switchMode(null);
     } else if (!activeRegionId) {
       const targetRegion = gestureSession.current.targetRegion;
-      if (!targetRegion || targetRegion === "coming-soon") {
+      if (!targetRegion) {
         resetPreview();
         return;
       }
@@ -723,12 +688,12 @@ export function LoadoutWorld() {
       focusedNavigationLocked.current = false;
       focusedNavigationUnlockTimer.current = null;
     }, reducedMotion ? 80 : 520);
-  }, [activeItemIndex, activeRegion, reducedMotion, stage]);
+  }, [activeItemIndex, activeRegion, reducedMotion, stage, writeLoadoutUrl]);
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     const horizontal = window.matchMedia("(max-width: 760px)").matches;
     if (event.target instanceof Element && event.target.closest("[data-review-scroll]") && !horizontal) return;
-    if (event.target instanceof Element && event.target.closest("a, [data-review-scroll] button")) return;
+    if (event.target instanceof Element && event.target.closest("a, input, textarea, select, [data-review-scroll] button")) return;
     if (event.pointerType !== "touch") return;
     pointers.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
     if (!horizontal || pointers.current.size > 1) event.currentTarget.setPointerCapture(event.pointerId);
@@ -921,8 +886,9 @@ export function LoadoutWorld() {
 
       const requestedRegion = params.get("region");
       const region = REGIONS.find(
-        (candidate) => candidate.id === requestedRegion && candidate.id !== "coming-soon",
+        (candidate) => candidate.id === requestedRegion,
       ) ?? REGIONS[0];
+      if (!region) { setActiveRegionId(null); return; }
       const requestedItem = params.get("item");
       const itemIndex = requestedItem
         ? region.items.findIndex((item) => itemSlug(item) === requestedItem)
@@ -955,7 +921,7 @@ export function LoadoutWorld() {
       window.removeEventListener("popstate", handlePopState);
       window.history.scrollRestoration = previousScrollRestoration;
     };
-  }, []);
+  }, [REGIONS]);
 
   useEffect(() => {
     const onGestureStart = (event: Event) => handleSafariStart(event as SafariGestureEvent);
@@ -1008,7 +974,7 @@ export function LoadoutWorld() {
       setDetailItemIndex(lastIndex);
       writeLoadoutUrl(activeRegion.id, lastIndex, true);
     }
-  }, [activeItemIndex, activeRegion, moveFocusedItem, reducedMotion, stage]);
+  }, [activeItemIndex, activeRegion, moveFocusedItem, reducedMotion, stage, writeLoadoutUrl]);
 
   return (
     <main className={styles.page}>
@@ -1040,7 +1006,7 @@ export function LoadoutWorld() {
                   "--first-item-left": `${itemVisualAlignment(activeRegion.items[0]).left}%`,
                 } as CSSProperties}
               >
-                <span>Things I carry everyday</span>
+                <span>{activeRegion.heading}</span>
               </header>
             ) : null}
             <div
@@ -1076,10 +1042,13 @@ export function LoadoutWorld() {
                   "--active-item": activeItemIndex,
                 } as CSSProperties}
               >
+                {!activeRegion.items.length && <p className={styles.emptyRegion}>Nothing here yet. Check back soon.</p>}
                 {activeRegion.items.map((item, index) => {
-                  const imageSrc = activeRegion.id !== "coming-soon" ? EDC_IMAGES[item] : undefined;
-                  const presentation = ITEM_PRESENTATION[item];
-                  const alignment = itemVisualAlignment(item);
+                  const data = itemsBySlug[item];
+                  const imageSrc = data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.src;
+                  const alternatePhoto = stage === 1 && index === activeItemIndex && photoIndex > 0;
+                  const presentation = alternatePhoto ? undefined : ITEM_PRESENTATION[itemsBySlug[item]?.legacyKey ?? item];
+                  const alignment = alternatePhoto ? legacyVisualAlignment("") : itemVisualAlignment(item);
                   return (
                     <button
                       key={`${activeRegion.id}-${index}`}
@@ -1145,13 +1114,14 @@ export function LoadoutWorld() {
                           <>
                             <Image
                               src={imageSrc}
+                              unoptimized={imageSrc.startsWith("https://") || imageSrc.startsWith("/api/catalog/media?")}
                               alt=""
                               fill
                               sizes="(min-width: 900px) 30vw, 45vw"
                               className={`${styles.itemImage} ${styles.itemPhoto}`}
                             />
                             <Image
-                              src={GRAPHITE_IMAGES[item]}
+                              src={GRAPHITE_IMAGES[data?.legacyKey ?? ""] || imageSrc}
                               alt=""
                               fill
                               unoptimized
@@ -1169,8 +1139,9 @@ export function LoadoutWorld() {
               </div>
               {stage === 1 ? (() => {
                 const detailItem = activeRegion.items[detailItemIndex];
-                const content = ITEM_REVIEWS[baseItemName(detailItem)];
-                if (!content) return null;
+                const data = itemsBySlug[detailItem];
+                if (!data) return null;
+                const content = data.review || {title:data.title,about:[],pros:[],cons:[]};
                 return (
                   <aside
                     className={styles.focusedDetails}
@@ -1179,20 +1150,21 @@ export function LoadoutWorld() {
                   >
                     <header className={styles.detailsHeader}>
                       <div className={styles.detailsHeaderInner}>
-                        <h1 ref={focusedTitleRef}>{content.title}</h1>
+                        <h1 ref={focusedTitleRef}>{data.title}</h1>
                       </div>
                     </header>
                     <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll tabIndex={0} aria-label="Item review" onScroll={(event) => {
                       viewportRef.current?.style.setProperty("--review-scroll", `${event.currentTarget.scrollTop}px`);
                     }}>
                       <div className={styles.detailsBody}>
+                        {data.photos.length > 1 && <div className={styles.photoControls} aria-label="Item photos">{data.photos.map((photo,index)=><button key={photo.src} type="button" aria-pressed={photoIndex===index} onClick={()=>setSelectedPhoto({item:data.slug,index})}>Photo {index+1}</button>)}</div>}
                         <section className={styles.detailSection}>
                           {content.about.map((paragraph, index) => <p key={index}>
                             {index === 0 && <><em className={styles.reviewLeadIn}>I acquired</em>{" "}</>}
                             <ReviewParts parts={paragraph} />
                           </p>)}
                         </section>
-                        {(["pros", "cons"] as const).map((section) => (
+                        {(["pros", "cons"] as const).filter(section=>content[section].length).map((section) => (
                           <section key={section} className={styles.detailSection}>
                             <p><em className={styles.reviewLeadIn}>{section === "pros" ? "I love" : "Only notes:"}</em>{" "}{content[section].map((piece, pieceIndex) => <Fragment key={pieceIndex}>
                               {pieceIndex > 0 && " "}
@@ -1200,6 +1172,7 @@ export function LoadoutWorld() {
                             </Fragment>)}</p>
                           </section>
                         ))}
+                        {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded slug={preview?undefined:data.slug} title={data.title} story={data.description} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
                       </div>
                     </div>
                   </aside>
@@ -1218,7 +1191,7 @@ export function LoadoutWorld() {
               className={styles.worldTitle}
               data-visible={regionTitleVisible ? "true" : "false"}
               style={{
-                "--first-item-left": `${itemVisualAlignment(REGIONS[0].items[0]).left}%`,
+                "--first-item-left": `${itemVisualAlignment(REGIONS[0]?.items[0]).left}%`,
               } as CSSProperties}
             >
               <span className={styles.worldTitleRegion}>
@@ -1241,12 +1214,12 @@ export function LoadoutWorld() {
                 setHoveredItemIndex(null);
               }}
             >
-              {REGIONS.filter((region) => region.id !== "coming-soon").map((region, regionIndex) => (
+              {REGIONS.map((region, regionIndex) => (
                 <button
                   key={region.id}
                   className={styles.regionCard}
                   data-region-id={region.id}
-                  disabled={region.id === "coming-soon"}
+                  aria-label={region.name}
                   onPointerEnter={(event) => {
                     if (event.pointerType === "touch") return;
                     positionCursorTooltip(event.clientX, event.clientY);
@@ -1264,10 +1237,8 @@ export function LoadoutWorld() {
                     aria-hidden="true"
                   >
                     {region.items.slice(0, 9).map((item, index) => {
-                      const imageSrc = region.id !== "coming-soon"
-                        ? GRAPHITE_IMAGES[baseItemName(item)]
-                        : undefined;
-                      const presentation = ITEM_PRESENTATION[item];
+                      const imageSrc = GRAPHITE_IMAGES[itemsBySlug[item]?.legacyKey ?? ""] || itemsBySlug[item]?.photos[0]?.src;
+                      const presentation = ITEM_PRESENTATION[itemsBySlug[item]?.legacyKey ?? item];
                       return (
                         <span
                           key={index}
@@ -1283,6 +1254,7 @@ export function LoadoutWorld() {
                           {imageSrc ? (
                             <Image
                               src={imageSrc}
+                              unoptimized={imageSrc.startsWith("https://") || imageSrc.startsWith("/api/catalog/media?")}
                               alt=""
                               fill
                               sizes="(min-width: 900px) 12vw, 24vw"
@@ -1293,6 +1265,7 @@ export function LoadoutWorld() {
                       );
                     })}
                   </span>
+                  <span className={styles.regionName}>{region.name}</span>
                 </button>
               ))}
             </div>
@@ -1304,7 +1277,7 @@ export function LoadoutWorld() {
         expanded={hoveredItemIndex !== null}
         visible={cursorInGrid && (activeRegion === null || stage === 0)}
         detail={activeRegion === null && hoveredItemIndex !== null
-          ? (["every day", "cooking"][hoveredItemIndex] ?? "view")
+          ? (REGIONS[hoveredItemIndex]?.name ?? "view")
           : "view"}
       />
     </main>

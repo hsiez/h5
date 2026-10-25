@@ -1,20 +1,21 @@
-import { del, put } from '@vercel/blob';
 import { completeHandoff } from '@/lib/storefront/core';
 import { failure, requireAdmin } from '@/lib/storefront/http';
+import { uploadedPhotoPathname } from '@/lib/catalog/media';
 
 export async function POST(request:Request) {
   try {
-    requireAdmin(request);
-    const form = await request.formData();
-    const itemId = String(form.get('itemId') || '');
-    const altText = String(form.get('altText') || '');
-    const consent = form.get('consent') === 'true';
-    const file = form.get('photo');
-    if (!(file instanceof File) || !['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 10_000_000 || !consent)
-      return Response.json({error:'A JPEG, PNG, or WebP photo under 10 MB and publish permission are required'},{status:400});
-    const blob = await put(`storefront/handoffs/${crypto.randomUUID()}-${file.name}`,file,{access:'public',contentType:file.type});
-    try { await completeHandoff(itemId,blob.url,altText,consent); }
-    catch(error) { await del(blob.url).catch(() => {}); throw error; }
-    return Response.json({ok:true,photoUrl:blob.url});
+    await requireAdmin(request);
+    const body=await request.json();
+    const itemId=String(body.itemId||'');
+    const altText=String(body.altText||'');
+    const ownerName=String(body.ownerName||'its new owner').trim();
+    const coffeeStory=String(body.coffeeStory||'A coffee and a story shared in Seattle.').trim();
+    if (!ownerName || ownerName.length>160 || coffeeStory.length>5000 || altText.length>500) return Response.json({error:'Check the handoff details'},{status:400});
+    const consent=body.consent===true;
+    const photoUrl=String(body.photoUrl||'');
+    const validPhoto=uploadedPhotoPathname(photoUrl)?.startsWith('storefront/handoffs/') ?? false;
+    if(!validPhoto||!consent) return Response.json({error:'An uploaded handoff photo and publish permission are required'},{status:400});
+    await completeHandoff(itemId,photoUrl,altText,consent,ownerName,coffeeStory);
+    return Response.json({ok:true,photoUrl});
   } catch(error) { return failure(error); }
 }

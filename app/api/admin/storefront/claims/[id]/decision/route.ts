@@ -3,7 +3,7 @@ import { failure, requireAdmin } from '@/lib/storefront/http';
 
 export async function POST(request:Request, context:{params:Promise<{id:string}>}) {
   try {
-    requireAdmin(request);
+    await requireAdmin(request);
     const {id}=await context.params;
     const body=await request.json();
     if (body.decision==='accept') await acceptFirstClaim(id);

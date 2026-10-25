@@ -19,7 +19,7 @@ export function newToken(claimId: string) {
 }
 export function tokenHash(token: string) { return createHash("sha256").update(token).digest("hex"); }
 
-type Item = { id: string; slug: string; status: string; availability_version: number };
+type Item = { id: string; slug: string; status: string; availability_version: number; adoption_enabled:boolean; published_at:Date|null; region_id:string };
 
 function sharedCalEvent() {
   const eventTypeId = Number(process.env.STOREFRONT_CAL_EVENT_TYPE_ID);
@@ -41,7 +41,7 @@ export async function startClaim(slug: string, emailValue: string) {
   const claimId = randomUUID();
   const token = newToken(claimId);
   return transaction(async client => {
-    const itemResult = await client.query<Item>("SELECT * FROM storefront_items WHERE slug=$1 AND published_at IS NOT NULL FOR UPDATE", [slug]);
+    const itemResult = await client.query<Item>("SELECT * FROM storefront_items WHERE slug=$1 AND published_at IS NOT NULL AND adoption_enabled=true AND publication_status='published' AND EXISTS (SELECT 1 FROM catalog_regions r WHERE r.id=storefront_items.region_id AND r.publication_status='published') FOR UPDATE", [slug]);
     const item = itemResult.rows[0];
     if (!item) throw new FlowError("Item not found", 404);
     if (item.status !== "available") throw new FlowError("This item is not available", 409);
@@ -61,7 +61,7 @@ export async function resolveClaimLink(token: string) {
   if (!/^[A-Za-z0-9_-]{40,100}$/.test(token)) throw new FlowError("Invalid link", 404);
   const result = await db().query<{id:string;status:string; token_expires_at:Date; item_status:string; email:string}>(`
     SELECT c.id,c.status,c.token_expires_at,i.status AS item_status,c.email
-    FROM claim_requests c JOIN storefront_items i ON i.id=c.item_id WHERE c.token_hash=$1`, [tokenHash(token)]);
+    FROM claim_requests c JOIN storefront_items i ON i.id=c.item_id WHERE c.token_hash=$1 AND i.adoption_enabled=true AND i.published_at IS NOT NULL AND EXISTS (SELECT 1 FROM catalog_regions r WHERE r.id=i.region_id AND r.publication_status='published')`, [tokenHash(token)]);
   const claim = result.rows[0];
   if (!claim || claim.status !== "link_sent" || claim.token_expires_at.getTime() < Date.now()) throw new FlowError("This link has expired", 410);
   if (claim.item_status !== "available") throw new FlowError("This item is currently pending", 409);
@@ -74,7 +74,7 @@ export async function resolveClaimLink(token: string) {
 export async function subscribeToAvailability(slug: string, emailValue: string) {
   const email = normalEmail(emailValue);
   return transaction(async client => {
-    const itemResult = await client.query<Item>("SELECT * FROM storefront_items WHERE slug=$1 AND published_at IS NOT NULL FOR UPDATE", [slug]);
+    const itemResult = await client.query<Item>("SELECT * FROM storefront_items WHERE slug=$1 AND published_at IS NOT NULL AND adoption_enabled=true AND publication_status='published' AND EXISTS (SELECT 1 FROM catalog_regions r WHERE r.id=storefront_items.region_id AND r.publication_status='published') FOR UPDATE", [slug]);
     const item = itemResult.rows[0];
     if (!item) throw new FlowError("Item not found", 404);
     if (!['pending','reserved'].includes(item.status)) throw new FlowError("This item is available now", 409);
@@ -153,6 +153,8 @@ export async function applyCalEvent(event: BookingEvent) {
     const claim = claimResult.rows[0];
     if (!claim || claim.email !== info.email || claim.cal_event_type_id !== info.eventTypeId) throw new FlowError('Booking does not match claim',409);
     if (event.triggerEvent === 'BOOKING_REQUESTED' && claim.status === 'link_sent') {
+      const region=await client.query("SELECT 1 FROM catalog_regions WHERE id=$1 AND publication_status='published' FOR SHARE",[item.region_id]);
+      if (!item.adoption_enabled || !item.published_at || !region.rowCount) throw new FlowError('This item is no longer available for adoption',409);
       if (!['available','pending'].includes(item.status)) throw new FlowError('Item is already reserved',409);
       if (claim.token_expires_at.getTime() < new Date(event.createdAt).getTime()) throw new FlowError('Claim link expired',409);
       await client.query(`UPDATE claim_requests SET status='booking_requested',cal_booking_uid=$2,requested_at=$3,
@@ -178,15 +180,15 @@ export async function applyCalEvent(event: BookingEvent) {
   });
 }
 
-export async function completeHandoff(itemId: string, photoBlobPath: string, altText: string, consent: boolean) {
+export async function completeHandoff(itemId: string, photoBlobPath: string, altText: string, consent: boolean, ownerName = 'its new owner', coffeeStory = 'A coffee and a story shared in Seattle.') {
   if (!consent || !photoBlobPath || !altText.trim()) throw new FlowError("Photo, alt text, and permission to publish are required");
   return transaction(async client => {
     const item = await itemForUpdate(client,itemId);
     if (item.status !== 'reserved') throw new FlowError("Item must be reserved",409);
     const claim = await client.query<{id:string}>("SELECT id FROM claim_requests WHERE item_id=$1 AND status='accepted' FOR UPDATE", [itemId]);
     if (!claim.rows[0]) throw new FlowError("Accepted claim not found",409);
-    await client.query(`INSERT INTO item_handoffs(item_id,claim_request_id,photo_blob_path,photo_alt_text,photo_publish_consent_at)
-      VALUES($1,$2,$3,$4,now())`, [itemId,claim.rows[0].id,photoBlobPath,altText.trim()]);
+    await client.query(`INSERT INTO item_handoffs(item_id,claim_request_id,photo_blob_path,photo_alt_text,photo_publish_consent_at,owner_name,coffee_story)
+      VALUES($1,$2,$3,$4,now(),$5,$6)`, [itemId,claim.rows[0].id,photoBlobPath,altText.trim(),ownerName.trim(),coffeeStory.trim()]);
     await client.query("UPDATE claim_requests SET status='completed',updated_at=now() WHERE id=$1", [claim.rows[0].id]);
     await client.query("UPDATE storefront_items SET status='claimed',updated_at=now() WHERE id=$1", [itemId]);
   });

@@ -761,3 +761,8 @@
   .detailSection p { max-width: 32em; }
   .focusedPosition { position: fixed; }
 }
+.regionName { display:block; margin-top:16px; font-family:var(--font-sans); font-size:var(--text-sm); color:var(--color-text-tertiary); }
+.emptyRegion { grid-column:1/-1; padding:32px; color:var(--color-text-tertiary); }
+.photoControls {display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;}
+.photoControls button {padding:6px 12px;border-radius:4px;background:var(--color-neutral-100);font:14px var(--font-sans);cursor:pointer;}
+.photoControls button[aria-pressed=true] {background:var(--color-neutral-800);color:white;}

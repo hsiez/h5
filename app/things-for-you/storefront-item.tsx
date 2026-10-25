@@ -13,6 +13,7 @@ type Action = 'claim' | 'notify';
 type Submission = 'idle' | 'loading' | 'success' | 'error';
 
 export type StorefrontItemProps = {
+  embedded?: boolean;
   status: StorefrontItemStatus;
   buttonVariant?: StorefrontButtonVariant;
   title: string;
@@ -36,7 +37,7 @@ const STATUS_LABEL: Record<StorefrontItemStatus, string> = {
 };
 
 export function StorefrontItem({
-  status, buttonVariant = 'layered', title, story, reason, photos, size, condition, measurements, owner, slug,
+  embedded = false, status, buttonVariant = 'layered', title, story, reason, photos, size, condition, measurements, owner, slug,
   initialAction = null, initialSubmission = 'idle',
 }: StorefrontItemProps) {
   const [photoIndex, setPhotoIndex] = useState(0);
@@ -113,13 +114,13 @@ export function StorefrontItem({
     }
   }
 
-  return <div className={styles.page}>
-    <article className={styles.item}>
-      <h1>{title}</h1>
-      <div className={styles.columns}>
-        <div className={styles.gallery}>
+  return <div className={embedded ? styles.embedded : styles.page}>
+    <article className={embedded ? undefined : styles.item}>
+      {!embedded && <h1>{title}</h1>}
+      <div className={embedded ? undefined : styles.columns}>
+        {!embedded && <div className={styles.gallery}>
           <div className={styles.photo}>
-            {photo ? <Image src={photo.src} alt={photo.alt} fill sizes="(max-width: 760px) 100vw, 52vw" className={styles.image} unoptimized={photo.src.startsWith('https://')} priority />
+            {photo ? <Image src={photo.src} alt={photo.alt} fill sizes="(max-width: 760px) 100vw, 52vw" className={styles.image} unoptimized={photo.src.startsWith('https://') || photo.src.startsWith('/api/catalog/media?')} priority />
               : <span className={styles.photoEmpty}>Photograph coming soon</span>}
           </div>
           {photos.length > 1 && <div className={styles.galleryControls} aria-label="Item photos">
@@ -128,7 +129,7 @@ export function StorefrontItem({
             <button type="button" onClick={() => setPhotoIndex((photoIndex + 1) % photos.length)} aria-label="Next photo">→</button>
           </div>}
         </div>
-
+}
         <div className={styles.content}>
           {(story || reason) && <section className={styles.introduction} aria-label="About this item">
             <h2>I’m forfeiting</h2>
@@ -171,7 +172,7 @@ export function StorefrontItem({
                   </button>
                   <span className={styles.ownerCard} id={ownerId} role="tooltip">
                     <span className={styles.ownerPhoto}>
-                      {owner.photo ? <Image src={owner.photo.src} alt={owner.photo.alt} fill sizes="300px" unoptimized={owner.photo.src.startsWith('https://')} /> : <span>Meetup photo goes here</span>}
+                      {owner.photo ? <Image src={owner.photo.src} alt={owner.photo.alt} fill sizes="300px" unoptimized={owner.photo.src.startsWith('https://') || owner.photo.src.startsWith('/api/catalog/media?')} /> : <span>Meetup photo goes here</span>}
                     </span>
                     <span className={styles.ownerCardText}>{owner.coffeeStory}</span>
                   </span>
