@@ -1,0 +1,264 @@
+[
+  {
+    "slug": "hat",
+    "title": "Prototype cap",
+    "regionId": "edc",
+    "description": "",
+    "size": "",
+    "condition": "",
+    "measurements": {},
+    "photos": [
+      {
+        "src": "/api/catalog/media?pathname=catalog%2F0491b12e-1261-42a3-917d-915cb06d8f79-JwYdhSMzT7AN4pRh8kwl1GhTypAUBO.png",
+        "alt": "Prototype cap"
+      }
+    ],
+    "review": {
+      "title": "Prototype cap",
+      "about": [
+        [
+          "this cap as swag from Reforge, a company I worked for. This one is sentimental. I had such a good time there: a great team and plenty of room to grow."
+        ]
+      ],
+      "pros": [
+        "that it reminds me work can be enjoyable—and that when it isn’t, I can change my environment. My friend Jarren made the caps, which makes this one even better."
+      ],
+      "cons": [
+        "[Add what you don’t like here.]"
+      ]
+    },
+    "sortOrder": 0,
+    "legacyKey": "Hat"
+  },
+  {
+    "slug": "coat",
+    "title": "Coverall chore coat",
+    "regionId": "edc",
+    "description": "",
+    "size": "",
+    "condition": "",
+    "measurements": {},
+    "photos": [
+      {
+        "src": "/api/catalog/media?pathname=catalog%2F757b21c1-4c58-4427-b78f-706a14e75d48-n8HBFK0izg6smf01NidMcvwIiUmi4I.png",
+        "alt": "Coverall chore coat"
+      }
+    ],
+    "review": {
+      "title": "Coverall chore coat",
+      "about": [
+        [
+          "this coat at ",
+          {
+            "text": "Kapital",
+            "entity": {
+              "kind": "location",
+              "name": "Kapital Ginza",
+              "city": "Tokyo, Japan",
+              "latitude": 35.6715,
+              "longitude": 139.773,
+              "zoom": 14.5
+            }
+          },
+          " on the last day of our Japan trip. It was the last one in stock, and I almost passed because the red was so far outside my usual palette. It has become my favorite piece in my closet—and a reliable conversation starter."
+        ],
+        [
+          "I proposed to my now-wife on that trip. It’s nice to carry that memory around."
+        ],
+        [
+          "It also brings a few things to mind: Caravaggio’s ",
+          {
+            "text": "Saint Jerome Writing",
+            "entity": {
+              "kind": "image",
+              "src": "/api/catalog/media?pathname=catalog%2Faa16c939-8141-4154-91f4-36f250a00081-Z0nV1TITLOiS2FzR19NXdJ3NvYLFOW.png",
+              "alt": "Caravaggio's Saint Jerome Writing, with the saint in a red cloak writing beside a skull",
+              "caption": "Saint Jerome Writing · Caravaggio",
+              "width": 1456,
+              "height": 1039
+            }
+          },
+          ", Carracci’s ",
+          {
+            "text": "Fishing",
+            "entity": {
+              "kind": "image",
+              "src": "/api/catalog/media?pathname=catalog%2F2cb44ba8-08ab-480e-8dd2-712190207bf3-co5XHjlVwpTdUJ8y7H3YpE47oJ1945.jpeg",
+              "alt": "A close-up of the figure in a red coat in Annibale Carracci's Fishing, beside its ornate gold frame",
+              "caption": "Fishing · Annibale Carracci, c. 1585–1588",
+              "width": 1316,
+              "height": 1600
+            }
+          },
+          ", and Edward Elric’s red coat. I loved Fullmetal Alchemist: Brotherhood."
+        ]
+      ],
+      "pros": [
+        "how soft the wool feels—some of the least scratchy I’ve worn.",
+        "Snap buttons: more elegant than a zipper, quicker than regular buttons.",
+        "Corduroy cuffs feel soft against my hands.",
+        [
+          "My favorite detail is the ",
+          {
+            "text": "silk lining",
+            "entity": {
+              "kind": "image",
+              "src": "/api/catalog/media?pathname=catalog%2F798b084e-4e79-44c4-946a-1124757f9094-6f27ZKKC1xeKHVfxXfgpvo3MCo33If.webp",
+              "alt": "The red coat opened to show its dark patterned silk lining near the collar",
+              "caption": "Coverall chore coat · silk lining",
+              "width": 1200,
+              "height": 1600
+            }
+          },
+          " near the collar."
+        ]
+      ],
+      "cons": [
+        "I wear it so often that the red now dictates the rest of my wardrobe."
+      ]
+    },
+    "sortOrder": 1,
+    "legacyKey": "Coat"
+  },
+  {
+    "slug": "jeans",
+    "title": "Oni Kiraku super wide jeans",
+    "regionId": "edc",
+    "description": "",
+    "size": "",
+    "condition": "",
+    "measurements": {},
+    "photos": [
+      {
+        "src": "/api/catalog/media?pathname=catalog%2F7a41b9ad-1663-4ba2-b820-0f770582ea99-a0NSGAvlccgDPmp1pn76gqQLgG387l.png",
+        "alt": "Oni Kiraku super wide jeans"
+      }
+    ],
+    "review": {
+      "title": "Oni Kiraku super wide jeans",
+      "about": [
+        [
+          "these 222-BKOL “Kiraku” super wide jeans in black olive in ",
+          {
+            "text": "Ueno",
+            "entity": {
+              "kind": "location",
+              "name": "Ueno",
+              "city": "Tokyo, Japan",
+              "latitude": 35.71,
+              "longitude": 139.776,
+              "zoom": 13.5
+            }
+          },
+          ". They’re my first pair of selvedge denim."
+        ]
+      ],
+      "pros": [
+        "how light and flowy these feel, almost like pajama bottoms. So comfortable.",
+        "The legs are wide, but the fit feels more structured around the hips and waist. I like that support in high-waisted pants.",
+        "The earthy color works with the rest of my closet."
+      ],
+      "cons": [
+        "the light fabric and wide cut make it harder to get the whiskers and stacks I’d hoped to develop."
+      ]
+    },
+    "sortOrder": 2,
+    "legacyKey": "Jeans"
+  },
+  {
+    "slug": "belt",
+    "title": "Arcade braided belt",
+    "regionId": "edc",
+    "description": "",
+    "size": "",
+    "condition": "",
+    "measurements": {},
+    "photos": [
+      {
+        "src": "/api/catalog/media?pathname=catalog%2Fa4e84f06-2198-415a-84d0-b3ce7a15860a-eq0JUiVVzd8B3Z5Z1lpHTYvnABjuFn.png",
+        "alt": "Arcade braided belt"
+      }
+    ],
+    "review": {
+      "title": "Arcade braided belt",
+      "about": [
+        [
+          "this belt in a hurry at Active Skate Shop during my sophomore year of college. That was almost ten years ago. It cost about $16."
+        ]
+      ],
+      "pros": [
+        "having a functional item I don’t have to think about, at a low price. It has more than earned its keep. The store isn’t even open anymore. Can’t ask for much more."
+      ],
+      "cons": [
+        "[Add what you don’t like here.]"
+      ]
+    },
+    "sortOrder": 3,
+    "legacyKey": "Belt"
+  },
+  {
+    "slug": "loafers",
+    "title": "Middle English loafers",
+    "regionId": "edc",
+    "description": "",
+    "size": "",
+    "condition": "",
+    "measurements": {},
+    "photos": [
+      {
+        "src": "/api/catalog/media?pathname=catalog%2Fe3276f9c-c748-410c-87c8-cd449e9ed35a-l8AgOMRXNi1oEbKozw9i5q3kwaeZkG.png",
+        "alt": "Middle English loafers"
+      }
+    ],
+    "review": {
+      "title": "Middle English loafers",
+      "about": [
+        [
+          "these loafers while searching for a comfortable leather shoe. My friend John inspired the search—he wears his custom leather shoes everywhere. I’m looking for four things: a wide toe box, an asymmetrical shape, little to no drop, and soft, supple leather."
+        ],
+        [
+          "These Aurora loafers came close to what I was looking for."
+        ]
+      ],
+      "pros": [
+        "almost everything about them, and Aurora’s customer service has been excellent."
+      ],
+      "cons": [
+        "the toe box isn’t wide enough for me. I’d recommend them to someone with narrower feet, but I’m trading mine for Birkenstock Londons—not as cool-looking, unfortunately."
+      ]
+    },
+    "sortOrder": 4,
+    "legacyKey": "Loafers"
+  },
+  {
+    "slug": "wallet",
+    "title": "Slim card wallet",
+    "regionId": "edc",
+    "description": "",
+    "size": "",
+    "condition": "",
+    "measurements": {},
+    "photos": [
+      {
+        "src": "/api/catalog/media?pathname=catalog%2Fec3e4c49-d4e0-4e24-95df-681869427dc8-XqfuyM20dVRqGKNo1DWHIMqy8VRhrl.png",
+        "alt": "Slim card wallet"
+      }
+    ],
+    "review": {
+      "title": "Slim card wallet",
+      "about": [
+        [
+          "this wallet as a Christmas gift from my wife’s aunt. I don’t usually buy from big designer brands, but I started using it because I appreciated the gesture."
+        ]
+      ],
+      "pros": [
+        "that it has done its job and held up well through about eight years in my everyday carry."
+      ],
+      "cons": [
+        "it’s not an S-tier item. [Add what falls short here.]"
+      ]
+    },
+    "sortOrder": 5,
+    "legacyKey": "Wallet"
+  }
+]

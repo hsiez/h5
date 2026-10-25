@@ -1,12 +1,10 @@
+import { requireSession } from '@/lib/admin/auth';
 import { type NextRequest } from "next/server";
 import { start } from "workflow/api";
 import { singlePaperWorkflow } from "@/workflows/single-paper";
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try { await requireSession(request); } catch { return Response.json({error:'Unauthorized'},{status:401}); }
 
   const body = await request.json();
   const { arxivId, date } = body;

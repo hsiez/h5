@@ -110,3 +110,5 @@
 .primaryButton:focus-visible, .secondaryButton:focus-visible, .galleryControls button:focus-visible, .cancelButton:focus-visible, .emailControls input:focus-visible { outline: 2px solid var(--color-neutral-500); outline-offset: 3px; }
 @media (max-width: 760px) { .item { padding-bottom: 64px; } .columns { grid-template-columns: minmax(0, 1fr); gap: 32px; margin-top: var(--spacing-title-content); } .gallery { max-width: 560px; } .content { max-width: 65ch; } .claiming { margin-top: 48px; } .availability { padding: 16px; } }
 @media (prefers-reduced-motion: reduce) { .ownerCard, .measurementsPopover { transition: none; } }
+.embedded { margin-top:32px; }
+.embedded .claiming { margin-top:24px; }

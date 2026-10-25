@@ -25,8 +25,8 @@ await client.connect();
 try {
   const me = await cal('/me');
   if (!me.email) throw new Error('Cal account email is unavailable for the test');
-  await client.query(`INSERT INTO storefront_items(id,slug,title,status,published_at)
-    VALUES($1,$2,'Temporary Cal integration test','available',now())`, [itemId, `cal-local-test-${itemId}`]);
+  await client.query(`INSERT INTO storefront_items(id,slug,title,status,published_at,region_id,adoption_enabled,publication_status)
+    VALUES($1,$2,'Temporary Cal integration test','available',now(),'things-for-you',true,'published')`, [itemId, `cal-local-test-${itemId}`]);
   await client.query(`INSERT INTO claim_requests(id,item_id,email,token_hash,token_expires_at,cal_event_type_id)
     VALUES($1,$2,$3,$4,now()+interval '1 hour',$5)`,
     [claimId,itemId,me.email.toLowerCase(),createHash('sha256').update(randomUUID()).digest('hex'),eventTypeId]);

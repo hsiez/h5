@@ -25,8 +25,8 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
     process.env.STOREFRONT_LINK_SECRET ||= 'storefront-integration-test-secret';
     process.env.STOREFRONT_CAL_EVENT_TYPE_ID=String(eventTypeId);
     process.env.STOREFRONT_CAL_BOOKING_URL='https://cal.com/test/coffee';
-    const row = await db().query<{id:string}>(`INSERT INTO storefront_items(slug,title,status,published_at)
-      VALUES($1,'Test item','available',now()) RETURNING id`,[slug]);
+    const row = await db().query<{id:string}>(`INSERT INTO storefront_items(slug,title,status,published_at,region_id,adoption_enabled,publication_status)
+      VALUES($1,'Test item','available',now(),'things-for-you',true,'published') RETURNING id`,[slug]);
     itemId=row.rows[0].id;
   });
   afterAll(async () => {
@@ -55,8 +55,8 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
 
   it('routes a shared Cal event to the item named by the claim reference', async () => {
     const otherSlug=`${slug}-second`;
-    secondItemId=(await db().query<{id:string}>(`INSERT INTO storefront_items(slug,title,status,published_at)
-      VALUES($1,'Second item','available',now()) RETURNING id`,[otherSlug])).rows[0].id;
+    secondItemId=(await db().query<{id:string}>(`INSERT INTO storefront_items(slug,title,status,published_at,region_id,adoption_enabled,publication_status)
+      VALUES($1,'Second item','available',now(),'things-for-you',true,'published') RETURNING id`,[otherSlug])).rows[0].id;
     const other=await startClaim(otherSlug,'second@example.com');
     await expect(applyCalEvent(event('BOOKING_REQUESTED','wrong-email','person@example.com','2026-10-21T12:01:00Z',other.claimId))).rejects.toThrow('Booking does not match claim');
     await applyCalEvent(event('BOOKING_REQUESTED','booking-second','second@example.com','2026-10-21T12:01:00Z',other.claimId));
