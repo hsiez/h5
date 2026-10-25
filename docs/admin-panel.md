@@ -12,7 +12,7 @@ The admin panel lives at `/admin`. Items share one editor and one database recor
 
    This also preserves existing storefront items, requests, and handoffs. Re-running it does not overwrite edited reviews or region settings. Back up the database before a production migration.
 
-   For an existing catalog that still references `/loadout` images, run `node --env-file=.env.local scripts/catalog-media-migrate.mjs` once. It moves the legacy catalog photos, inline reference images, and world thumbnails into the private Blob store and updates existing database references. The checked-in media manifest makes later runs idempotent.
+   Run `node --env-file=.env.local scripts/catalog-media-migrate.mjs` against every target Blob store before serving the catalog, including a fresh preview or production store. It checks each manifest pathname in that store, uploads missing originals from `db/assets/catalog`, then updates legacy database references. The manifest defines stable paths, not migration completion: reruns check the target store again and reuse existing files. Authorization or network errors stop the migration before database changes. The retained source files are migration inputs only; site images are served through Blob.
 
 2. Generate a password hash interactively:
 
