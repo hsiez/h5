@@ -256,13 +256,13 @@ export function StorefrontItem({
         </div>
         <div className={styles.previewContent}>
           <svg className={styles.previewDivider} viewBox="0 0 400 10" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M2 5 Q35 2 69 5 Q102 8 134 4 Q169 2 199 6 Q231 8 263 4 Q301 2 335 6 Q370 7 398 4" />
+            <path d="M2 5 Q100 4 200 5 Q300 6 398 4.5" />
           </svg>
           <strong className={styles.previewSubject}>Request {title}</strong>
           <svg className={styles.previewSkeleton} viewBox="0 0 400 44" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M4 7 Q34 4 66 7 Q99 10 130 6 Q164 4 196 8 Q228 10 261 6 Q306 4 348 7" />
-            <path d="M3 22 Q38 19 69 23 Q101 25 132 21 Q166 19 198 23 Q235 25 286 21" />
-            <path d="M4 38 Q32 35 60 39 Q88 40 115 36 Q145 35 173 39 Q195 40 220 37" />
+            <path d="M4 7 Q90 6 176 7 Q260 8 348 6.5" />
+            <path d="M3 22 Q74 21 145 22 Q215 23 286 21.5" />
+            <path d="M4 38 Q58 37 112 38 Q166 39 220 37.5" />
           </svg>
         </div>
       </div> : <div className={styles.dialogIllustration} aria-hidden="true">
