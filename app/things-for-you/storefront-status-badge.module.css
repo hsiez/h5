@@ -13,5 +13,5 @@
 }
 .vivid.available { background: #27b25a; color: #072d16; }
 .pale.available { background: #d9f0de; color: #126f32; }
-.reserved { background: #f0e1ee; color: #694562; }
+.reserved { background: var(--color-reserved-highlight); color: var(--color-reserved-ink); }
 .claimed { background: #dededb; color: #363636; }

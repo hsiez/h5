@@ -1,9 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { PaperFrame } from '../_components/paper-frame';
-import { StippleFrame } from '../_components/stipple-button';
 import { StorefrontStatusBadge } from './storefront-status-badge';
 import entityStyles from '../_components/inline-entity-trigger.module.css';
 import styles from './storefront-item.module.css';
@@ -12,6 +11,7 @@ export type StorefrontItemStatus = 'available' | 'pending' | 'reserved' | 'claim
 export type StorefrontButtonVariant = 'layered' | 'overlay';
 type Action = 'claim' | 'notify';
 type Submission = 'idle' | 'loading' | 'success' | 'error';
+const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type StorefrontItemProps = {
   embedded?: boolean;
@@ -28,19 +28,29 @@ export type StorefrontItemProps = {
   slug?: string;
   initialAction?: Action | null;
   initialSubmission?: Submission;
+  initialEmail?: string;
+  initialAcknowledged?: boolean;
+  initialError?: string;
 };
 
 export function StorefrontItem({
   embedded = false, status, buttonVariant = 'layered', title, story, reason, photos, size, condition, measurements, owner, slug,
-  initialAction = null, initialSubmission = 'idle',
+  initialAction = null, initialSubmission = 'idle', initialEmail = '', initialAcknowledged = false, initialError = '',
 }: StorefrontItemProps) {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [action, setAction] = useState<Action | null>(initialAction);
   const [submission, setSubmission] = useState<Submission>(initialSubmission);
-  const [email, setEmail] = useState('');
-  const [formError, setFormError] = useState('');
+  const [email, setEmail] = useState(initialEmail);
+  const [emailValid, setEmailValid] = useState(EMAIL_ADDRESS_PATTERN.test(initialEmail));
+  const [acknowledged, setAcknowledged] = useState(initialAcknowledged);
+  const [formError, setFormError] = useState(initialError);
   const [liveStatus, setLiveStatus] = useState(status);
+  const claimDialogRef = useRef<HTMLDialogElement>(null);
+  const dialogHeadingRef = useRef<HTMLHeadingElement>(null);
   const emailId = useId();
+  const claimMessageId = useId();
+  const dialogTitleId = useId();
+  const dialogDescriptionId = useId();
   const ownerId = useId();
   const measurementsId = useId();
   const photo = photos[photoIndex];
@@ -74,18 +84,44 @@ export function StorefrontItem({
   const displayCondition = condition.trim().toLowerCase() === 'used' ? 'gently used' : condition;
   const expectedAction = currentStatus === 'available' ? 'claim' : currentStatus === 'pending' || currentStatus === 'reserved' ? 'notify' : null;
   const activeAction = action === expectedAction ? action : null;
+  const claimReady = emailValid && acknowledged;
   const primaryButtonClassName = `${styles.primaryButton}${buttonVariant === 'overlay' ? ` ${styles.originalButton}` : ''}`;
+
+  useEffect(() => {
+    const dialog = claimDialogRef.current;
+    if (!dialog) return;
+    if (activeAction === 'claim' && !dialog.open) dialog.showModal();
+    if (activeAction !== 'claim' && dialog.open) dialog.close();
+  }, [activeAction, submission]);
+
+  useEffect(() => {
+    if (activeAction === 'claim' && submission === 'success') dialogHeadingRef.current?.focus();
+  }, [activeAction, submission]);
 
   function open(nextAction: Action) {
     setSubmission('idle');
     setFormError('');
     setEmail('');
+    setEmailValid(false);
+    setAcknowledged(false);
     setAction(nextAction);
+  }
+
+  function cancel() {
+    setAction(null);
+    setSubmission('idle');
+    setFormError('');
+    setAcknowledged(false);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!email.trim()) return;
+    if (activeAction === 'claim') {
+      const emailInput = event.currentTarget.querySelector<HTMLInputElement>('input[type="email"]');
+      if (!email.trim()) { setFormError('Enter your email address.'); return; }
+      if (!emailInput?.validity.valid) { setFormError('Enter a valid email address.'); return; }
+      if (!acknowledged) { setFormError('Please acknowledge the no-resale condition.'); return; }
+    } else if (!email.trim()) return;
     setSubmission('loading');
     setFormError('');
     if (!slug) {
@@ -103,7 +139,7 @@ export function StorefrontItem({
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || 'Please try again.');
       setSubmission('success');
-      setEmail('');
+      if (activeAction !== 'claim') setEmail('');
     } catch (cause) {
       setFormError(cause instanceof Error ? cause.message : 'Please try again.');
       setSubmission('error');
@@ -173,20 +209,20 @@ export function StorefrontItem({
                     <span className={styles.buttonLabel}>Claim for 1 coffee</span>
                   </button>
                   : <button className={styles.secondaryButton} type="button" onClick={() => open('notify')}>Notify me if it’s available</button>
-                : submission === 'success' ? <p className={styles.success} role="status">
-                  {activeAction === 'claim' ? 'Check your email for your private scheduling link.' : 'You’ll get one email if this item becomes available again.'}
-                </p> : <form className={styles.emailForm} onSubmit={submit}>
+                : activeAction === 'claim' ? submission === 'success' && <p className={styles.success} role="status">Check your email for your private scheduling link.</p>
+                : submission === 'success' ? <p className={styles.success} role="status">You’ll get one email if this item becomes available again.</p>
+                : <form className={styles.emailForm} onSubmit={submit}>
                   <label htmlFor={emailId}>Email address</label>
                   <div className={styles.emailControls}>
                     <input id={emailId} type="email" autoComplete="email" value={email}
                       onChange={event => setEmail(event.target.value)} placeholder="you@example.com"
                       disabled={submission === 'loading'} required autoFocus />
                     <button className={`${primaryButtonClassName}${submission === 'loading' ? ` ${styles.loadingButton}` : ''}`} type="submit" disabled={submission === 'loading'}>
-                      {submission === 'loading' && <StippleFrame className={styles.loadingStipple} seed={`storefront-${activeAction}-sending`} />}
-                      {buttonVariant === 'layered' && submission !== 'loading' && <span className={styles.buttonGrain} aria-hidden="true" />}
-                      <span className={styles.buttonLabel}>{submission === 'loading' ? 'Sending…' : activeAction === 'claim' ? 'Send link' : 'Notify me'}</span>
+                      {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
+                      {submission === 'loading' && <span className={styles.loadingSheen} aria-hidden="true" />}
+                      <span className={styles.buttonLabel}>{submission === 'loading' ? 'Sending…' : 'Notify me'}</span>
                     </button>
-                    <button className={styles.cancelButton} type="button" onClick={() => setAction(null)} disabled={submission === 'loading'}>Cancel</button>
+                    <button className={styles.cancelButton} type="button" onClick={cancel} disabled={submission === 'loading'}>Cancel</button>
                   </div>
                   {submission === 'error' && <p className={styles.formError} role="alert">{formError || 'The email could not be sent. Please try again.'}</p>}
                 </form>}
@@ -199,5 +235,44 @@ export function StorefrontItem({
         </div>
       </div>
     </article>
+    <dialog ref={claimDialogRef} className={styles.claimDialog} aria-labelledby={dialogTitleId} aria-describedby={dialogDescriptionId}
+      onCancel={event => { if (submission === 'loading') event.preventDefault(); }}
+      onClose={() => { if (submission !== 'success') cancel(); }}>
+      <div className={styles.dialogIllustration} aria-hidden="true">
+        {submission === 'success'
+          ? <Image className={styles.envelopeImage} src="/illustrations/email-sent-envelope.png" alt="" width={1619} height={971} unoptimized />
+          : <Image src="/illustrations/coffee-chat-doodle.png" alt="" width={1536} height={1024} unoptimized />}
+      </div>
+      <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={submission === 'success' ? -1 : undefined}>{submission === 'success' ? 'Email Sent' : 'How to claim'}</h2>
+      <div id={dialogDescriptionId} className={styles.dialogIntro}>
+        {submission === 'success'
+          ? <p>A scheduling link was sent to <strong>{email}</strong> from hey@h5.codes. Open it to choose a time and place for coffee.</p>
+          : <p>I want to trade you this item for a coffee chat. Enter your email and I’ll send a scheduling link.</p>}
+      </div>
+      {submission === 'success' ? <div className={`${styles.dialogActions} ${styles.successActions}`}>
+        <button className={primaryButtonClassName} type="button" onClick={() => claimDialogRef.current?.close()}>
+          {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
+          <span className={styles.buttonLabel}>Done</span>
+        </button>
+      </div> : <form className={styles.claimForm} onSubmit={submit} noValidate>
+        <div className={styles.formField}>
+          <p id={claimMessageId} className={styles.claimMessage} aria-live="polite">{formError && <span>{formError}</span>}</p>
+          <input id={emailId} type="email" aria-label="Email address" aria-describedby={claimMessageId} aria-invalid={formError === 'Enter your email address.' || formError === 'Enter a valid email address.'} autoComplete="email" value={email} onChange={event => { setEmail(event.target.value); setEmailValid(event.target.validity.valid && Boolean(event.target.value.trim())); setFormError(''); }}
+            placeholder="you@example.com" pattern={EMAIL_ADDRESS_PATTERN.source} disabled={submission === 'loading'} required autoFocus />
+        </div>
+        <label className={styles.acknowledgement}>
+          <input type="checkbox" checked={acknowledged} onChange={event => { setAcknowledged(event.target.checked); setFormError(''); }} disabled={submission === 'loading'} required />
+          <span>I acknowledge that reselling item will result in 1,000 years of bad luck for my entire bloodline</span>
+        </label>
+        <div className={styles.dialogActions}>
+          <button className={styles.cancelButton} type="button" onClick={cancel} disabled={submission === 'loading'}>Cancel</button>
+          <button className={`${primaryButtonClassName}${submission === 'loading' ? ` ${styles.loadingButton}` : ''}`} type="submit" disabled={submission === 'loading' || !claimReady}>
+            {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
+            {submission === 'loading' && <span className={styles.loadingSheen} aria-hidden="true" />}
+            <span className={styles.buttonLabel}>{submission === 'loading' ? 'Sending…' : 'Submit'}</span>
+          </button>
+        </div>
+      </form>}
+    </dialog>
   </div>;
 }

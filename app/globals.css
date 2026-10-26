@@ -101,6 +101,8 @@
   --color-warning-500: #d97706;
   --color-danger-500: #dc2626;
   --color-danger-600: #b91c1c;
+  --color-reserved-highlight: #f0e1ee;
+  --color-reserved-ink: #694562;
 
   /* ---- Border radius — 8 → 40px range ---- */
   --radius-sm: 8px;
