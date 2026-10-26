@@ -242,18 +242,28 @@ export function StorefrontItem({
       onClose={() => { if (submission !== 'success') cancel(); }}>
       {submission === 'success' ? <div className={styles.emailPreview} role="group" aria-label="Email preview">
         <svg className={styles.previewOutline} viewBox="0 0 400 220" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M15 8 C71 4 139 9 208 7 S349 8 385 11 Q395 12 394 23 L396 198 Q394 211 380 211 C288 214 167 210 22 213 Q7 212 7 198 C5 148 9 74 8 24 Q8 11 15 8 Z" />
+          <path d="M16 8 Q73 6 131 8 Q193 5 253 8 Q326 6 383 10 Q394 11 393 23 Q397 88 394 145 L396 198 Q394 211 381 211 Q296 214 218 211 Q103 214 21 212 Q7 211 8 198 Q5 153 9 107 Q7 66 8 24 Q8 11 16 8 Z" />
         </svg>
         <div className={styles.previewHeader}>
-          <span className={styles.previewAvatar} aria-hidden="true">H</span>
+          <span className={styles.previewAvatar} aria-hidden="true">
+            <svg viewBox="0 0 44 44"><path d="M21 3 Q33 2 39 13 Q44 22 39 32 Q34 42 22 41 Q11 43 5 32 Q0 22 5 12 Q10 4 21 3 Z" /></svg>
+            <span>H</span>
+          </span>
           <div className={styles.previewIdentity}>
             <div className={styles.previewSender}><strong>Harley</strong> <span>&lt;hey@h5.codes&gt;</span></div>
             <div className={styles.previewRecipient}>to <strong>{email}</strong></div>
           </div>
         </div>
         <div className={styles.previewContent}>
+          <svg className={styles.previewDivider} viewBox="0 0 400 10" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M2 5 Q35 2 69 5 Q102 8 134 4 Q169 2 199 6 Q231 8 263 4 Q301 2 335 6 Q370 7 398 4" />
+          </svg>
           <strong className={styles.previewSubject}>Request {title}</strong>
-          <div className={styles.previewSkeleton} aria-hidden="true"><i /><i /><i /></div>
+          <svg className={styles.previewSkeleton} viewBox="0 0 400 44" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M4 7 Q34 4 66 7 Q99 10 130 6 Q164 4 196 8 Q228 10 261 6 Q306 4 348 7" />
+            <path d="M3 22 Q38 19 69 23 Q101 25 132 21 Q166 19 198 23 Q235 25 286 21" />
+            <path d="M4 38 Q32 35 60 39 Q88 40 115 36 Q145 35 173 39 Q195 40 220 37" />
+          </svg>
         </div>
       </div> : <div className={styles.dialogIllustration} aria-hidden="true">
         <Image src="/illustrations/coffee-chat-doodle.png" alt="" width={1536} height={1024} unoptimized />
