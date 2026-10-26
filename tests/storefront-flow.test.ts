@@ -6,6 +6,7 @@ import { deliverPendingEmail } from '../lib/storefront/email';
 import { acceptFirstClaim } from '../lib/storefront/admin-decisions';
 
 const slug = `flow-test-${randomUUID()}`;
+const secondSlug = `${slug}-second`;
 const eventTypeId = Math.floor(100_000_000 + Math.random() * 800_000_000);
 let itemId:string;
 let secondItemId:string;
@@ -54,10 +55,16 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
   });
 
   it('routes a shared Cal event to the item named by the claim reference', async () => {
-    const otherSlug=`${slug}-second`;
     secondItemId=(await db().query<{id:string}>(`INSERT INTO storefront_items(slug,title,status,published_at,region_id,adoption_enabled,publication_status)
-      VALUES($1,'Second item','available',now(),'things-for-you',true,'published') RETURNING id`,[otherSlug])).rows[0].id;
-    const other=await startClaim(otherSlug,'second@example.com');
+      VALUES($1,'Second item','available',now(),'things-for-you',true,'published') RETURNING id`,[secondSlug])).rows[0].id;
+    await expect(startClaim(secondSlug,'PERSON@example.com')).rejects.toThrow('claim in progress');
+    const preissuedId=randomUUID();
+    await db().query(`INSERT INTO claim_requests(id,item_id,email,token_hash,token_expires_at,cal_event_type_id)
+      VALUES($1,$2,'person@example.com',$3,now()+interval '48 hours',$4)`,
+      [preissuedId,secondItemId,tokenHash(newToken(preissuedId)),eventTypeId]);
+    await expect(applyCalEvent(event('BOOKING_REQUESTED','cross-item-booking','person@example.com','2026-10-21T12:01:00Z',preissuedId)))
+      .rejects.toThrow('claim in progress');
+    const other=await startClaim(secondSlug,'second@example.com');
     await expect(applyCalEvent(event('BOOKING_REQUESTED','wrong-email','person@example.com','2026-10-21T12:01:00Z',other.claimId))).rejects.toThrow('Booking does not match claim');
     await applyCalEvent(event('BOOKING_REQUESTED','booking-second','second@example.com','2026-10-21T12:01:00Z',other.claimId));
     expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[secondItemId])).rows[0].status).toBe('pending');
@@ -130,5 +137,6 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
     await completeHandoff(itemId,'storefront/handoffs/test.webp','Two people smiling with the item',true);
     expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[itemId])).rows[0].status).toBe('claimed');
     expect((await db().query('SELECT status FROM claim_requests WHERE id=$1',[claimId])).rows[0].status).toBe('completed');
+    await expect(startClaim(secondSlug,'newperson@example.com')).rejects.toThrow('already claimed an item');
   });
 });
