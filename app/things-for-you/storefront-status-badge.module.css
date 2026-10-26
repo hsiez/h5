@@ -1,0 +1,17 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+.vivid.available { background: #27b25a; color: #072d16; }
+.pale.available { background: #d9f0de; color: #126f32; }
+.reserved { background: #f0e1ee; color: #694562; }
+.claimed { background: #dededb; color: #363636; }

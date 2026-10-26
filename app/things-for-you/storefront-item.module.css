@@ -10,20 +10,16 @@
 .galleryControls button { width: 36px; height: 36px; border: 1px solid var(--color-border); border-radius: var(--radius-full); background: #fff; color: var(--color-text-primary); cursor: pointer; }
 .content { max-width: 75ch; }
 .claiming { margin-top: 64px; -webkit-user-select: none; user-select: none; }
-.listingFacts dd, .measurementsList dd { -webkit-user-select: text; user-select: text; }
+.measurementsList dd { -webkit-user-select: text; user-select: text; }
 .introduction { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: var(--text-lg); line-height: 1.8; text-wrap: pretty; }
 .introduction h2 { margin: 0 0 20px; color: var(--color-text-tertiary); font-size: 32px; font-style: italic; font-weight: 400; line-height: 1.2; }
 .introduction p { margin: 0; }
 .introduction p + p { margin-top: 20px; }
-.availability { margin-top: 0; padding: 24px; border-radius: var(--radius-lg); background: var(--color-neutral-50); }
-.statusRow { display: grid; gap: 4px; font-family: var(--font-sans); }
-.status { font-size: var(--text-lg); font-weight: 500; }
-.listingFacts { display: grid; gap: 12px; margin: 0; font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5; }
-.listingFacts > div { display: grid; grid-template-columns: minmax(80px, 1fr) 2fr; gap: 16px; }
-.listingFacts dt, .listingFacts dd { margin: 0; }
-.listingFacts dt { color: var(--color-text-tertiary); }
-.actionRow { margin-top: 32px; }
-.actionRow > button, .actionRow > form, .actionRow > .success, .claimedText { margin-top: 16px; }
+.availability { margin-top: 0; padding: 32px; border-radius: var(--radius-lg); background: var(--color-neutral-50); }
+.detailsRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5; }
+.detailValue { color: var(--color-text-secondary); }
+.detailSeparator { color: var(--color-text-tertiary); }
+.purchaseRow { margin-top: 24px; }
 .actionRow > button { width: 100%; }
 .actionNote { max-width: 42ch; margin: 12px 0 0; color: var(--color-text-tertiary); font-family: var(--font-sans); font-size: var(--text-xs); line-height: 1.5; }
 .claimedText { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: var(--text-lg); line-height: 1.8; }
@@ -94,9 +90,8 @@
 .cancelButton { min-height: 48px; padding: 8px; border: 0; background: transparent; color: var(--color-text-tertiary); cursor: pointer; }
 .success { margin: 0; font-family: var(--font-sans); font-size: var(--text-sm); }
 .formError { margin: 0; color: var(--color-danger-600); font-size: var(--text-xs); }
-.measurementsRow { position: relative; }
-.measurementsEntity { display: inline-block; }
-.measurementsPopover { position: absolute; z-index: 20; top: 100%; left: 0; width: 100%; margin-top: 0; padding: 8px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-4px); transition: opacity 200ms ease-out, transform 200ms ease-out, visibility 200ms; }
+.measurementsEntity { position: relative; display: inline-block; }
+.measurementsPopover { position: absolute; z-index: 20; top: 100%; left: 0; width: min(320px, calc(100vw - 80px)); margin-top: 0; padding: 8px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-4px); transition: opacity 200ms ease-out, transform 200ms ease-out, visibility 200ms; }
 .measurementsEntity:hover .measurementsPopover, .measurementsEntity:focus-within .measurementsPopover { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
 .measurementsList { display: grid; gap: 8px; margin: 0; padding: 16px; border: 1px solid var(--color-border-soft); border-radius: var(--radius-sm); background: #fff; }
 .measurementsList > div { display: grid; grid-template-columns: minmax(80px, 1fr) 2fr; gap: 16px; }
@@ -108,7 +103,7 @@
 .ownerPhoto img { object-fit: cover; }
 .ownerCardText { padding: 12px 8px 8px; font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5; }
 .primaryButton:focus-visible, .secondaryButton:focus-visible, .galleryControls button:focus-visible, .cancelButton:focus-visible, .emailControls input:focus-visible { outline: 2px solid var(--color-neutral-500); outline-offset: 3px; }
-@media (max-width: 760px) { .item { padding-bottom: 64px; } .columns { grid-template-columns: minmax(0, 1fr); gap: 32px; margin-top: var(--spacing-title-content); } .gallery { max-width: 560px; } .content { max-width: 65ch; } .claiming { margin-top: 48px; } .availability { padding: 16px; } }
+@media (max-width: 760px) { .item { padding-bottom: 64px; } .columns { grid-template-columns: minmax(0, 1fr); gap: 32px; margin-top: var(--spacing-title-content); } .gallery { max-width: 560px; } .content { max-width: 65ch; } .claiming { margin-top: 48px; } .availability { padding: 24px; } }
 @media (prefers-reduced-motion: reduce) { .ownerCard, .measurementsPopover { transition: none; } }
 .embedded { margin-top:32px; }
 .embedded .claiming { margin-top:24px; }

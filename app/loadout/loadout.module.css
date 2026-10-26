@@ -296,6 +296,41 @@
   align-self: start;
 }
 
+.photoNavigation {
+  z-index: 3;
+  grid-column: 1;
+  grid-row: 1 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  justify-self: center;
+  align-self: start;
+  margin-top: calc(var(--focused-image-height) * var(--focused-visual-height, 1) + 12px);
+  pointer-events: auto;
+}
+
+.photoNavigation[data-ready="false"] { visibility: hidden; }
+
+.photoArrow, .photoDot {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.photoArrow { width: 32px; height: 32px; }
+.photoArrow svg { width: 18px; height: 18px; }
+.photoArrow:disabled { color: var(--color-neutral-300); cursor: default; }
+.photoDots { display: flex; align-items: center; gap: 2px; }
+.photoDot { width: 24px; height: 32px; }
+.photoDot::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--color-neutral-300); }
+.photoDot[aria-current="true"]::after { width: 8px; height: 8px; background: var(--color-text-primary); }
+.photoArrow:focus-visible, .photoDot:focus-visible { outline: 2px solid var(--color-neutral-500); outline-offset: 2px; }
+
 .detailsHeader {
   grid-column: 1 / -1;
   grid-row: 1;
@@ -609,7 +644,7 @@
 }
 
 /* Focused view: title and review share the right column. */
-@media (min-width: 761px) {
+@media (min-width: 1101px) {
   .viewport[data-stage="1"] {
     --focused-top-padding: calc(var(--loadout-title-top) + clamp(32px, 4vw, 56px) * 1.05 + var(--spacing-title-content));
     --focused-title-height: var(--focused-measured-title-height, calc(clamp(32px, 4vw, 56px) * 1.05));
@@ -668,38 +703,8 @@
   .detailSection p { max-width: 32em; }
 }
 
-/* On narrower desktops the review flows beside the item, then below it. */
-@media (min-width: 761px) and (max-width: 1100px) {
-  .viewport[data-stage="1"] .item,
-  .focusedDetails { grid-template-rows: var(--focused-title-height) minmax(0, 1fr); }
-  .viewport[data-stage="1"] .itemMedia {
-    align-self: start;
-    transform: translateY(calc(-1 * var(--review-scroll, 0px)));
-  }
-  .viewport[data-stage="1"] .item[data-active="true"] .itemMedia { z-index: 3; }
-  .detailsContent {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    align-self: start;
-    height: 100%;
-    max-height: 100%;
-    overflow-y: auto;
-    padding: 0 0 32px;
-  }
-  .detailsBody { display: flow-root; }
-  .detailsBody::before {
-    content: "";
-    float: left;
-    width: calc(var(--focused-image-column-width) + var(--focused-column-gap));
-    height: max(0px, calc(var(--focused-image-height) - var(--focused-title-height) - var(--focused-title-gap)));
-  }
-  .detailSection { display: contents; }
-  .detailSection + .detailSection p:first-child { margin-top: 40px; }
-  .detailSection p { max-width: none; }
-}
-
-/* Phone focus: document scrolling for the review, horizontal item movement. */
-@media (max-width: 760px) {
+/* Narrow focus: one column with document scrolling and horizontal item movement. */
+@media (max-width: 1100px) {
   .detailSection + .detailSection { margin-top: calc(var(--spacing) * 14); }
   .viewport[data-stage="1"] {
     --mobile-title-height: 112px;
@@ -744,25 +749,26 @@
     box-sizing: border-box;
     padding: 32px 24px 64px;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: var(--mobile-title-height) var(--focused-image-height) auto;
+    grid-template-rows: var(--mobile-title-height) var(--focused-image-height) auto auto;
     row-gap: var(--spacing-title-content);
     align-content: start;
   }
   .detailsHeaderInner { width: auto; justify-self: start; padding: 0; }
-  .detailsHeader { align-self: start; }
+  .detailsHeader { grid-column: 1; grid-row: 3; align-self: start; }
   .detailsContent {
-    grid-row: 3;
+    grid-column: 1;
+    grid-row: 4;
     align-self: start;
     height: auto;
     max-height: none;
     overflow: visible;
     padding: 0;
+    margin-top: -16px;
   }
+  .photoNavigation ~ .detailsContent { padding-top: 16px; }
+  .photoNavigation { grid-row: 2; }
   .detailSection p { max-width: 32em; }
   .focusedPosition { position: fixed; }
 }
 .regionName { display:block; margin-top:16px; font-family:var(--font-sans); font-size:var(--text-sm); color:var(--color-text-tertiary); }
 .emptyRegion { grid-column:1/-1; padding:32px; color:var(--color-text-tertiary); }
-.photoControls {display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;}
-.photoControls button {padding:6px 12px;border-radius:4px;background:var(--color-neutral-100);font:14px var(--font-sans);cursor:pointer;}
-.photoControls button[aria-pressed=true] {background:var(--color-neutral-800);color:white;}

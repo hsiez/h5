@@ -33,7 +33,7 @@ export function validateDraft(value:unknown):ItemDraft {
  const measurements=object(v.measurements); if(Object.keys(measurements).length>30) throw new FlowError('Use up to 30 measurements',400);
  return {slug:slug(v.slug),title,regionId:slug(v.regionId),description:text(v.description??''),size:text(v.size??'',250),condition:text(v.condition??'',1000),sortOrder:finite(v.sortOrder??0,-10000,10000),
  measurements:Object.fromEntries(Object.entries(measurements).map(([k,val])=>[text(k,100,true),text(val,250,true)])),
- photos:v.photos.map(p=>{const photo=object(p);return {src:mediaUrl(photo.src),alt:text(photo.alt,500,true)}}),review:reviewData(v.review,title)};
+ photos:v.photos.map(p=>{const photo=object(p);return {src:mediaUrl(photo.src),alt:text(photo.alt,500,true),...(photo.stippleSrc ? {stippleSrc:mediaUrl(photo.stippleSrc)} : {})}}),review:reviewData(v.review,title)};
 }
 export function validateRegion(value:unknown):CatalogRegion {
  const v=object(value); if(!['review','storefront'].includes(String(v.kind))||!['draft','published','archived'].includes(String(v.publication_status))) throw new FlowError('Invalid region settings',400);

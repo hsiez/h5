@@ -250,3 +250,11 @@ The Graphite asset is responsive in the same way as its source PNG. Both use the
 - Proportional on narrower viewports.
 
 The generated PNG is 1090 pixels wide, which is sufficient for the current focused desktop width of up to 760 pixels. If the design later allows enlargement beyond the source resolution, the procedural SVG can be retained or regenerated at a larger raster size.
+
+## Catalog upload pipeline
+
+New admin uploads use `app/admin/prepare-stipple.ts`, a browser Canvas implementation of this recipe. Each prepared photo produces a transparent WebP drawing on the exact same canvas. The analysis thresholds, contrast and density curves follow the recipe above; Canvas ellipses replace the earlier offline SVG rendering. Mark sizes are calibrated in analysis-cell units. This is a consistent new implementation, not a pixel-identical recreation of the archived drawings.
+
+Select up to 20 photos per item in one batch. Each photo is prepared, drawn, and uploaded with its drawing directly to private Blob. Progress is shown per photo; failed files are reported while the rest continue. Save the draft to retain the completed pairs. Keep the editor open until processing finishes. Re-select failed files to retry.
+
+`stippleSrc` belongs to each photo, survives draft/publish and reordering, and is used by the world view and focused image transitions. Existing legacy artwork remains the fallback for the first photo of legacy items. Apply migration `004_catalog_stippling.sql` before using the updated catalog.

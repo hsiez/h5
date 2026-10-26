@@ -10,7 +10,7 @@ export async function getCatalog(admin=false):Promise<Catalog> {
   'revision',i.revision,'draft',${admin?'i.draft_data':'NULL'},'photos',COALESCE(m.photos,'[]'::json),
   'owner',CASE WHEN h.item_id IS NULL THEN NULL ELSE json_build_object('name',h.owner_name,'coffeeStory',h.coffee_story,'photo',json_build_object('src',h.photo_blob_path,'alt',h.photo_alt_text)) END
  ) AS data FROM storefront_items i JOIN catalog_regions r ON r.id=i.region_id
- LEFT JOIN LATERAL (SELECT json_agg(json_build_object('src',blob_path,'alt',alt_text) ORDER BY sort_order,created_at) AS photos FROM storefront_item_media WHERE item_id=i.id) m ON true
+ LEFT JOIN LATERAL (SELECT json_agg(json_build_object('src',blob_path,'alt',alt_text,'stippleSrc',stipple_blob_path) ORDER BY sort_order,created_at) AS photos FROM storefront_item_media WHERE item_id=i.id) m ON true
  LEFT JOIN item_handoffs h ON h.item_id=i.id
  ${admin?'':"WHERE i.publication_status='published' AND i.published_at IS NOT NULL AND r.publication_status='published'"}
  ORDER BY i.sort_order,i.created_at`);
@@ -42,7 +42,7 @@ export async function saveItem(id:string,input:unknown,revision:unknown,action:u
     adoption_enabled=$10,publication_status='published',published_at=COALESCE(published_at,now()),draft_data=NULL,revision=revision+1,updated_at=now() WHERE id=$1`,
     [id,d.title,d.regionId,d.description,d.size,d.condition,d.measurements,d.review,d.sortOrder,region.kind==='storefront',d.photos[0].src]);
    await client.query('DELETE FROM storefront_item_media WHERE item_id=$1',[id]);
-   for(const [order,photo] of d.photos.entries()) await client.query('INSERT INTO storefront_item_media(item_id,blob_path,alt_text,sort_order) VALUES($1,$2,$3,$4)',[id,photo.src,photo.alt,order]);
+   for(const [order,photo] of d.photos.entries()) await client.query('INSERT INTO storefront_item_media(item_id,blob_path,alt_text,sort_order,stipple_blob_path) VALUES($1,$2,$3,$4,$5)',[id,photo.src,photo.alt,order,photo.stippleSrc||null]);
   }
   return {ok:true};
  });
