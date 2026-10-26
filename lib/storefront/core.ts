@@ -45,6 +45,11 @@ export async function startClaim(slug: string, emailValue: string) {
     const item = itemResult.rows[0];
     if (!item) throw new FlowError("Item not found", 404);
     if (item.status !== "available") throw new FlowError("This item is not available", 409);
+    const priorClaim = await client.query<{status:string}>(`SELECT status FROM claim_requests
+      WHERE email=$1 AND item_id<>$2 AND status IN ('booking_requested','accepted','completed')
+      LIMIT 1`, [email,item.id]);
+    if (priorClaim.rows[0]) throw new FlowError(
+      priorClaim.rows[0].status === 'completed' ? 'You have already claimed an item' : 'You already have a claim in progress', 409);
     const cal = sharedCalEvent();
     const recent = await client.query<{count:string}>(`SELECT count(*)::text AS count FROM claim_requests
       WHERE item_id=$1 AND email=$2 AND created_at>now()-interval '15 minutes'`,[item.id,email]);
@@ -157,6 +162,13 @@ export async function applyCalEvent(event: BookingEvent) {
       if (!item.adoption_enabled || !item.published_at || !region.rowCount) throw new FlowError('This item is no longer available for adoption',409);
       if (!['available','pending'].includes(item.status)) throw new FlowError('Item is already reserved',409);
       if (claim.token_expires_at.getTime() < new Date(event.createdAt).getTime()) throw new FlowError('Claim link expired',409);
+      // The email link verifies the address; serialize bookings for that address across items.
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [claim.email]);
+      const priorClaim = await client.query<{status:string}>(`SELECT status FROM claim_requests
+        WHERE email=$1 AND item_id<>$2 AND status IN ('booking_requested','accepted','completed')
+        LIMIT 1`, [claim.email,item.id]);
+      if (priorClaim.rows[0]) throw new FlowError(
+        priorClaim.rows[0].status === 'completed' ? 'You have already claimed an item' : 'You already have a claim in progress', 409);
       await client.query(`UPDATE claim_requests SET status='booking_requested',cal_booking_uid=$2,requested_at=$3,
         requested_start_at=$4,time_zone=$5,suggested_public_place=$6,updated_at=now() WHERE id=$1`,
         [claim.id,info.uid,event.createdAt,info.start,info.timeZone,info.place]);
