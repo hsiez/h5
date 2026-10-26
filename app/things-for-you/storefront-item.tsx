@@ -271,7 +271,10 @@ export function StorefrontItem({
       <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={submission === 'success' ? -1 : undefined}>{submission === 'success' ? 'Email Sent' : 'How to claim'}</h2>
       <div id={dialogDescriptionId} className={styles.dialogIntro}>
         {submission === 'success'
-          ? <p>Open the email to choose a time and place for coffee.</p>
+          ? <>
+            <p>Open the email to choose a time and place for coffee.</p>
+            <p>If you don’t see it, check your spam folder.</p>
+          </>
           : <p>I want to trade you this item for a coffee chat. Enter your email and I’ll send a scheduling link.</p>}
       </div>
       {submission === 'success' ? <div className={`${styles.dialogActions} ${styles.successActions}`}>
