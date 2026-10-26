@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import { useState } from 'react';
 import { StorefrontItem, type StorefrontItemProps } from '../../app/things-for-you/storefront-item';
 import { storefrontItemSample } from '../../app/things-for-you/storefront-item-sample';
 
@@ -16,7 +17,9 @@ const phaseProps: Record<Phase, Pick<StorefrontItemProps, 'initialAction' | 'ini
 };
 
 function StorefrontClaimFlow({ phase }: { phase: Phase }) {
-  return <StorefrontItem key={phase} {...storefrontItemSample} status="available" {...phaseProps[phase]} />;
+  const [enteredEmail, setEnteredEmail] = useState('');
+  return <StorefrontItem key={phase} {...storefrontItemSample} status="available" {...phaseProps[phase]}
+    initialEmail={enteredEmail || phaseProps[phase].initialEmail || ''} onClaimEmailChange={setEnteredEmail} />;
 }
 
 const meta = {
@@ -24,7 +27,7 @@ const meta = {
   component: StorefrontClaimFlow,
   parameters: {
     layout: 'fullscreen',
-    docs: { description: { story: 'Use the Phase control to cycle through the claim flow. The preview uses sample data and sends no email.' } },
+    docs: { description: { story: 'Use the Phase control to cycle through the claim flow. An address entered in Email entry carries into the later states. The preview sends no email.' } },
   },
   argTypes: { phase: { control: 'select', options: phases } },
 } satisfies Meta<typeof StorefrontClaimFlow>;

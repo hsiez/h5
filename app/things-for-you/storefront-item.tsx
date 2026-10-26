@@ -31,11 +31,12 @@ export type StorefrontItemProps = {
   initialEmail?: string;
   initialAcknowledged?: boolean;
   initialError?: string;
+  onClaimEmailChange?: (email: string) => void;
 };
 
 export function StorefrontItem({
   embedded = false, status, buttonVariant = 'layered', title, story, reason, photos, size, condition, measurements, owner, slug,
-  initialAction = null, initialSubmission = 'idle', initialEmail = '', initialAcknowledged = false, initialError = '',
+  initialAction = null, initialSubmission = 'idle', initialEmail = '', initialAcknowledged = false, initialError = '', onClaimEmailChange,
 }: StorefrontItemProps) {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [action, setAction] = useState<Action | null>(initialAction);
@@ -102,6 +103,7 @@ export function StorefrontItem({
     setSubmission('idle');
     setFormError('');
     setEmail('');
+    if (nextAction === 'claim') onClaimEmailChange?.('');
     setEmailValid(false);
     setAcknowledged(false);
     setAction(nextAction);
@@ -270,7 +272,7 @@ export function StorefrontItem({
       </div> : <form className={styles.claimForm} onSubmit={submit} noValidate>
         <div className={styles.formField}>
           <p id={claimMessageId} className={styles.claimMessage} aria-live="polite">{formError && <span>{formError}</span>}</p>
-          <input id={emailId} type="email" aria-label="Email address" aria-describedby={claimMessageId} aria-invalid={formError === 'Enter your email address.' || formError === 'Enter a valid email address.'} autoComplete="email" value={email} onChange={event => { setEmail(event.target.value); setEmailValid(event.target.validity.valid && Boolean(event.target.value.trim())); setFormError(''); }}
+          <input id={emailId} type="email" aria-label="Email address" aria-describedby={claimMessageId} aria-invalid={formError === 'Enter your email address.' || formError === 'Enter a valid email address.'} autoComplete="email" value={email} onChange={event => { setEmail(event.target.value); onClaimEmailChange?.(event.target.value); setEmailValid(event.target.validity.valid && Boolean(event.target.value.trim())); setFormError(''); }}
             placeholder="you@example.com" pattern={EMAIL_ADDRESS_PATTERN.source} disabled={submission === 'loading'} required autoFocus />
         </div>
         <label className={styles.acknowledgement}>
