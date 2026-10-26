@@ -92,9 +92,9 @@
 .claimDialog::backdrop { background: rgb(20 20 20 / 42%); }
 .dialogIllustration { display: grid; place-items: center; margin: -12px 0 20px; }
 .dialogIllustration img { display: block; width: min(100%, 280px); height: auto; }
-.emailPreview { position: relative; display: grid; gap: 16px; min-height: 206px; margin: 0 0 28px; padding: 23px 22px 24px; background: #fff; transform: rotate(-.5deg); }
+.emailPreview { position: relative; display: grid; gap: 16px; min-height: 206px; margin: 0 0 36px; padding: 23px 22px 24px; transform: rotate(-.5deg); }
 .previewOutline { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-.previewOutline path { fill: none; stroke: #292929; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.previewOutline path { fill: #f4f4f1; stroke: #292929; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .previewHeader { position: relative; display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 12px; align-items: center; }
 .previewAvatar { position: relative; display: grid; width: 42px; height: 42px; place-items: center; color: #fff; font-size: 19px; font-weight: 500; transform: rotate(-5deg); }
 .previewAvatar svg { position: absolute; inset: 0; width: 100%; height: 100%; }
