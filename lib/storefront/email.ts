@@ -1,5 +1,7 @@
 import { db, transaction } from "./db";
 import { FlowError, newToken } from "./core";
+import { claimEmail } from "./claim-email-template";
+import { mediaPath } from "../catalog/media";
 
 function baseUrl() {
   const { VERCEL_ENV, VERCEL_PROJECT_PRODUCTION_URL, VERCEL_BRANCH_URL, VERCEL_URL, STOREFRONT_BASE_URL } = process.env;
@@ -17,8 +19,9 @@ export async function deliverPendingEmail(limit = 20) {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.STOREFRONT_FROM_EMAIL;
   if (!key || !from) throw new Error("Resend sender is not configured");
-  const rows = await db().query<{id:string;kind:string;claim_request_id:string;alert_subscription_id:string|null;email:string;title:string;slug:string;status:string;item_status:string}>(`
-    SELECT o.id,o.kind,o.claim_request_id,o.alert_subscription_id,c.email,i.title,i.slug,c.status,i.status AS item_status
+  const rows = await db().query<{id:string;kind:string;claim_request_id:string;alert_subscription_id:string|null;email:string;title:string;slug:string;status:string;item_status:string;photo_src:string|null}>(`
+    SELECT o.id,o.kind,o.claim_request_id,o.alert_subscription_id,c.email,i.title,i.slug,c.status,i.status AS item_status,
+      (SELECT m.blob_path FROM storefront_item_media m WHERE m.item_id=i.id ORDER BY m.sort_order,m.created_at LIMIT 1) AS photo_src
     FROM storefront_outbox o JOIN claim_requests c ON c.id=o.claim_request_id
     JOIN storefront_items i ON i.id=c.item_id
     WHERE o.sent_at IS NULL AND c.token_expires_at>now()
@@ -28,13 +31,13 @@ export async function deliverPendingEmail(limit = 20) {
   for (const row of rows.rows) {
     if (row.status !== 'link_sent' || row.item_status !== 'available') continue;
     const link = new URL(`/api/storefront/claim-link/${newToken(row.claim_request_id)}`,baseUrl()).toString();
-    const subject = row.kind === 'availability_alert' ? `${row.title} is available again` : `Request ${row.title}`;
-    const lead = row.kind === 'availability_alert' ? `${row.title} is back on the market.` : `You asked about ${row.title}.`;
     const unsubscribe=row.alert_subscription_id ? new URL(`/api/storefront/unsubscribe/${newToken(row.alert_subscription_id)}`,baseUrl()).toString() : null;
-    const footer=unsubscribe ? `<p><a href="${escapeHtml(unsubscribe)}">Stop availability alerts for this item</a></p>` : '';
+    const message = row.kind === 'availability_alert'
+      ? availabilityAlertEmail(row.title, link, unsubscribe)
+      : claimEmail({ title: row.title, imageUrl: absolutePhotoUrl(row.photo_src, baseUrl()), logoUrl: new URL('/brand/h5-email-logo.png', baseUrl()).toString(), schedulingUrl: link });
     const response = await fetch('https://api.resend.com/emails', {
       method:'POST', headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','Idempotency-Key':row.id},
-      body:JSON.stringify({from,to:row.email,subject,html:`<p>${escapeHtml(lead)}</p><p><a href="${escapeHtml(link)}">Choose a time and suggest a public place</a></p><p>The link expires in 48 hours. A booking request does not guarantee the item.</p>${footer}`})
+      body:JSON.stringify({from,to:row.email,...message})
     });
     if (!response.ok) {
       const detail = await response.json().catch(() => null) as {message?:unknown} | null;
@@ -53,3 +56,25 @@ export async function deliverPendingEmail(limit = 20) {
 }
 
 function escapeHtml(value:string) { return value.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]!)); }
+
+export function availabilityAlertEmail(title: string, link: string, unsubscribe: string | null) {
+  const footer = unsubscribe ? `<p><a href="${escapeHtml(unsubscribe)}">Stop availability alerts for this item</a></p>` : '';
+  return {
+    subject: `${title} is available again`,
+    html: `<p>${escapeHtml(title)} is back on the market.</p><p><a href="${escapeHtml(link)}">Choose a time and suggest a public place</a></p><p>The link expires in 48 hours. A booking request does not guarantee the item.</p>${footer}`,
+    text: `${title} is back on the market.\n\nChoose a time and suggest a public place: ${link}\n\nThe link expires in 48 hours. A booking request does not guarantee the item.${unsubscribe ? `\n\nStop availability alerts for this item: ${unsubscribe}` : ''}`,
+  };
+}
+
+export function absolutePhotoUrl(src: string | null, origin: URL) {
+  if (!src) return null;
+  if (src.startsWith('/') && !src.startsWith('//')) return new URL(src, origin).toString();
+  try {
+    return new URL(mediaPath(src), origin).toString();
+  } catch {
+    try {
+      const url = new URL(src);
+      return url.protocol === 'https:' && url.hostname.endsWith('.public.blob.vercel-storage.com') ? url.toString() : null;
+    } catch { return null; }
+  }
+}
