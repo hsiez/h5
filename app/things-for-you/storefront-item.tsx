@@ -238,15 +238,29 @@ export function StorefrontItem({
     <dialog ref={claimDialogRef} className={styles.claimDialog} aria-labelledby={dialogTitleId} aria-describedby={dialogDescriptionId}
       onCancel={event => { if (submission === 'loading') event.preventDefault(); }}
       onClose={() => { if (submission !== 'success') cancel(); }}>
-      <div className={styles.dialogIllustration} aria-hidden="true">
-        {submission === 'success'
-          ? <Image className={styles.envelopeImage} src="/illustrations/email-sent-envelope.png" alt="" width={1619} height={971} unoptimized />
-          : <Image src="/illustrations/coffee-chat-doodle.png" alt="" width={1536} height={1024} unoptimized />}
-      </div>
+      {submission === 'success' ? <div className={styles.emailPreview} role="group" aria-label="Email preview">
+        <svg className={styles.previewOutline} viewBox="0 0 400 220" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M15 8 C71 4 139 9 208 7 S349 8 385 11 Q395 12 394 23 L396 198 Q394 211 380 211 C288 214 167 210 22 213 Q7 212 7 198 C5 148 9 74 8 24 Q8 11 15 8 Z" />
+        </svg>
+        <div className={styles.previewHeader}>
+          <svg className={styles.previewEnvelope} viewBox="0 0 44 36" fill="none" aria-hidden="true">
+            <path d="M3 7 Q3 4 7 4 L38 3 Q41 4 41 7 L42 31 Q41 34 37 34 L5 33 Q2 31 3 7 Z" />
+            <path d="M4 7 Q14 15 21 20 Q23 21 25 19 L40 7 M4 31 L17 19 M29 18 L40 31" />
+          </svg>
+          <div className={styles.previewFields}>
+            <div className={styles.previewField}><span>From</span><strong>hey@h5.codes</strong></div>
+            <div className={styles.previewField}><span>To</span><strong>{email}</strong></div>
+            <div className={styles.previewField}><span>Subject</span><strong>Request {title}</strong></div>
+          </div>
+        </div>
+        <div className={styles.previewSkeleton} aria-hidden="true"><i /><i /><i /></div>
+      </div> : <div className={styles.dialogIllustration} aria-hidden="true">
+        <Image src="/illustrations/coffee-chat-doodle.png" alt="" width={1536} height={1024} unoptimized />
+      </div>}
       <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={submission === 'success' ? -1 : undefined}>{submission === 'success' ? 'Email Sent' : 'How to claim'}</h2>
       <div id={dialogDescriptionId} className={styles.dialogIntro}>
         {submission === 'success'
-          ? <p>A scheduling link was sent to <strong>{email}</strong> from <strong>hey@h5.codes</strong>. Open it to choose a time and place for coffee.</p>
+          ? <p>Open the email to choose a time and place for coffee.</p>
           : <p>I want to trade you this item for a coffee chat. Enter your email and I’ll send a scheduling link.</p>}
       </div>
       {submission === 'success' ? <div className={`${styles.dialogActions} ${styles.successActions}`}>
