@@ -83,6 +83,45 @@ const ITEM_ALPHA_BOUNDS: Record<string, { left: number; top: number }> = {
   Wallet: { left: 15.6, top: 28.02 },
 };
 
+type VisualBounds = { left: number; top: number; width: number; height: number };
+
+function photoGalleryKey(item: string, photos: {src: string}[]) {
+  return `${item}:${photos.map(photo => photo.src).join('|')}`;
+}
+
+function measureVisibleBounds(image: HTMLImageElement): VisualBounds | null {
+  const width = image.naturalWidth, height = image.naturalHeight;
+  if (!width || !height) return null;
+  const canvas = document.createElement('canvas');
+  const factor = Math.min(1, 256 / Math.max(width, height));
+  canvas.width = Math.max(1, Math.round(width * factor));
+  canvas.height = Math.max(1, Math.round(height * factor));
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return null;
+  try {
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let left = canvas.width, top = canvas.height, right = -1, bottom = -1;
+    for (let y = 0; y < canvas.height; y++) for (let x = 0; x < canvas.width; x++) {
+      if (pixels[(y * canvas.width + x) * 4 + 3] < 16) continue;
+      left = Math.min(left, x); top = Math.min(top, y);
+      right = Math.max(right, x); bottom = Math.max(bottom, y);
+    }
+    if (right < left) return null;
+    return {left: left / canvas.width * 100, top: top / canvas.height * 100,
+      width: (right + 1 - left) / canvas.width * 100, height: (bottom + 1 - top) / canvas.height * 100};
+  } catch { return null; }
+}
+
+function catalogVisualPresentation(bounds?: VisualBounds) {
+  if (!bounds) return {scale: 1, x: '0%', y: '0%', left: 9, focusY: -9, visibleHeight: 1};
+  const area = bounds.width * bounds.height / 10000;
+  const scale = Math.min(1.25, 90 / bounds.width, 90 / bounds.height, Math.sqrt(0.42 / Math.max(0.01, area)));
+  const left = 50 + (bounds.left - 50) * scale;
+  const top = 50 + (bounds.top - 50) * scale;
+  return {scale, x: '0%', y: '0%', left, focusY: -top, visibleHeight: bounds.height * scale / 100};
+}
+
 const FOCUSED_VISUAL_TOP = 0;
 
 function itemSlug(item: string) {
@@ -105,6 +144,7 @@ function legacyVisualAlignment(item: string) {
   return {
     left,
     focusY: FOCUSED_VISUAL_TOP - top,
+    visibleHeight: 1,
   };
 }
 
@@ -172,7 +212,25 @@ function ReviewParts({ parts }: { parts: ReviewText[] }) {
 export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:boolean}) {
   const REGIONS = useMemo<Region[]>(() => catalog.regions.map(region => ({id:region.id,name:region.name,heading:region.heading,note:region.description,kind:region.kind,items:catalog.items.filter(item=>item.regionId===region.id).map(item=>item.slug)})), [catalog]);
   const itemsBySlug = useMemo(() => Object.fromEntries(catalog.items.map(item=>[item.slug,item])), [catalog]);
-  const itemVisualAlignment = useCallback((slug?:string) => legacyVisualAlignment((slug && itemsBySlug[slug]?.legacyKey) || slug || ''), [itemsBySlug]);
+  const legacyByPhoto = useMemo(() => Object.fromEntries(catalog.items
+    .filter(item => item.legacyKey && item.photos[0]?.src)
+    .map(item => [item.photos[0].src, item.legacyKey!])), [catalog]);
+  const [photoBounds, setPhotoBounds] = useState<Record<string, VisualBounds>>({});
+  const [galleryHeights, setGalleryHeights] = useState<Record<string, number>>({});
+  const photoSelectionRequest = useRef(0);
+  const rememberPhotoBounds = useCallback((src: string, image: HTMLImageElement) => {
+    if (!src) return;
+    const bounds = measureVisibleBounds(image);
+    if (bounds) setPhotoBounds(current => current[src] ? current : {...current, [src]: bounds});
+  }, []);
+  const itemPresentation = useCallback((slug?: string, selectedIndex = 0) => {
+    const item = slug ? itemsBySlug[slug] : undefined;
+    const legacyKey = selectedIndex === 0 ? item?.legacyKey || legacyByPhoto[item?.photos[0]?.src || ''] : undefined;
+    const legacy = legacyKey ? ITEM_PRESENTATION[legacyKey] : undefined;
+    if (legacy && legacyKey) return {...legacy, ...legacyVisualAlignment(legacyKey)};
+    return catalogVisualPresentation(photoBounds[item?.photos[selectedIndex]?.src || '']);
+  }, [itemsBySlug, legacyByPhoto, photoBounds]);
+  const itemVisualAlignment = useCallback((slug?:string) => itemPresentation(slug), [itemPresentation]);
   const writeLoadoutUrl = useCallback((region:RegionId|null,itemIndex?:number|null,replace=false) => writeCatalogUrl(REGIONS,region,itemIndex,replace), [REGIONS]);
   const [selectedPhoto,setSelectedPhoto] = useState({item: "", index: 0});
   const [activeRegionId, setActiveRegionId] = useState<RegionId | null>(REGIONS[0]?.id ?? null);
@@ -250,6 +308,54 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
   );
 
   const photoIndex = selectedPhoto.item === activeRegion?.items[activeItemIndex] ? selectedPhoto.index : 0;
+  const detailSlug = activeRegion?.items[detailItemIndex];
+  const detailPhotos = detailSlug ? itemsBySlug[detailSlug]?.photos : undefined;
+  const detailGalleryKey = detailSlug && detailPhotos ? photoGalleryKey(detailSlug, detailPhotos) : "";
+
+  useEffect(() => {
+    if (stage !== 1 || !detailSlug || !detailGalleryKey || galleryHeights[detailGalleryKey]) return;
+    const photos = itemsBySlug[detailSlug]?.photos;
+    if (!photos || photos.length < 2) return;
+    let cancelled = false;
+    void Promise.all(photos.map(async photo => {
+      const image = new window.Image();
+      image.src = photo.src;
+      try {
+        await image.decode();
+        return {src: photo.src, bounds: measureVisibleBounds(image)};
+      } catch {
+        return {src: photo.src, bounds: null};
+      }
+    })).then(results => {
+      if (cancelled) return;
+      setPhotoBounds(current => {
+        const next = {...current};
+        for (const {src,bounds} of results) if (bounds) next[src] = bounds;
+        return next;
+      });
+      setGalleryHeights(current => ({
+        ...current,
+        [detailGalleryKey]: Math.max(...results.map(({bounds}) => catalogVisualPresentation(bounds ?? undefined).visibleHeight)),
+      }));
+    });
+    return () => { cancelled = true; };
+  }, [stage, detailSlug, detailGalleryKey, galleryHeights, itemsBySlug]);
+
+  const selectPhoto = useCallback(async (item: string, index: number) => {
+    const src = itemsBySlug[item]?.photos[index]?.src;
+    if (!src) return;
+    const request = ++photoSelectionRequest.current;
+    if (!photoBounds[src]) {
+      const image = new window.Image();
+      image.src = src;
+      try {
+        await image.decode();
+        const bounds = measureVisibleBounds(image);
+        if (bounds) setPhotoBounds(current => current[src] ? current : {...current, [src]: bounds});
+      } catch { /* Keep the existing presentation if an image cannot be measured. */ }
+    }
+    if (request === photoSelectionRequest.current) setSelectedPhoto({item,index});
+  }, [itemsBySlug, photoBounds]);
 
   const positionCursorTooltip = useCallback((x: number, y: number) => {
     const tooltip = cursorTooltipRef.current;
@@ -674,7 +780,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     setDetailsVisible(false);
     setImagesInTransit(!reducedMotion);
     setActiveItemIndex(nextIndex);
-    if (window.matchMedia("(max-width: 760px)").matches) window.scrollTo(0, 0);
+    if (window.matchMedia("(max-width: 1100px)").matches) window.scrollTo(0, 0);
     writeLoadoutUrl(activeRegion.id, nextIndex, true);
     if (detailsTimer.current) clearTimeout(detailsTimer.current);
     detailsTimer.current = setTimeout(() => {
@@ -691,9 +797,9 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
   }, [activeItemIndex, activeRegion, reducedMotion, stage, writeLoadoutUrl]);
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    const horizontal = window.matchMedia("(max-width: 760px)").matches;
+    const horizontal = window.matchMedia("(max-width: 1100px)").matches;
     if (event.target instanceof Element && event.target.closest("[data-review-scroll]") && !horizontal) return;
-    if (event.target instanceof Element && event.target.closest("a, input, textarea, select, [data-review-scroll] button")) return;
+    if (event.target instanceof Element && event.target.closest("a, input, textarea, select, [data-review-scroll] button, [data-photo-navigation] button")) return;
     if (event.pointerType !== "touch") return;
     pointers.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
     if (!horizontal || pointers.current.size > 1) event.currentTarget.setPointerCapture(event.pointerId);
@@ -765,7 +871,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
   }
 
   const handleWheelInput = useCallback((event: WheelEvent) => {
-    if (stage === 1 && window.matchMedia("(max-width: 760px)").matches && !event.ctrlKey && !event.metaKey) return;
+    if (stage === 1 && window.matchMedia("(max-width: 1100px)").matches && !event.ctrlKey && !event.metaKey) return;
     if (event.target instanceof Element && event.target.closest("[data-review-scroll]")) return;
     if (modeTransitionRunning.current) {
       if (event.cancelable) event.preventDefault();
@@ -1047,8 +1153,8 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                   const data = itemsBySlug[item];
                   const imageSrc = data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.src;
                   const alternatePhoto = stage === 1 && index === activeItemIndex && photoIndex > 0;
-                  const presentation = alternatePhoto ? undefined : ITEM_PRESENTATION[itemsBySlug[item]?.legacyKey ?? item];
-                  const alignment = alternatePhoto ? legacyVisualAlignment("") : itemVisualAlignment(item);
+                  const presentation = itemPresentation(item, alternatePhoto ? photoIndex : 0);
+                  const alignment = presentation;
                   return (
                     <button
                       key={`${activeRegion.id}-${index}`}
@@ -1114,6 +1220,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                           <>
                             <Image
                               src={imageSrc}
+                              onLoad={event => rememberPhotoBounds(imageSrc, event.currentTarget)}
                               unoptimized={imageSrc.startsWith("https://") || imageSrc.startsWith("/api/catalog/media?")}
                               alt=""
                               fill
@@ -1121,7 +1228,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                               className={`${styles.itemImage} ${styles.itemPhoto}`}
                             />
                             <Image
-                              src={GRAPHITE_IMAGES[data?.legacyKey ?? ""] || imageSrc}
+                              src={data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.stippleSrc || ((stage !== 1 || index !== activeItemIndex || photoIndex === 0) ? GRAPHITE_IMAGES[data?.legacyKey || legacyByPhoto[data?.photos[0]?.src || ""] || ""] : undefined) || imageSrc}
                               alt=""
                               fill
                               unoptimized
@@ -1142,10 +1249,13 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                 const data = itemsBySlug[detailItem];
                 if (!data) return null;
                 const content = data.review || {title:data.title,about:[],pros:[],cons:[]};
+                const galleryKey = photoGalleryKey(detailItem, data.photos);
+                const galleryHeight = galleryHeights[galleryKey];
                 return (
                   <aside
                     className={styles.focusedDetails}
                     data-visible={detailsVisible && !isDensityTransitioning ? "true" : "false"}
+                    style={{"--focused-visual-height": galleryHeight ?? 1} as CSSProperties}
                     aria-live="polite"
                   >
                     <header className={styles.detailsHeader}>
@@ -1153,11 +1263,26 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                         <h1 ref={focusedTitleRef}>{data.title}</h1>
                       </div>
                     </header>
+                    {/* These handlers read the selection ref only after a click, never during render. */}
+                    {/* eslint-disable react-hooks/refs */}
+                    {data.photos.length > 1 && (
+                      <div className={styles.photoNavigation} data-photo-navigation data-ready={galleryHeight ? "true" : "false"} role="group" aria-label={`Photos of ${data.title}`}>
+                        <button type="button" className={styles.photoArrow} aria-label="Previous photo" disabled={photoIndex === 0} onClick={() => void selectPhoto(detailItem,photoIndex-1)}>
+                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14.5 5-7 7 7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </button>
+                        <div className={styles.photoDots}>
+                          {data.photos.map((photo,index) => <button key={photo.src} type="button" className={styles.photoDot} aria-label={`Show photo ${index+1} of ${data.photos.length}`} aria-current={photoIndex === index ? "true" : undefined} onClick={() => void selectPhoto(detailItem,index)} />)}
+                        </div>
+                        <button type="button" className={styles.photoArrow} aria-label="Next photo" disabled={photoIndex === data.photos.length-1} onClick={() => void selectPhoto(detailItem,photoIndex+1)}>
+                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9.5 5 7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </button>
+                      </div>
+                    )}
+                    {/* eslint-enable react-hooks/refs */}
                     <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll tabIndex={0} aria-label="Item review" onScroll={(event) => {
                       viewportRef.current?.style.setProperty("--review-scroll", `${event.currentTarget.scrollTop}px`);
                     }}>
                       <div className={styles.detailsBody}>
-                        {data.photos.length > 1 && <div className={styles.photoControls} aria-label="Item photos">{data.photos.map((photo,index)=><button key={photo.src} type="button" aria-pressed={photoIndex===index} onClick={()=>setSelectedPhoto({item:data.slug,index})}>Photo {index+1}</button>)}</div>}
                         <section className={styles.detailSection}>
                           {content.about.map((paragraph, index) => <p key={index}>
                             {index === 0 && <><em className={styles.reviewLeadIn}>I acquired</em>{" "}</>}
@@ -1237,8 +1362,8 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                     aria-hidden="true"
                   >
                     {region.items.slice(0, 9).map((item, index) => {
-                      const imageSrc = GRAPHITE_IMAGES[itemsBySlug[item]?.legacyKey ?? ""] || itemsBySlug[item]?.photos[0]?.src;
-                      const presentation = ITEM_PRESENTATION[itemsBySlug[item]?.legacyKey ?? item];
+                      const imageSrc = itemsBySlug[item]?.photos[0]?.stippleSrc || GRAPHITE_IMAGES[itemsBySlug[item]?.legacyKey || legacyByPhoto[itemsBySlug[item]?.photos[0]?.src || ""] || ""] || itemsBySlug[item]?.photos[0]?.src;
+                      const presentation = itemPresentation(item);
                       return (
                         <span
                           key={index}
@@ -1252,6 +1377,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                           } as CSSProperties}
                         >
                           {imageSrc ? (
+                            <>
                             <Image
                               src={imageSrc}
                               unoptimized={imageSrc.startsWith("https://") || imageSrc.startsWith("/api/catalog/media?")}
@@ -1260,6 +1386,16 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                               sizes="(min-width: 900px) 12vw, 24vw"
                               className={styles.itemImage}
                             />
+                            {itemsBySlug[item]?.photos[0]?.src && !itemsBySlug[item]?.legacyKey && !legacyByPhoto[itemsBySlug[item]?.photos[0]?.src || ""] && <Image
+                              src={itemsBySlug[item].photos[0].src}
+                              alt=""
+                              fill
+                              unoptimized
+                              aria-hidden="true"
+                              onLoad={event => rememberPhotoBounds(itemsBySlug[item].photos[0].src, event.currentTarget)}
+                              style={{opacity:0, pointerEvents:'none'}}
+                            />}
+                            </>
                           ) : String(index + 1).padStart(2, "0")}
                         </span>
                       );

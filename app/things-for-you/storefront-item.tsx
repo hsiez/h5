@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { PaperFrame } from '../_components/paper-frame';
 import { StippleFrame } from '../_components/stipple-button';
+import { StorefrontStatusBadge } from './storefront-status-badge';
 import entityStyles from '../_components/inline-entity-trigger.module.css';
 import styles from './storefront-item.module.css';
 
@@ -27,13 +28,6 @@ export type StorefrontItemProps = {
   slug?: string;
   initialAction?: Action | null;
   initialSubmission?: Submission;
-};
-
-const STATUS_LABEL: Record<StorefrontItemStatus, string> = {
-  available: 'Available',
-  pending: 'Pending',
-  reserved: 'Reserved',
-  claimed: 'Claimed',
 };
 
 export function StorefrontItem({
@@ -76,6 +70,8 @@ export function StorefrontItem({
   }, [slug]);
 
   const currentStatus = slug ? liveStatus : status;
+  const displaySize = size.trim().toLowerCase() === 'm' ? 'medium' : size;
+  const displayCondition = condition.trim().toLowerCase() === 'used' ? 'gently used' : condition;
   const expectedAction = currentStatus === 'available' ? 'claim' : currentStatus === 'pending' || currentStatus === 'reserved' ? 'notify' : null;
   const activeAction = action === expectedAction ? action : null;
   const primaryButtonClassName = `${styles.primaryButton}${buttonVariant === 'overlay' ? ` ${styles.originalButton}` : ''}`;
@@ -138,69 +134,65 @@ export function StorefrontItem({
           </section>}
 
           <section className={styles.claiming} aria-label="Adoption details">
-            <section className={styles.availability} aria-label="Item facts">
-              <dl className={styles.listingFacts}>
-                <div><dt>Price</dt><dd>A coffee and a story</dd></div>
-                {size && <div><dt>Size</dt><dd>{size}</dd></div>}
-                {condition && <div><dt>Condition</dt><dd>{condition}</dd></div>}
-                {measurements.length > 0 && <div className={styles.measurementsRow}>
-                  <dt>Measurements</dt>
-                  <dd>
-                    <div className={styles.measurementsEntity}>
-                      <button type="button" className={entityStyles.trigger} aria-label="View measurements" aria-describedby={measurementsId}>View</button>
-                      <PaperFrame elevation="popover" className={styles.measurementsPopover}>
-                        <dl id={measurementsId} className={styles.measurementsList}>
-                          {measurements.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-                        </dl>
-                      </PaperFrame>
-                    </div>
-                  </dd>
-                </div>}
-              </dl>
-            </section>
-
-            <section className={styles.actionRow} aria-label="Item status and action" aria-live="polite">
-              <div className={styles.statusRow}>
-                <span className={styles.status}>{STATUS_LABEL[currentStatus]}</span>
+            <section className={styles.availability} aria-label="Shopping details">
+              <div className={styles.detailsRow}>
+                <StorefrontStatusBadge status={currentStatus} />
+                <span className={styles.detailSeparator} aria-hidden="true">·</span>
+                <span className={styles.detailValue}>
+                  {measurements.length > 0 ? <span className={styles.measurementsEntity}>
+                    <button type="button" className={entityStyles.trigger} aria-label={`Size: ${displaySize || 'View measurements'}. View measurements`} aria-describedby={measurementsId}>{displaySize || 'Measurements'}</button>
+                    <PaperFrame elevation="popover" className={styles.measurementsPopover}>
+                      <dl id={measurementsId} className={styles.measurementsList}>
+                        {measurements.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+                      </dl>
+                    </PaperFrame>
+                  </span> : <span aria-label={`Size: ${displaySize}`}>{displaySize}</span>}
+                </span>
+                <span className={styles.detailSeparator} aria-hidden="true">·</span>
+                <span className={styles.detailValue} aria-label={`Condition: ${displayCondition}`}>{displayCondition}</span>
               </div>
-              {currentStatus === 'claimed' ? <p className={styles.claimedText}>
-                Passed on to{' '}
-                {owner ? <span className={styles.ownerEntity}>
-                  <button type="button" className={entityStyles.trigger} aria-describedby={ownerId} aria-label={`About ${owner.name}`}>
-                    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="1.7" y="2.2" width="12.6" height="11.6" rx="1.4" /><circle cx="5.4" cy="5.9" r="1.1" /><path d="m2.4 11.5 3.1-3 2.2 2 2.2-2.2 3.4 3.4" /></svg>
-                    {owner.name}
-                  </button>
-                  <span className={styles.ownerCard} id={ownerId} role="tooltip">
-                    <span className={styles.ownerPhoto}>
-                      {owner.photo ? <Image src={owner.photo.src} alt={owner.photo.alt} fill sizes="300px" unoptimized={owner.photo.src.startsWith('https://') || owner.photo.src.startsWith('/api/catalog/media?')} /> : <span>Meetup photo goes here</span>}
+              <div className={styles.purchaseRow}>
+                <section className={styles.actionRow} aria-label="Item status and action" aria-live="polite">
+                {currentStatus === 'claimed' ? <p className={styles.claimedText}>
+                  Passed on to{' '}
+                  {owner ? <span className={styles.ownerEntity}>
+                    <button type="button" className={entityStyles.trigger} aria-describedby={ownerId} aria-label={`About ${owner.name}`}>
+                      <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="1.7" y="2.2" width="12.6" height="11.6" rx="1.4" /><circle cx="5.4" cy="5.9" r="1.1" /><path d="m2.4 11.5 3.1-3 2.2 2 2.2-2.2 3.4 3.4" /></svg>
+                      {owner.name}
+                    </button>
+                    <span className={styles.ownerCard} id={ownerId} role="tooltip">
+                      <span className={styles.ownerPhoto}>
+                        {owner.photo ? <Image src={owner.photo.src} alt={owner.photo.alt} fill sizes="300px" unoptimized={owner.photo.src.startsWith('https://') || owner.photo.src.startsWith('/api/catalog/media?')} /> : <span>Meetup photo goes here</span>}
+                      </span>
+                      <span className={styles.ownerCardText}>{owner.coffeeStory}</span>
                     </span>
-                    <span className={styles.ownerCardText}>{owner.coffeeStory}</span>
-                  </span>
-                </span> : 'its new owner'} after coffee and a story.
-              </p> : !activeAction ? currentStatus === 'available'
-                ? <button className={primaryButtonClassName} type="button" onClick={() => open('claim')}>
-                  {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
-                  <span className={styles.buttonLabel}>Adopt item</span>
-                </button>
-                : <button className={styles.secondaryButton} type="button" onClick={() => open('notify')}>Notify me if it’s available</button>
-              : submission === 'success' ? <p className={styles.success} role="status">
-                {activeAction === 'claim' ? 'Check your email for your private scheduling link.' : 'You’ll get one email if this item becomes available again.'}
-              </p> : <form className={styles.emailForm} onSubmit={submit}>
-                <label htmlFor={emailId}>Email address</label>
-                <div className={styles.emailControls}>
-                  <input id={emailId} type="email" autoComplete="email" value={email}
-                    onChange={event => setEmail(event.target.value)} placeholder="you@example.com"
-                    disabled={submission === 'loading'} required autoFocus />
-                  <button className={`${primaryButtonClassName}${submission === 'loading' ? ` ${styles.loadingButton}` : ''}`} type="submit" disabled={submission === 'loading'}>
-                    {submission === 'loading' && <StippleFrame className={styles.loadingStipple} seed={`storefront-${activeAction}-sending`} />}
-                    {buttonVariant === 'layered' && submission !== 'loading' && <span className={styles.buttonGrain} aria-hidden="true" />}
-                    <span className={styles.buttonLabel}>{submission === 'loading' ? 'Sending…' : activeAction === 'claim' ? 'Send link' : 'Notify me'}</span>
+                  </span> : 'its new owner'} after coffee and a story.
+                </p> : !activeAction ? currentStatus === 'available'
+                  ? <button className={primaryButtonClassName} type="button" onClick={() => open('claim')}>
+                    {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
+                    <span className={styles.buttonLabel}>Claim for 1 coffee</span>
                   </button>
-                  <button className={styles.cancelButton} type="button" onClick={() => setAction(null)} disabled={submission === 'loading'}>Cancel</button>
-                </div>
-                {submission === 'error' && <p className={styles.formError} role="alert">{formError || 'The email could not be sent. Please try again.'}</p>}
-              </form>}
-              {(currentStatus === 'pending' || currentStatus === 'reserved') && <p className={styles.actionNote}>One availability email if it opens up again. This is not a waitlist.</p>}
+                  : <button className={styles.secondaryButton} type="button" onClick={() => open('notify')}>Notify me if it’s available</button>
+                : submission === 'success' ? <p className={styles.success} role="status">
+                  {activeAction === 'claim' ? 'Check your email for your private scheduling link.' : 'You’ll get one email if this item becomes available again.'}
+                </p> : <form className={styles.emailForm} onSubmit={submit}>
+                  <label htmlFor={emailId}>Email address</label>
+                  <div className={styles.emailControls}>
+                    <input id={emailId} type="email" autoComplete="email" value={email}
+                      onChange={event => setEmail(event.target.value)} placeholder="you@example.com"
+                      disabled={submission === 'loading'} required autoFocus />
+                    <button className={`${primaryButtonClassName}${submission === 'loading' ? ` ${styles.loadingButton}` : ''}`} type="submit" disabled={submission === 'loading'}>
+                      {submission === 'loading' && <StippleFrame className={styles.loadingStipple} seed={`storefront-${activeAction}-sending`} />}
+                      {buttonVariant === 'layered' && submission !== 'loading' && <span className={styles.buttonGrain} aria-hidden="true" />}
+                      <span className={styles.buttonLabel}>{submission === 'loading' ? 'Sending…' : activeAction === 'claim' ? 'Send link' : 'Notify me'}</span>
+                    </button>
+                    <button className={styles.cancelButton} type="button" onClick={() => setAction(null)} disabled={submission === 'loading'}>Cancel</button>
+                  </div>
+                  {submission === 'error' && <p className={styles.formError} role="alert">{formError || 'The email could not be sent. Please try again.'}</p>}
+                </form>}
+                {(currentStatus === 'pending' || currentStatus === 'reserved') && <p className={styles.actionNote}>One availability email if it opens up again. This is not a waitlist.</p>}
+              </section>
+              </div>
             </section>
           </section>
 
