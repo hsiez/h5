@@ -32,13 +32,8 @@ export async function deliverPendingEmail(limit = 20) {
     if (row.status !== 'link_sent' || row.item_status !== 'available') continue;
     const link = new URL(`/api/storefront/claim-link/${newToken(row.claim_request_id)}`,baseUrl()).toString();
     const unsubscribe=row.alert_subscription_id ? new URL(`/api/storefront/unsubscribe/${newToken(row.alert_subscription_id)}`,baseUrl()).toString() : null;
-    const footer=unsubscribe ? `<p><a href="${escapeHtml(unsubscribe)}">Stop availability alerts for this item</a></p>` : '';
     const message = row.kind === 'availability_alert'
-      ? {
-          subject: `${row.title} is available again`,
-          html: `<p>${escapeHtml(row.title)} is back on the market.</p><p><a href="${escapeHtml(link)}">Choose a time and suggest a public place</a></p><p>The link expires in 48 hours. A booking request does not guarantee the item.</p>${footer}`,
-          text: `${row.title} is back on the market.\n\nChoose a time and suggest a public place: ${link}\n\nThe link expires in 48 hours. A booking request does not guarantee the item.${unsubscribe ? `\n\nStop availability alerts for this item: ${unsubscribe}` : ''}`,
-        }
+      ? availabilityAlertEmail(row.title, link, unsubscribe)
       : claimEmail({ title: row.title, imageUrl: absolutePhotoUrl(row.photo_src, baseUrl()), logoUrl: new URL('/brand/h5-email-logo.png', baseUrl()).toString(), schedulingUrl: link });
     const response = await fetch('https://api.resend.com/emails', {
       method:'POST', headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','Idempotency-Key':row.id},
@@ -61,6 +56,15 @@ export async function deliverPendingEmail(limit = 20) {
 }
 
 function escapeHtml(value:string) { return value.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]!)); }
+
+export function availabilityAlertEmail(title: string, link: string, unsubscribe: string | null) {
+  const footer = unsubscribe ? `<p><a href="${escapeHtml(unsubscribe)}">Stop availability alerts for this item</a></p>` : '';
+  return {
+    subject: `${title} is available again`,
+    html: `<p>${escapeHtml(title)} is back on the market.</p><p><a href="${escapeHtml(link)}">Choose a time and suggest a public place</a></p><p>The link expires in 48 hours. A booking request does not guarantee the item.</p>${footer}`,
+    text: `${title} is back on the market.\n\nChoose a time and suggest a public place: ${link}\n\nThe link expires in 48 hours. A booking request does not guarantee the item.${unsubscribe ? `\n\nStop availability alerts for this item: ${unsubscribe}` : ''}`,
+  };
+}
 
 export function absolutePhotoUrl(src: string | null, origin: URL) {
   if (!src) return null;

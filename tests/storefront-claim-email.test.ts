@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { claimEmail } from '../lib/storefront/claim-email-template';
-import { absolutePhotoUrl } from '../lib/storefront/email';
+import { absolutePhotoUrl, availabilityAlertEmail } from '../lib/storefront/email';
 
 describe('claim email', () => {
   it('uses the personal scheduling link and safely renders item details in HTML and plain text', () => {
@@ -31,5 +31,15 @@ describe('claim email photo URL', () => {
       `https://h5.codes/api/catalog/media?pathname=${encodeURIComponent(pathname)}`,
     );
     expect(absolutePhotoUrl('//other.example/photo.png', new URL('https://h5.codes'))).toBeNull();
+  });
+});
+
+describe('availability alert plain text', () => {
+  it('separates the claim link and unsubscribe link with real paragraph breaks', () => {
+    const link = 'https://h5.codes/api/storefront/claim-link/personal';
+    const message = availabilityAlertEmail('Cap', link, 'https://h5.codes/unsubscribe');
+    expect(message.text).toContain(`${link}\n\nThe link expires`);
+    expect(message.text).toContain('item.\n\nStop availability alerts');
+    expect(message.text).not.toContain('\\n');
   });
 });
