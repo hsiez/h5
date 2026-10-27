@@ -1,2 +1,2 @@
 import { redirect } from 'next/navigation';
-export default function ThingsForYouPage() { redirect('/loadout?region=things-for-you'); }
+export default function ThingsForYouPage() { redirect('/things?region=things-for-you'); }

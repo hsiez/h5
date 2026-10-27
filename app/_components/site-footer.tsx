@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { Watermark } from "./watermark";
 
 export function SiteFooter() {
-  if (["/loadout", "/things-for-you"].includes(usePathname())) return null;
+  if (["/things", "/loadout", "/things-for-you"].includes(usePathname())) return null;
 
   return (
     <footer className="flex justify-center px-6 pb-2 pt-48 sm:pt-60">
