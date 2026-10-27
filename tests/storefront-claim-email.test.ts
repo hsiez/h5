@@ -11,7 +11,7 @@ describe('claim email', () => {
       schedulingUrl: 'https://h5.codes/api/storefront/claim-link/personal?item=cap&source=email',
     });
 
-    expect(message.subject).toBe('Finish Claiming cap & <co.>');
+    expect(message.subject).toBe('Finish claiming cap & <co.>');
     expect(message.html).toContain("Let's get you this<br>cap &amp; &lt;co.&gt;</td>");
     expect(message.html).toContain('alt="Cap &amp; &lt;co.&gt;"');
     expect(message.html).toContain('src="https://h5.codes/brand/h5-email-logo.png" alt="h5"');
