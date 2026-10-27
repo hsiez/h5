@@ -2,7 +2,6 @@ type ClaimEmailInput = {
   title: string;
   imageUrl: string | null;
   logoUrl: string;
-  buttonUrl: string;
   schedulingUrl: string;
 };
 
@@ -34,7 +33,11 @@ export function claimEmail(input: ClaimEmailInput) {
       </td></tr>
       <tr><td align="left" bgcolor="#ffffff" style="padding:32px 24px 0;background-color:#ffffff;color:#222222;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.3;">Harley is waiting for a coffee chat...</td></tr>
       <tr><td align="left" style="padding:12px 24px 0;">
-        <a href="${schedulingUrl}" aria-label="Schedule a coffee chat" style="display:inline-block;text-decoration:none;color:#ffffff;background-color:#383838;"><img src="${escapeHtml(input.buttonUrl)}" alt="Schedule" width="120" height="52" style="display:block;width:120px;height:52px;border:0;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;" /></a>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border:1px solid #1e1e1e;border-radius:8px;">
+          <tr><td bgcolor="#424242" style="background-color:#424242;border-top:2px solid #777777;border-left:1px solid #626262;border-right:1px solid #292929;border-bottom:2px solid #262626;border-radius:6px;">
+            <a href="${schedulingUrl}" style="display:block;padding:12px 23px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:600;line-height:20px;text-decoration:none;">Schedule</a>
+          </td></tr>
+        </table>
       </td></tr>
       <tr><td align="left" style="padding:20px 24px 0;color:#777777;font-size:12px;line-height:1.5;">This personal link expires in 48 hours. A booking request does not guarantee the item.</td></tr>
     </table>

@@ -3,14 +3,12 @@ import { claimEmail } from '../../lib/storefront/claim-email-template';
 
 const sampleImage = new URL('../../db/assets/catalog/hat.png', import.meta.url).href;
 const logo = new URL('../../public/brand/h5-email-logo.png', import.meta.url).href;
-const button = new URL('../../public/brand/schedule-email-button.png', import.meta.url).href;
 
 function StorefrontClaimEmail({ title, imageUrl }: { title: string; imageUrl: string }) {
   const message = claimEmail({
     title,
     imageUrl,
     logoUrl: logo,
-    buttonUrl: button,
     schedulingUrl: 'https://h5.codes/api/storefront/claim-link/sample-preview-link',
   });
 

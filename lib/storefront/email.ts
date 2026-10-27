@@ -34,7 +34,7 @@ export async function deliverPendingEmail(limit = 20) {
     const unsubscribe=row.alert_subscription_id ? new URL(`/api/storefront/unsubscribe/${newToken(row.alert_subscription_id)}`,baseUrl()).toString() : null;
     const message = row.kind === 'availability_alert'
       ? availabilityAlertEmail(row.title, link, unsubscribe)
-      : claimEmail({ title: row.title, imageUrl: absoluteEmailPhotoUrl(row.photo_src, baseUrl()), logoUrl: new URL('/brand/h5-email-logo.png', baseUrl()).toString(), buttonUrl: new URL('/brand/schedule-email-button.png', baseUrl()).toString(), schedulingUrl: link });
+      : claimEmail({ title: row.title, imageUrl: absoluteEmailPhotoUrl(row.photo_src, baseUrl()), logoUrl: new URL('/brand/h5-email-logo.png', baseUrl()).toString(), schedulingUrl: link });
     const response = await fetch('https://api.resend.com/emails', {
       method:'POST', headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','Idempotency-Key':row.id},
       body:JSON.stringify({from,to:row.email,...message})
