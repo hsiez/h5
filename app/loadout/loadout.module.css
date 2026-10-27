@@ -760,6 +760,7 @@
     justify-self: center;
     align-self: start;
   }
+  .photoHitZones { justify-self: center; }
   .focusedDetails {
     position: relative;
     inset: auto;

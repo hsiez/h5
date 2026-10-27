@@ -1268,7 +1268,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                     {/* eslint-disable react-hooks/refs */}
                     {data.photos.length > 1 && (
                       <>
-                        <div className={styles.photoHitZones} data-ready={galleryHeight ? "true" : "false"}>
+                        <div className={styles.photoHitZones} data-photo-navigation data-ready={galleryHeight ? "true" : "false"}>
                           <button type="button" aria-label="Previous photo" onClick={() => void selectPhoto(detailItem,(photoIndex + data.photos.length - 1) % data.photos.length)} />
                           <button type="button" aria-label="Next photo" onClick={() => void selectPhoto(detailItem,(photoIndex + 1) % data.photos.length)} />
                         </div>
