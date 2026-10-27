@@ -15,7 +15,7 @@ export function claimEmail(input: ClaimEmailInput) {
   const schedulingUrl = escapeHtml(input.schedulingUrl);
   const subject = `Finish claiming ${input.title.toLowerCase()}`;
   const image = input.imageUrl
-    ? `<tr><td align="center" style="padding:24px 24px 36px;"><img src="${escapeHtml(input.imageUrl)}" alt="${title}" width="360" style="display:block;width:100%;max-width:360px;height:auto;border:0;" /></td></tr>`
+    ? `<tr><td align="center" bgcolor="#f4f4f1" style="padding:24px 24px 36px;background-color:#f4f4f1;"><img src="${escapeHtml(input.imageUrl)}" alt="${title}" width="360" style="display:block;width:100%;max-width:360px;height:auto;border:0;" /></td></tr>`
     : '';
 
   const html = `<!doctype html>
@@ -27,11 +27,11 @@ export function claimEmail(input: ClaimEmailInput) {
       <tr><td align="left" style="padding:14px 0;"><img src="${escapeHtml(input.logoUrl)}" alt="h5" width="56" height="21" style="display:block;width:56px;height:21px;border:0;" /></td></tr>
       <tr><td bgcolor="#f4f4f1" style="background:#f4f4f1;border-radius:12px;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
-          <tr><td align="left" style="padding:24px 24px 0;font-family:Georgia,'Times New Roman',serif;font-size:36px;line-height:1.15;font-weight:normal;letter-spacing:-.03em;">Let's get you this<br>${headingTitle}</td></tr>
+          <tr><td align="left" bgcolor="#f4f4f1" style="padding:24px 24px 0;background-color:#f4f4f1;color:#222222;font-family:Georgia,'Times New Roman',serif;font-size:36px;line-height:1.15;font-weight:normal;letter-spacing:-.03em;">Let's get you this<br>${headingTitle}</td></tr>
           ${image}
         </table>
       </td></tr>
-      <tr><td align="left" style="padding:32px 24px 0;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.3;">Harley is waiting for a coffee chat...</td></tr>
+      <tr><td align="left" bgcolor="#ffffff" style="padding:32px 24px 0;background-color:#ffffff;color:#222222;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.3;">Harley is waiting for a coffee chat...</td></tr>
       <tr><td align="left" style="padding:12px 24px 0;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border:1px solid #1e1e1e;border-radius:8px;">
           <tr><td bgcolor="#424242" style="background-color:#424242;border-top:2px solid #777777;border-left:1px solid #626262;border-right:1px solid #292929;border-bottom:2px solid #262626;border-radius:6px;">
