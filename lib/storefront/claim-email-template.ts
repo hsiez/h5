@@ -13,7 +13,7 @@ export function claimEmail(input: ClaimEmailInput) {
   const title = escapeHtml(input.title);
   const headingTitle = escapeHtml(input.title.toLowerCase());
   const schedulingUrl = escapeHtml(input.schedulingUrl);
-  const subject = `Let's get you this ${input.title.toLowerCase()}`;
+  const subject = `Finish Claiming ${input.title.toLowerCase()}`;
   const image = input.imageUrl
     ? `<tr><td align="center" style="padding:24px 24px 36px;"><img src="${escapeHtml(input.imageUrl)}" alt="${title}" width="360" style="display:block;width:100%;max-width:360px;height:auto;border:0;" /></td></tr>`
     : '';
