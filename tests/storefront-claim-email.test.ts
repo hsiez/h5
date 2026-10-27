@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { claimEmail } from '../lib/storefront/claim-email-template';
-import { absolutePhotoUrl, availabilityAlertEmail } from '../lib/storefront/email';
+import { absoluteEmailPhotoUrl, absolutePhotoUrl, availabilityAlertEmail } from '../lib/storefront/email';
 
 describe('claim email', () => {
   it('uses the personal scheduling link and safely renders item details in HTML and plain text', () => {
@@ -11,7 +11,7 @@ describe('claim email', () => {
       schedulingUrl: 'https://h5.codes/api/storefront/claim-link/personal?item=cap&source=email',
     });
 
-    expect(message.subject).toBe("Let's get you this cap & <co.>");
+    expect(message.subject).toBe('Finish claiming cap & <co.>');
     expect(message.html).toContain("Let's get you this<br>cap &amp; &lt;co.&gt;</td>");
     expect(message.html).toContain('alt="Cap &amp; &lt;co.&gt;"');
     expect(message.html).toContain('src="https://h5.codes/brand/h5-email-logo.png" alt="h5"');
@@ -31,6 +31,9 @@ describe('claim email photo URL', () => {
       `https://h5.codes/api/catalog/media?pathname=${encodeURIComponent(pathname)}`,
     );
     expect(absolutePhotoUrl('//other.example/photo.png', new URL('https://h5.codes'))).toBeNull();
+    expect(absoluteEmailPhotoUrl(pathname, new URL('https://h5.codes'))).toBe(
+      `https://h5.codes/api/catalog/media?pathname=${encodeURIComponent(pathname)}&email=1`,
+    );
   });
 });
 

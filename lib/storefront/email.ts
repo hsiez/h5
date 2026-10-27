@@ -1,7 +1,7 @@
 import { db, transaction } from "./db";
 import { FlowError, newToken } from "./core";
 import { claimEmail } from "./claim-email-template";
-import { mediaPath } from "../catalog/media";
+import { mediaPath, uploadedPhotoPathname } from "../catalog/media";
 
 function baseUrl() {
   const { VERCEL_ENV, VERCEL_PROJECT_PRODUCTION_URL, VERCEL_BRANCH_URL, VERCEL_URL, STOREFRONT_BASE_URL } = process.env;
@@ -34,7 +34,7 @@ export async function deliverPendingEmail(limit = 20) {
     const unsubscribe=row.alert_subscription_id ? new URL(`/api/storefront/unsubscribe/${newToken(row.alert_subscription_id)}`,baseUrl()).toString() : null;
     const message = row.kind === 'availability_alert'
       ? availabilityAlertEmail(row.title, link, unsubscribe)
-      : claimEmail({ title: row.title, imageUrl: absolutePhotoUrl(row.photo_src, baseUrl()), logoUrl: new URL('/brand/h5-email-logo.png', baseUrl()).toString(), schedulingUrl: link });
+      : claimEmail({ title: row.title, imageUrl: absoluteEmailPhotoUrl(row.photo_src, baseUrl()), logoUrl: new URL('/brand/h5-email-logo.png', baseUrl()).toString(), schedulingUrl: link });
     const response = await fetch('https://api.resend.com/emails', {
       method:'POST', headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','Idempotency-Key':row.id},
       body:JSON.stringify({from,to:row.email,...message})
@@ -77,4 +77,12 @@ export function absolutePhotoUrl(src: string | null, origin: URL) {
       return url.protocol === 'https:' && url.hostname.endsWith('.public.blob.vercel-storage.com') ? url.toString() : null;
     } catch { return null; }
   }
+}
+
+export function absoluteEmailPhotoUrl(src: string | null, origin: URL) {
+  const resolved = absolutePhotoUrl(src, origin);
+  if (!resolved) return null;
+  const url = new URL(resolved);
+  if (uploadedPhotoPathname(url.pathname + url.search)) url.searchParams.set('email', '1');
+  return url.toString();
 }
