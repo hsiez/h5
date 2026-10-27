@@ -241,32 +241,19 @@ export function StorefrontItem({
       onCancel={event => { if (submission === 'loading') event.preventDefault(); }}
       onClose={() => { if (submission !== 'success') cancel(); }}>
       {submission === 'success' ? <div className={styles.emailPreview} role="group" aria-label="Email preview">
-        <svg className={styles.previewOutline} viewBox="0 0 400 220" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M16 8 Q73 6 131 8 Q193 5 253 8 Q326 6 383 10 Q394 11 393 23 Q397 88 394 145 L396 198 Q394 211 381 211 Q296 214 218 211 Q103 214 21 212 Q7 211 8 198 Q5 153 9 107 Q7 66 8 24 Q8 11 16 8 Z" />
-        </svg>
         <div className={styles.previewHeader}>
-          <span className={styles.previewAvatar} aria-hidden="true">
-            <svg viewBox="0 0 44 44"><path d="M21 3 Q33 2 39 13 Q44 22 39 32 Q34 42 22 41 Q11 43 5 32 Q0 22 5 12 Q10 4 21 3 Z" /></svg>
-            <span>H</span>
-          </span>
+          <span className={styles.previewAvatar} aria-hidden="true">H</span>
           <div className={styles.previewIdentity}>
-            <div className={styles.previewSender}><strong>Harley</strong> <span>&lt;hey@h5.codes&gt;</span></div>
+            <div className={styles.previewSender}><strong>hey@h5.codes</strong></div>
             <div className={styles.previewRecipient}>to <strong>{email}</strong></div>
           </div>
         </div>
         <div className={styles.previewContent}>
-          <svg className={styles.previewDivider} viewBox="0 0 400 10" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M2 5 Q100 4 200 5 Q300 6 398 4.5" />
-          </svg>
-          <strong className={styles.previewSubject}>Request {title}</strong>
-          <svg className={styles.previewSkeleton} viewBox="0 0 400 44" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M4 7 Q90 6 176 7 Q260 8 348 6.5" />
-            <path d="M3 22 Q74 21 145 22 Q215 23 286 21.5" />
-            <path d="M4 38 Q58 37 112 38 Q166 39 220 37.5" />
-          </svg>
+          <strong className={styles.previewSubject}>Finish claiming this {title.toLowerCase()}</strong>
+          <div className={styles.previewSkeleton} aria-hidden="true"><span /><span /><span /></div>
         </div>
       </div> : <div className={styles.dialogIllustration} aria-hidden="true">
-        <Image src="/illustrations/coffee-chat-doodle.png" alt="" width={1536} height={1024} unoptimized />
+        <Image src="/illustrations/coffee-chat-metal-cups-spaced-stipple.webp" alt="" width={1536} height={1024} unoptimized />
       </div>}
       <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={submission === 'success' ? -1 : undefined}>{submission === 'success' ? 'Email Sent' : 'How to claim'}</h2>
       <div id={dialogDescriptionId} className={styles.dialogIntro}>
@@ -281,7 +268,7 @@ export function StorefrontItem({
         </button>
       </div> : <form className={styles.claimForm} onSubmit={submit} noValidate>
         <div className={styles.formField}>
-          <p id={claimMessageId} className={styles.claimMessage} aria-live="polite">{formError && <span>{formError}</span>}</p>
+          <p id={claimMessageId} className={styles.claimMessage} aria-live="polite">{(formError || (submission === 'error' && initialError)) && <span>{formError || initialError}</span>}</p>
           <input id={emailId} type="email" aria-label="Email address" aria-describedby={claimMessageId} aria-invalid={formError === 'Enter your email address.' || formError === 'Enter a valid email address.'} autoComplete="email" value={email} onChange={event => { setEmail(event.target.value); onClaimEmailChange?.(event.target.value); setEmailValid(event.target.validity.valid && Boolean(event.target.value.trim())); setFormError(''); }}
             placeholder="you@example.com" pattern={EMAIL_ADDRESS_PATTERN.source} disabled={submission === 'loading'} required autoFocus />
         </div>
