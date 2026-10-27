@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { PaperFrame } from '../_components/paper-frame';
 import { StorefrontStatusBadge } from './storefront-status-badge';
 import entityStyles from '../_components/inline-entity-trigger.module.css';
@@ -47,7 +48,9 @@ export function StorefrontItem({
   const [formError, setFormError] = useState(initialError);
   const [liveStatus, setLiveStatus] = useState(status);
   const claimDialogRef = useRef<HTMLDialogElement>(null);
+  const dialogBodyRef = useRef<HTMLDivElement>(null);
   const dialogHeadingRef = useRef<HTMLHeadingElement>(null);
+  const transitioningRef = useRef(false);
   const emailId = useId();
   const claimMessageId = useId();
   const dialogTitleId = useId();
@@ -96,7 +99,7 @@ export function StorefrontItem({
   }, [activeAction, submission]);
 
   useEffect(() => {
-    if (activeAction === 'claim' && submission === 'success') dialogHeadingRef.current?.focus();
+    if (activeAction === 'claim' && submission === 'success' && !transitioningRef.current) dialogHeadingRef.current?.focus();
   }, [activeAction, submission]);
 
   function open(nextAction: Action) {
@@ -116,6 +119,34 @@ export function StorefrontItem({
     setAcknowledged(false);
   }
 
+  async function showClaimSuccess() {
+    const dialog = claimDialogRef.current;
+    const body = dialogBodyRef.current;
+    if (!dialog?.open || !body || window.matchMedia('(prefers-reduced-motion: reduce)').matches || !body.animate) {
+      setSubmission('success');
+      return;
+    }
+
+    transitioningRef.current = true;
+    body.inert = true;
+    try {
+      const fadeOut = body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: 'ease-out', fill: 'forwards' });
+      await fadeOut.finished;
+      body.style.opacity = '0';
+      fadeOut.cancel();
+      flushSync(() => setSubmission('success'));
+      // The new content determines the dialog height; no measured height is held or animated.
+      const fadeIn = body.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: 'ease-out', fill: 'forwards' });
+      await fadeIn.finished;
+      fadeIn.cancel();
+    } finally {
+      body.style.opacity = '';
+      body.inert = false;
+      transitioningRef.current = false;
+      dialogHeadingRef.current?.focus();
+    }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (activeAction === 'claim') {
@@ -128,7 +159,8 @@ export function StorefrontItem({
     setFormError('');
     if (!slug) {
       await new Promise(resolve => window.setTimeout(resolve, 700));
-      setSubmission('success');
+      if (activeAction === 'claim') await showClaimSuccess();
+      else setSubmission('success');
       return;
     }
     try {
@@ -140,7 +172,8 @@ export function StorefrontItem({
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || 'Please try again.');
-      setSubmission('success');
+      if (activeAction === 'claim') await showClaimSuccess();
+      else setSubmission('success');
       if (activeAction !== 'claim') setEmail('');
     } catch (cause) {
       setFormError(cause instanceof Error ? cause.message : 'Please try again.');
@@ -240,6 +273,7 @@ export function StorefrontItem({
     <dialog ref={claimDialogRef} className={styles.claimDialog} aria-labelledby={dialogTitleId} aria-describedby={dialogDescriptionId}
       onCancel={event => { if (submission === 'loading') event.preventDefault(); }}
       onClose={() => { if (submission !== 'success') cancel(); }}>
+      <div ref={dialogBodyRef} className={styles.dialogBody}>
       {submission === 'success' ? <div className={styles.emailPreview} role="group" aria-label="Email preview">
         <div className={styles.previewHeader}>
           <span className={styles.previewAvatar} aria-hidden="true">H</span>
@@ -285,6 +319,7 @@ export function StorefrontItem({
           </button>
         </div>
       </form>}
+      </div>
     </dialog>
   </div>;
 }
