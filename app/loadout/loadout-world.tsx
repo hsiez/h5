@@ -16,6 +16,7 @@ import {
 import { flushSync } from "react-dom";
 import Image from "next/image";
 import { CursorTooltip } from "../_components/cursor-tooltip";
+import { PaperFrame } from "../_components/paper-frame";
 import styles from "./loadout.module.css";
 import { type ReviewText } from "./reviews";
 import type { Catalog } from "@/lib/catalog/types";
@@ -1266,38 +1267,38 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                     {/* These handlers read the selection ref only after a click, never during render. */}
                     {/* eslint-disable react-hooks/refs */}
                     {data.photos.length > 1 && (
-                      <div className={styles.photoNavigation} data-photo-navigation data-ready={galleryHeight ? "true" : "false"} role="group" aria-label={`Photos of ${data.title}`}>
-                        <button type="button" className={styles.photoArrow} aria-label="Previous photo" disabled={photoIndex === 0} onClick={() => void selectPhoto(detailItem,photoIndex-1)}>
-                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14.5 5-7 7 7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </button>
-                        <div className={styles.photoDots}>
-                          {data.photos.map((photo,index) => <button key={photo.src} type="button" className={styles.photoDot} aria-label={`Show photo ${index+1} of ${data.photos.length}`} aria-current={photoIndex === index ? "true" : undefined} onClick={() => void selectPhoto(detailItem,index)} />)}
+                      <>
+                        <div className={styles.photoHitZones} data-ready={galleryHeight ? "true" : "false"}>
+                          <button type="button" aria-label="Previous photo" onClick={() => void selectPhoto(detailItem,(photoIndex + data.photos.length - 1) % data.photos.length)} />
+                          <button type="button" aria-label="Next photo" onClick={() => void selectPhoto(detailItem,(photoIndex + 1) % data.photos.length)} />
                         </div>
-                        <button type="button" className={styles.photoArrow} aria-label="Next photo" disabled={photoIndex === data.photos.length-1} onClick={() => void selectPhoto(detailItem,photoIndex+1)}>
-                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9.5 5 7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </button>
-                      </div>
+                        <div className={styles.photoNavigation} data-photo-navigation data-ready={galleryHeight ? "true" : "false"} role="group" aria-label={`Photos of ${data.title}`}>
+                          <PaperFrame elevation="popover" className={styles.photoDotFrame}>
+                            {data.photos.map((photo,index) => <button key={photo.src} type="button" className={styles.photoDot} aria-label={`Show photo ${index+1} of ${data.photos.length}`} aria-current={photoIndex === index ? "true" : undefined} onClick={() => void selectPhoto(detailItem,index)} />)}
+                          </PaperFrame>
+                        </div>
+                      </>
                     )}
                     {/* eslint-enable react-hooks/refs */}
                     <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll tabIndex={0} aria-label="Item review" onScroll={(event) => {
                       viewportRef.current?.style.setProperty("--review-scroll", `${event.currentTarget.scrollTop}px`);
                     }}>
                       <div className={styles.detailsBody}>
-                        <section className={styles.detailSection}>
+                        {activeRegion.kind !== 'storefront' && <section className={styles.detailSection}>
                           {content.about.map((paragraph, index) => <p key={index}>
-                            {index === 0 && <><em className={styles.reviewLeadIn}>I acquired</em>{" "}</>}
+                            {index === 0 && <em className={styles.reviewLeadIn}>I acquired{' '}</em>}
                             <ReviewParts parts={paragraph} />
                           </p>)}
-                        </section>
-                        {(["pros", "cons"] as const).filter(section=>content[section].length).map((section) => (
+                        </section>}
+                        {activeRegion.kind !== 'storefront' && (["pros", "cons"] as const).filter(section=>content[section].length).map((section) => (
                           <section key={section} className={styles.detailSection}>
-                            <p><em className={styles.reviewLeadIn}>{section === "pros" ? "I love" : "Only notes:"}</em>{" "}{content[section].map((piece, pieceIndex) => <Fragment key={pieceIndex}>
+                            <p><em className={styles.reviewLeadIn}>{section === "pros" ? "I love" : "Only notes:"}{' '}</em>{content[section].map((piece, pieceIndex) => <Fragment key={pieceIndex}>
                               {pieceIndex > 0 && " "}
                               {typeof piece === "string" ? piece : <ReviewParts parts={piece} />}
                             </Fragment>)}</p>
                           </section>
                         ))}
-                        {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded slug={preview?undefined:data.slug} title={data.title} story={data.description} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
+                        {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded slug={preview?undefined:data.slug} title={data.title} story={data.description} storyParts={data.review?.about} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
                       </div>
                     </div>
                   </aside>
@@ -1311,7 +1312,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
             </div>
           </section>
         ) : (
-          <section ref={worldRef} className={styles.world} aria-label="Loadout regions">
+          <section ref={worldRef} className={styles.world} aria-label="Things regions">
             <h1
               className={styles.worldTitle}
               data-visible={regionTitleVisible ? "true" : "false"}
@@ -1361,7 +1362,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                     className={styles.miniGrid}
                     aria-hidden="true"
                   >
-                    {region.items.slice(0, 9).map((item, index) => {
+                    {region.items.slice(0, 6).map((item, index) => {
                       const imageSrc = itemsBySlug[item]?.photos[0]?.stippleSrc || GRAPHITE_IMAGES[itemsBySlug[item]?.legacyKey || legacyByPhoto[itemsBySlug[item]?.photos[0]?.src || ""] || ""] || itemsBySlug[item]?.photos[0]?.src;
                       const presentation = itemPresentation(item);
                       return (
@@ -1400,8 +1401,10 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                         </span>
                       );
                     })}
+                    {Array.from({ length: Math.max(0, 6 - region.items.length) }, (_, index) => (
+                      <span key={`empty-${index}`} data-empty="true" />
+                    ))}
                   </span>
-                  <span className={styles.regionName}>{region.name}</span>
                 </button>
               ))}
             </div>

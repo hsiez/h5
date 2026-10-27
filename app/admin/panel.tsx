@@ -4,7 +4,7 @@ import { upload as uploadBlob } from '@vercel/blob/client';
 import { useEffect, useState, type FormEvent } from 'react';
 import type { Catalog, CatalogItem, CatalogRegion, ItemDraft } from '@/lib/catalog/types';
 import { StorefrontAdmin } from './storefront-admin';
-import { ReviewEditor, fromReview, toReview } from './review-editor';
+import { ReviewEditor, fromReview, plainReviewText, toReview } from './review-editor';
 import styles from './panel.module.css';
 import { preparePhoto } from './prepare-photo';
 import { prepareStipple } from './prepare-stipple';
@@ -35,8 +35,9 @@ export function AdminDashboard() {
  </main>;
 }
 function ItemEditor({item,regions,onClose,onSaved}:{item?:CatalogItem;regions:CatalogRegion[];onClose:()=>void;onSaved:(id:string)=>Promise<void>}) {
+ const initialStore=regions.find(region=>region.id===((item?.draft||item)?.regionId||regions[0]?.id))?.kind==='storefront';
  const [draft,setDraft]=useState<ItemDraft>(()=>item?.draft||item||blank(regions[0]?.id||''));
- const [review,setReview]=useState(()=>fromReview((item?.draft||item)?.review||null));
+ const [review,setReview]=useState(()=>{const source=item?.draft||item;const form=fromReview(source?.review||null);return initialStore&&!form.enabled?{...form,enabled:true,about:source?.description||''}:form;});
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [measurements,setMeasurements]=useState(()=>Object.entries((item?.draft||item)?.measurements||{}));
  const [revision,setRevision]=useState(item?.revision||0);
@@ -44,7 +45,8 @@ function ItemEditor({item,regions,onClose,onSaved}:{item?:CatalogItem;regions:Ca
  async function save(action:string) {
   setBusy(true);setError('');setMessage('');
   try {
-   const data={...draft,review:toReview(review,draft.title),measurements:Object.fromEntries(measurements.filter(([key])=>key.trim()))};
+   const storefront=regions.find(region=>region.id===draft.regionId)?.kind==='storefront';
+   const data={...draft,description:storefront?plainReviewText(review.about,review.refs):draft.description,review:toReview({...review,enabled:storefront||review.enabled},draft.title,storefront),measurements:Object.fromEntries(measurements.filter(([key])=>key.trim()))};
    if(!item) {const created=await api('/api/admin/catalog/items','POST',data);await onSaved(created.id);setMessage('Draft created. Preview or publish when ready.');}
    else {await api(`/api/admin/catalog/items/${item.id}`,'PATCH',{draft:data,revision,action});setRevision(revision+1);await onSaved(item.id);setMessage(action==='publish'?'Published.':action==='archive'?'Archived.':'Draft saved. The public version is unchanged.');}
   } catch(e){setError(String(e));}finally{setBusy(false);}
@@ -103,8 +105,8 @@ function ItemEditor({item,regions,onClose,onSaved}:{item?:CatalogItem;regions:Ca
  <fieldset disabled={busy}><legend>Item</legend><div className={styles.fields}><label>Name<input value={draft.title} onChange={e=>field('title',e.target.value)}/></label><label>URL name<input value={draft.slug} disabled={!!item} placeholder="red-chore-coat" onChange={e=>field('slug',e.target.value)}/></label><label>Region<select value={draft.regionId} onChange={e=>field('regionId',e.target.value)}>{regions.map(r=><option key={r.id} value={r.id}>{r.name} ({r.publication_status})</option>)}</select></label><label>Display order<input type="number" value={draft.sortOrder} onChange={e=>field('sortOrder',Number(e.target.value))}/></label></div>
  <p>{store?'This region enables adoption for a coffee and a story. Booking status is managed in Requests.':'This item appears as a review in its region.'}</p></fieldset>
  <fieldset disabled={busy}><legend>Photos</legend><p>Select multiple photos at once. Each item is centered at a consistent size and receives a matching stippled drawing. The first photo is the main image. JPEG, PNG or WebP; each photo is resized for an 8 MB upload.</p><input aria-label="Upload photos" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e=>{void upload(e.target.files);e.target.value='';}}/>{draft.photos.length>0&&<button type="button" onClick={()=>void standardizePhotos()}>Standardize existing photos</button>}<div className={styles.photos}>{draft.photos.map((p,index)=><div key={p.src}><Image src={p.src} alt={p.alt} width={220} height={180} unoptimized/>{p.stippleSrc&&<Image src={p.stippleSrc} alt={`Stippled drawing: ${p.alt}`} width={220} height={180} unoptimized/>}<label>Image description<input value={p.alt} onChange={e=>field('photos',draft.photos.map((photo,i)=>i===index?{...photo,alt:e.target.value}:photo))}/></label><div className={styles.actions}><button disabled={index===0||busy} onClick={()=>{const photos=[...draft.photos];[photos[index-1],photos[index]]=[photos[index],photos[index-1]];field('photos',photos);}}>Move earlier</button><button disabled={busy} onClick={()=>field('photos',draft.photos.filter((_,i)=>i!==index))}>Remove</button></div></div>)}</div></fieldset>
- <fieldset disabled={busy}><legend>Details</legend><div className={styles.fields}><label>Size<input value={draft.size} onChange={e=>field('size',e.target.value)}/></label><label>Condition<input value={draft.condition} onChange={e=>field('condition',e.target.value)}/></label></div><label>{store?'Why I’m forfeiting it':'Description'}<textarea rows={4} value={draft.description} onChange={e=>field('description',e.target.value)}/></label><h3>Measurements</h3>{measurements.map(([key,value],index)=><div className={styles.fields} key={index}><input aria-label={`Measurement ${index+1}`} placeholder="Waist" value={key} onChange={e=>setMeasurements(measurements.map((m,i)=>i===index?[e.target.value,value]:m))}/><input aria-label={`Value ${index+1}`} placeholder="32 in" value={value} onChange={e=>setMeasurements(measurements.map((m,i)=>i===index?[key,e.target.value]:m))}/><button onClick={()=>setMeasurements(measurements.filter((_,i)=>i!==index))}>Remove</button></div>)}<button onClick={()=>setMeasurements([...measurements,['','']])}>Add measurement</button></fieldset>
- <fieldset disabled={busy}><ReviewEditor value={review} onChange={setReview} photos={draft.photos}/></fieldset>
+ <fieldset disabled={busy}><legend>Details</legend><div className={styles.fields}><label>Size<input value={draft.size} onChange={e=>field('size',e.target.value)}/></label><label>Condition<input value={draft.condition} onChange={e=>field('condition',e.target.value)}/></label></div>{!store&&<label>Description<textarea rows={4} value={draft.description} onChange={e=>field('description',e.target.value)}/></label>}<h3>Measurements</h3>{measurements.map(([key,value],index)=><div className={styles.fields} key={index}><input aria-label={`Measurement ${index+1}`} placeholder="Waist" value={key} onChange={e=>setMeasurements(measurements.map((m,i)=>i===index?[e.target.value,value]:m))}/><input aria-label={`Value ${index+1}`} placeholder="32 in" value={value} onChange={e=>setMeasurements(measurements.map((m,i)=>i===index?[key,e.target.value]:m))}/><button onClick={()=>setMeasurements(measurements.filter((_,i)=>i!==index))}>Remove</button></div>)}<button onClick={()=>setMeasurements([...measurements,['','']])}>Add measurement</button></fieldset>
+ <fieldset disabled={busy}><ReviewEditor value={review} onChange={setReview} photos={draft.photos} storefront={store}/></fieldset>
  {error&&<p className={styles.error} role="alert">{error}</p>}{message&&<p role="status">{message}</p>}
  <div className={styles.saveBar}><button disabled={busy} onClick={()=>save('draft')}>{busy?'Working…':'Save draft'}</button>{item&&<><button className={styles.primary} disabled={busy} onClick={()=>save('publish')}>Publish</button><button disabled={busy||item.publicationStatus==='archived'} onClick={()=>save('archive')}>Archive</button></>}</div>
  </div>;

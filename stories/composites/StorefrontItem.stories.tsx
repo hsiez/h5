@@ -20,6 +20,7 @@ type Story = StoryObj<typeof StorefrontItem>;
 const item = storefrontItemSample;
 
 export const Available: Story = { args: { ...item, status: 'available' } };
+export const WithInlineStory: Story = { args: { ...item, status: 'available', storyParts: [['this cap because it deserves to be worn more often.']], story: 'This cap deserves to be worn more often.' } };
 export const ClaimEmailInput: Story = { args: { ...Available.args, initialAction: 'claim' } };
 export const SendingClaimEmail: Story = { args: { ...ClaimEmailInput.args, initialSubmission: 'loading' } };
 export const ClaimEmailSent: Story = { args: { ...ClaimEmailInput.args, initialSubmission: 'success', initialEmail: 'you@example.com' } };

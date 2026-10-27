@@ -4,6 +4,8 @@ import Image from 'next/image';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { flushSync } from 'react-dom';
 import { PaperFrame } from '../_components/paper-frame';
+import { InlineReference } from '../loadout/inline-reference';
+import type { ReviewText } from '../loadout/reviews';
 import { StorefrontStatusBadge } from './storefront-status-badge';
 import entityStyles from '../_components/inline-entity-trigger.module.css';
 import styles from './storefront-item.module.css';
@@ -20,6 +22,7 @@ export type StorefrontItemProps = {
   buttonVariant?: StorefrontButtonVariant;
   title: string;
   story: string;
+  storyParts?: ReviewText[][];
   reason: string;
   photos: { src: string; alt: string }[];
   size: string;
@@ -36,7 +39,7 @@ export type StorefrontItemProps = {
 };
 
 export function StorefrontItem({
-  embedded = false, status, buttonVariant = 'layered', title, story, reason, photos, size, condition, measurements, owner, slug,
+  embedded = false, status, buttonVariant = 'layered', title, story, storyParts, reason, photos, size, condition, measurements, owner, slug,
   initialAction = null, initialSubmission = 'idle', initialEmail = '', initialAcknowledged = false, initialError = '', onClaimEmailChange,
 }: StorefrontItemProps) {
   const [photoIndex, setPhotoIndex] = useState(0);
@@ -204,9 +207,11 @@ export function StorefrontItem({
         </div>
 }
         <div className={styles.content}>
-          {(story || reason) && <section className={styles.introduction} aria-label="About this item">
-            <h2>I’m forfeiting</h2>
-            {story && <p>{story}</p>}
+          {(storyParts?.length || story || reason) && <section className={styles.introduction} aria-label="About this item">
+            {storyParts?.length ? storyParts.map((paragraph, index) => <p key={index}>
+              {index === 0 && <em className={styles.storyLeadIn}>I am forfeiting{' '}</em>}
+              {paragraph.map((part, partIndex) => typeof part === 'string' ? <span key={partIndex}>{part}</span> : <InlineReference key={partIndex} text={part.text} entity={part.entity} />)}
+            </p>) : story && <><h2>I’m forfeiting</h2><p>{story}</p></>}
             {reason && <p>{reason}</p>}
           </section>}
 
@@ -299,7 +304,7 @@ export function StorefrontItem({
       <div id={dialogDescriptionId} className={styles.dialogIntro}>
         {submission === 'success'
           ? <p>Open the email to choose a time and place for coffee. If you don’t see it, check your spam folder.</p>
-          : <p>I want to trade you this item for a coffee chat. Enter your email and I’ll send a scheduling link.</p>}
+          : <p>Harley wants to trade you this item for a coffee chat. Enter your email and he’ll send a scheduling link.</p>}
       </div>
       {submission === 'success' ? <div className={`${styles.dialogActions} ${styles.successActions}`}>
         <button className={primaryButtonClassName} type="button" onClick={() => claimDialogRef.current?.close()}>
