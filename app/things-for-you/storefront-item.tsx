@@ -189,11 +189,17 @@ export function StorefrontItem({
           <div className={styles.photo}>
             {photo ? <Image src={photo.src} alt={photo.alt} fill sizes="(max-width: 760px) 100vw, 52vw" className={styles.image} unoptimized={photo.src.startsWith('https://') || photo.src.startsWith('/api/catalog/media?')} priority />
               : <span className={styles.photoEmpty}>Photograph coming soon</span>}
+            {photos.length > 1 && <div className={styles.photoNavigation}>
+              <button type="button" aria-label="Previous photo" onClick={() => setPhotoIndex((photoIndex + photos.length - 1) % photos.length)} />
+              <button type="button" aria-label="Next photo" onClick={() => setPhotoIndex((photoIndex + 1) % photos.length)} />
+            </div>}
           </div>
           {photos.length > 1 && <div className={styles.galleryControls} aria-label="Item photos">
-            <button type="button" onClick={() => setPhotoIndex((photoIndex + photos.length - 1) % photos.length)} aria-label="Previous photo">←</button>
-            <span>{photoIndex + 1} / {photos.length}</span>
-            <button type="button" onClick={() => setPhotoIndex((photoIndex + 1) % photos.length)} aria-label="Next photo">→</button>
+            <PaperFrame elevation="popover" className={styles.galleryDotFrame}>
+              {photos.map((_, index) => <button key={index} type="button" className={styles.galleryDot}
+                aria-label={`Show photo ${index + 1}`} aria-current={photoIndex === index ? 'true' : undefined}
+                onClick={() => setPhotoIndex(index)} />)}
+            </PaperFrame>
           </div>}
         </div>
 }
