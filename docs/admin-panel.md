@@ -1,6 +1,6 @@
 # Catalog admin
 
-The admin panel lives at `/admin`. Items share one editor and one database record whether they belong to a review region or a storefront region. “Things for you” is a region in `/things`; `/things-for-you` redirects there. Existing `/loadout` links redirect to `/things` with their query parameters preserved.
+The admin panel lives at `/admin`. Items share one editor and one database record whether they belong to a review region or a storefront region. “Things for you” is a region in `/things`, selected with `?region=things-for-you`.
 
 ## Enable it
 
