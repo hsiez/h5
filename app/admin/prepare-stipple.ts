@@ -4,7 +4,7 @@ export async function prepareStipple(photo: File): Promise<File> {
   const image = await createImageBitmap(photo);
   try {
     const width = image.width, height = image.height;
-    const columns = 200, rows = Math.max(1, Math.round(columns * height / width));
+    const columns = 240, rows = Math.max(1, Math.round(columns * height / width));
     const analysis = document.createElement('canvas');
     analysis.width = columns; analysis.height = rows;
     const source = analysis.getContext('2d');

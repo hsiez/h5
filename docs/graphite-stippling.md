@@ -255,6 +255,8 @@ The generated PNG is 1090 pixels wide, which is sufficient for the current focus
 
 New admin uploads use `app/admin/prepare-stipple.ts`, a browser Canvas implementation of this recipe. Each prepared photo produces a transparent WebP drawing on the exact same canvas. The analysis thresholds, contrast and density curves follow the recipe above; Canvas ellipses replace the earlier offline SVG rendering. Mark sizes are calibrated in analysis-cell units. This is a consistent new implementation, not a pixel-identical recreation of the archived drawings.
 
+The admin pipeline uses a 240-column analysis grid (up from the archived 200-column recipe). This adds modest detail to edges and material texture without changing the output canvas or mark density curve. It applies to newly prepared images; existing uploaded stipple assets are not regenerated automatically.
+
 Select up to 20 photos per item in one batch. Each photo is prepared, drawn, and uploaded with its drawing directly to private Blob. Progress is shown per photo; failed files are reported while the rest continue. Save the draft to retain the completed pairs. Keep the editor open until processing finishes. Re-select failed files to retry.
 
 `stippleSrc` belongs to each photo, survives draft/publish and reordering, and is used by the world view and focused image transitions. Existing legacy artwork remains the fallback for the first photo of legacy items. Apply migration `004_catalog_stippling.sql` before using the updated catalog.
