@@ -303,7 +303,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
   justify-self: center;
   align-self: start;
   margin-top: calc(var(--focused-image-height) * var(--focused-visual-height, 1) + 12px);
@@ -312,24 +311,36 @@
 
 .photoNavigation[data-ready="false"] { visibility: hidden; }
 
-.photoArrow, .photoDot {
+.photoHitZones {
+  z-index: 3;
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: var(--focused-image-width);
+  height: calc(var(--focused-image-height) * var(--focused-visual-height, 1));
+  justify-self: end;
+  align-self: start;
+  pointer-events: auto;
+}
+.photoHitZones[data-ready="false"] { visibility: hidden; }
+.photoHitZones button { min-width: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.photoHitZones button:focus-visible { outline: 2px solid var(--color-neutral-900); outline-offset: -5px; }
+.photoDotFrame { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 42px; padding: 4px 9px; border-radius: 999px; }
+.photoDot {
   display: grid;
   place-items: center;
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--color-text-primary);
   cursor: pointer;
 }
 
-.photoArrow { width: 32px; height: 32px; }
-.photoArrow svg { width: 18px; height: 18px; }
-.photoArrow:disabled { color: var(--color-neutral-300); cursor: default; }
-.photoDots { display: flex; align-items: center; gap: 2px; }
-.photoDot { width: 24px; height: 32px; }
-.photoDot::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--color-neutral-300); }
-.photoDot[aria-current="true"]::after { width: 8px; height: 8px; background: var(--color-text-primary); }
-.photoArrow:focus-visible, .photoDot:focus-visible { outline: 2px solid var(--color-neutral-500); outline-offset: 2px; }
+.photoDot { width: 24px; height: 28px; }
+.photoDot::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--color-neutral-300); transition: width 160ms ease-out, background 160ms ease-out; }
+.photoDot[aria-current="true"]::after { width: 18px; border-radius: 10px; background: var(--color-neutral-800); }
+.photoDot:hover::after { background: var(--color-neutral-600); }
+.photoDot:focus-visible { outline: 2px solid var(--color-neutral-900); outline-offset: 1px; border-radius: 4px; }
 
 .detailsHeader {
   grid-column: 1 / -1;
@@ -501,6 +512,7 @@
 .miniGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: clamp(3px, 0.45vw, 8px);
   padding: clamp(12px, 2.4vw, 28px);
   border: 0;
@@ -543,6 +555,13 @@
 .miniGrid > span[data-has-image="true"]::after {
   display: none;
 }
+
+.miniGrid > span[data-empty="true"] {
+  border-color: rgba(21, 21, 21, 0.035);
+  background: #f3f3f1;
+}
+
+.miniGrid > span[data-empty="true"]::after { display: none; }
 
 .regionNote { display: block; margin-top: 10px; }
 
@@ -635,7 +654,6 @@
 /* Lead-ins remain in the sentence flow, rather than separate headings. */
 .reviewLeadIn {
   color: var(--color-neutral-400);
-  margin-inline-end: 9.6px;
   font-family: inherit;
   font-size: 32px;
   font-weight: 400;
@@ -742,6 +760,7 @@
     justify-self: center;
     align-self: start;
   }
+  .photoHitZones { justify-self: center; }
   .focusedDetails {
     position: relative;
     inset: auto;
@@ -770,5 +789,4 @@
   .detailSection p { max-width: 32em; }
   .focusedPosition { position: fixed; }
 }
-.regionName { display:block; margin-top:16px; font-family:var(--font-sans); font-size:var(--text-sm); color:var(--color-text-tertiary); }
 .emptyRegion { grid-column:1/-1; padding:32px; color:var(--color-text-tertiary); }

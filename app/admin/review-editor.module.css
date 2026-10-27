@@ -1,0 +1,24 @@
+.reviewEditor { min-width: 0; }
+.help { max-width: 62ch; }
+.section { margin-top: 24px; overflow: hidden; border: 1px solid var(--color-neutral-150); border-radius: var(--radius-lg); background: #fff; }
+.sectionHeader { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 18px 20px 0; }
+.sectionHeader h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.sectionHeader span { color: var(--color-text-tertiary); font-size: 12px; }
+.editorBar { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 20px 0; }
+.reviewEditor .editorBar button { padding: 6px 10px; border-color: var(--color-neutral-150); border-radius: 999px; background: var(--color-neutral-50); font-size: 12px; }
+.reviewEditor .editorBar button:hover { border-color: var(--color-neutral-400); background: #fff; }
+.reviewEditor .textLabel { display: block; margin: 10px 20px 20px; }
+.reviewEditor .textLabel textarea { display: block; min-height: 140px; padding: 14px 16px; border-color: var(--color-neutral-200); background: #fff; font-size: 15px; line-height: 1.7; }
+.preview { padding: 16px 20px 24px; border-top: 1px solid var(--color-neutral-150); background: #fff; }
+.previewLabel { color: var(--color-text-tertiary); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.previewText { max-width: 38ch; margin-top: 16px; overflow-wrap: anywhere; }
+.previewText p { color: var(--color-text-primary); }
+.emptyPreview { margin: 10px 0 0; color: var(--color-text-tertiary); font-size: 13px; }
+.references { margin-top: 30px; }
+.references h3 { margin-bottom: 4px; }
+.reference { margin-top: 10px; border: 1px solid var(--color-neutral-150); border-radius: var(--radius-sm); background: #fff; }
+.reviewEditor .referenceToggle { display: flex; width: 100%; justify-content: space-between; gap: 16px; border: 0; background: transparent; text-align: left; font-weight: 600; }
+.referenceFields { padding: 0 16px 16px; border-top: 1px solid var(--color-neutral-150); }
+.coordinates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.visuallyHidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 600px) { .sectionHeader, .editorBar { padding-inline: 14px; } .reviewEditor .textLabel { margin-inline: 14px; } .preview { padding-inline: 14px; } .coordinates { grid-template-columns: 1fr; gap: 0; } }
