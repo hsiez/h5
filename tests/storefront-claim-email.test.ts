@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { claimEmail } from '../lib/storefront/claim-email-template';
-import { absolutePhotoUrl, availabilityAlertEmail } from '../lib/storefront/email';
+import { absoluteEmailPhotoUrl, absolutePhotoUrl, availabilityAlertEmail } from '../lib/storefront/email';
 
 describe('claim email', () => {
   it('uses the personal scheduling link and safely renders item details in HTML and plain text', () => {
@@ -31,6 +31,9 @@ describe('claim email photo URL', () => {
       `https://h5.codes/api/catalog/media?pathname=${encodeURIComponent(pathname)}`,
     );
     expect(absolutePhotoUrl('//other.example/photo.png', new URL('https://h5.codes'))).toBeNull();
+    expect(absoluteEmailPhotoUrl(pathname, new URL('https://h5.codes'))).toBe(
+      `https://h5.codes/api/catalog/media?pathname=${encodeURIComponent(pathname)}&email=1`,
+    );
   });
 });
 
