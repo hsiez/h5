@@ -8,6 +8,7 @@ describe('claim email', () => {
       title: 'Cap & <co.>',
       imageUrl: 'https://h5.codes/api/catalog/media?pathname=catalog%2Fphoto.webp&size=large',
       logoUrl: 'https://h5.codes/brand/h5-email-logo.png',
+      buttonUrl: 'https://h5.codes/brand/schedule-email-button.png',
       schedulingUrl: 'https://h5.codes/api/storefront/claim-link/personal?item=cap&source=email',
     });
 
@@ -15,6 +16,7 @@ describe('claim email', () => {
     expect(message.html).toContain("Let's get you this<br>cap &amp; &lt;co.&gt;</td>");
     expect(message.html).toContain('alt="Cap &amp; &lt;co.&gt;"');
     expect(message.html).toContain('src="https://h5.codes/brand/h5-email-logo.png" alt="h5"');
+    expect(message.html).toContain('src="https://h5.codes/brand/schedule-email-button.png" alt="Schedule" width="120" height="52"');
     expect(message.html).toContain('href="https://h5.codes/api/storefront/claim-link/personal?item=cap&amp;source=email"');
     expect(message.html).not.toContain('https://cal.com/');
     expect(message.text).toContain('https://h5.codes/api/storefront/claim-link/personal?item=cap&source=email');
