@@ -1,0 +1,56 @@
+{
+  "recipe": "prepare-stipple.ts at 420 columns, normal tone",
+  "createdAt": "2026-10-28T15:16:10.442Z",
+  "updated": true,
+  "photos": [
+    {
+      "id": "d9213837-afcc-4e6c-8573-069343c23c3b",
+      "itemId": "29e5782e-9d01-48fc-a05c-db3f0516f486",
+      "original": "/api/catalog/media?pathname=catalog%2Fa4e84f06-2198-415a-84d0-b3ce7a15860a-eq0JUiVVzd8B3Z5Z1lpHTYvnABjuFn.png",
+      "previous": null,
+      "newDrawing": "/api/catalog/media?pathname=catalog%2F384e1f50-b34d-4359-9497-605b04ceaabe-OoQ2aei6nEQPM8ZfgIN6b7UJJIYGLv.webp",
+      "bytes": 191280
+    },
+    {
+      "id": "3304b42d-f284-44ea-ac3e-c90fb48c271d",
+      "itemId": "db75c23e-b4e9-4210-8ea7-b77a87b0b3ab",
+      "original": "/api/catalog/media?pathname=catalog%2F757b21c1-4c58-4427-b78f-706a14e75d48-n8HBFK0izg6smf01NidMcvwIiUmi4I.png",
+      "previous": null,
+      "newDrawing": "/api/catalog/media?pathname=catalog%2F2ccdd870-c5da-475a-a0bb-2dcfa9615590-tLfFLKf5I3XVNlv29Y2IWjP0ZVAE0T.webp",
+      "bytes": 224392
+    },
+    {
+      "id": "fd641bb5-a786-4b8f-9aa0-b489fa362bc2",
+      "itemId": "6de40b7e-ea18-4962-9800-41debeee8bfa",
+      "original": "/api/catalog/media?pathname=catalog%2F0491b12e-1261-42a3-917d-915cb06d8f79-JwYdhSMzT7AN4pRh8kwl1GhTypAUBO.png",
+      "previous": null,
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Fb29384e9-1751-4e35-9879-7334c04b8b40-AmrFMxvAVezYVJZswIWJ5GbJigGsN8.webp",
+      "bytes": 215178
+    },
+    {
+      "id": "bb46c8a2-2cb2-4c90-a564-4868db5f9e00",
+      "itemId": "42a9a3b6-a005-45f6-9fb1-4320608ac63e",
+      "original": "/api/catalog/media?pathname=catalog%2F7a41b9ad-1663-4ba2-b820-0f770582ea99-a0NSGAvlccgDPmp1pn76gqQLgG387l.png",
+      "previous": null,
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Fd16d3b88-7665-443e-8121-f21bd9295295-gtaqLO4TXlxHY9cTIdJRYKMASDfUs7.webp",
+      "bytes": 238846
+    },
+    {
+      "id": "bc266252-8101-448a-8d39-844ef2e156bc",
+      "itemId": "6e62fe8d-ac4c-4ad3-b920-27856c5b54ae",
+      "original": "/api/catalog/media?pathname=catalog%2Fe3276f9c-c748-410c-87c8-cd449e9ed35a-l8AgOMRXNi1oEbKozw9i5q3kwaeZkG.png",
+      "previous": null,
+      "newDrawing": "/api/catalog/media?pathname=catalog%2F1e44ecdf-e14a-42e5-99a7-cf3f5cb62226-34kcYSIv5LuzfyeXWKFyCy15Bqycsy.webp",
+      "bytes": 231074
+    },
+    {
+      "id": "d460ae12-d4e1-4f80-9071-6be0c6352699",
+      "itemId": "45bc9e3e-a247-4a30-90f8-d62f4d1b19d1",
+      "original": "/api/catalog/media?pathname=catalog%2Fec3e4c49-d4e0-4e24-95df-681869427dc8-XqfuyM20dVRqGKNo1DWHIMqy8VRhrl.png",
+      "previous": null,
+      "newDrawing": "/api/catalog/media?pathname=catalog%2F7550e3ab-d4ab-40e0-a5cb-d1aa7afea213-VjqXeHM5aYmhL2DYHkzfiQTsyts4mT.webp",
+      "bytes": 270716
+    }
+  ],
+  "updatedAt": "2026-10-28T15:17:05.717Z"
+}
