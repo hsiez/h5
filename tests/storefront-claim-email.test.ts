@@ -7,17 +7,37 @@ describe('claim email', () => {
     const message = claimEmail({
       title: 'Cap & <co.>',
       imageUrl: 'https://h5.codes/api/catalog/media?pathname=catalog%2Fphoto.webp&size=large',
-      logoUrl: 'https://h5.codes/brand/h5-email-logo.png',
       schedulingUrl: 'https://h5.codes/api/storefront/claim-link/personal?item=cap&source=email',
+      cancelUrl: 'https://h5.codes/api/storefront/cancel/personal?item=cap&source=email',
     });
 
     expect(message.subject).toBe('Finish claiming this cap & <co.>');
-    expect(message.html).toContain("Let's get you this<br>cap &amp; &lt;co.&gt;</td>");
+    expect(message.html).toContain('One coffee away</td>');
     expect(message.html).toContain('alt="Cap &amp; &lt;co.&gt;"');
-    expect(message.html).toContain('src="https://h5.codes/brand/h5-email-logo.png" alt="h5"');
     expect(message.html).toContain('href="https://h5.codes/api/storefront/claim-link/personal?item=cap&amp;source=email"');
     expect(message.html).not.toContain('https://cal.com/');
     expect(message.text).toContain('https://h5.codes/api/storefront/claim-link/personal?item=cap&source=email');
+    expect(message.html).toContain('href="https://h5.codes/api/storefront/cancel/personal?item=cap&amp;source=email"');
+    expect(message.html).toContain('>Cancel your request</a>');
+    expect(message.text).toContain('Cancel your request: https://h5.codes/api/storefront/cancel/personal?item=cap&source=email');
+  });
+
+  it('shows the revised action and cancellation copy in the preview variant', () => {
+    const message = claimEmail({
+      title: 'Leather Jacket',
+      imageUrl: 'https://h5.codes/jacket.jpg',
+      schedulingUrl: 'https://h5.codes/schedule',
+      cancelUrl: 'https://h5.codes/cancel',
+    });
+
+    expect(message.html).toContain('One coffee away</td>');
+    expect(message.html).toContain('Schedule a coffee chat to finish claiming this leather&nbsp;jacket.');
+    expect(message.html).toContain('>Schedule coffee</a>');
+    expect(message.html).toContain('>Cancel your request</a>');
+    expect(message.html).toContain('bgcolor="#dededb"');
+    expect(message.html).not.toContain('src="https://h5.codes/logo.png"');
+    expect(message.html).toContain('padding:48px 16px 44px');
+    expect(message.text).toContain('Schedule coffee: https://h5.codes/schedule');
   });
 });
 

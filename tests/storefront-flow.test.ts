@@ -1,15 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { db } from '../lib/storefront/db';
-import { applyCalEvent, completeHandoff, newToken, resolveClaimLink, startClaim, subscribeToAvailability, tokenHash, unsubscribeAvailability } from '../lib/storefront/core';
+import { applyCalEvent, cancelUnscheduledClaim, claimCancellationDetails, completeHandoff, newToken, resolveClaimLink, startClaim, subscribeToAvailability, tokenHash, unsubscribeAvailability } from '../lib/storefront/core';
 import { deliverPendingEmail } from '../lib/storefront/email';
 import { acceptFirstClaim } from '../lib/storefront/admin-decisions';
 
 const slug = `flow-test-${randomUUID()}`;
 const secondSlug = `${slug}-second`;
+const cancelSlug = `${slug}-cancel`;
 const eventTypeId = Math.floor(100_000_000 + Math.random() * 800_000_000);
 let itemId:string;
 let secondItemId:string;
+let cancelItemId:string;
 let claimId:string;
 let laterClaimId:string;
 
@@ -29,9 +31,11 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
     const row = await db().query<{id:string}>(`INSERT INTO storefront_items(slug,title,status,published_at,region_id,adoption_enabled,publication_status)
       VALUES($1,'Test item','available',now(),'things-for-you',true,'published') RETURNING id`,[slug]);
     itemId=row.rows[0].id;
+    cancelItemId=(await db().query<{id:string}>(`INSERT INTO storefront_items(slug,title,status,published_at,region_id,adoption_enabled,publication_status)
+      VALUES($1,'Cancel test item','available',now(),'things-for-you',true,'published') RETURNING id`,[cancelSlug])).rows[0].id;
   });
   afterAll(async () => {
-    for (const id of [itemId,secondItemId].filter(Boolean)) {
+    for (const id of [itemId,secondItemId,cancelItemId].filter(Boolean)) {
       await db().query('DELETE FROM storefront_outbox WHERE claim_request_id IN (SELECT id FROM claim_requests WHERE item_id=$1)',[id]);
       await db().query('DELETE FROM claim_events WHERE claim_request_id IN (SELECT id FROM claim_requests WHERE item_id=$1)',[id]);
       await db().query('DELETE FROM item_handoffs WHERE item_id=$1',[id]);
@@ -40,6 +44,15 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
       await db().query('DELETE FROM storefront_items WHERE id=$1',[id]);
     }
     await db().end();
+  });
+
+  it('cancels an unscheduled email link without changing item availability', async () => {
+    const claim = await startClaim(cancelSlug, 'cancel@example.com');
+    expect(await claimCancellationDetails(claim.token)).toMatchObject({ title: 'Cancel test item', status: 'link_sent' });
+    expect(await cancelUnscheduledClaim(claim.token)).toBe(true);
+    expect(await cancelUnscheduledClaim(claim.token)).toBe(false);
+    await expect(resolveClaimLink(claim.token)).rejects.toThrow('expired');
+    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1', [cancelItemId])).rows[0].status).toBe('available');
   });
 
   it('keeps an item available after email entry, then makes it pending on a Cal request', async () => {
