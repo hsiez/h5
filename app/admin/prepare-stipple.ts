@@ -1,6 +1,6 @@
 // Procedural graphite recipe: docs/graphite-stippling.md.
 // Both assets retain the same canvas, so switching between them stays aligned.
-export async function prepareStipple(photo: File): Promise<File> {
+export async function prepareStipple(photo: File, darkenLightAreas = false): Promise<File> {
   const image = await createImageBitmap(photo);
   try {
     const width = image.width, height = image.height;
@@ -41,7 +41,7 @@ export async function prepareStipple(photo: File): Promise<File> {
           if(alpha[n]>=0.06) {sum+=luminance[n];count++;}
         }
         const enhanced=luminance[i]+(luminance[i]-sum/count)*1.35;
-        const darkness=1-Math.max(0,Math.min(1,(enhanced-dark)/range));
+        const darkness=Math.max(darkenLightAreas ? 0.5 : 0,1-Math.max(0,Math.min(1,(enhanced-dark)/range)));
         const expected=darkness**2.15*8.5;
         const marks=Math.floor(expected)+(random()<expected%1?1:0);
         const strength=darkness**0.68;

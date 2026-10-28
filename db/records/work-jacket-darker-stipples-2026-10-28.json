@@ -1,0 +1,24 @@
+{
+  "recipe": "prepare-stipple.ts at 420 columns, minimum darkness 0.5 for work-jacket",
+  "createdAt": "2026-10-28T15:57:04.022Z",
+  "updated": true,
+  "photos": [
+    {
+      "id": "d7d8f02e-4c10-4e15-a886-0fec1fa5d94d",
+      "itemId": "696ff821-a3af-4966-85db-42bbfeb7161c",
+      "original": "/api/catalog/media?pathname=catalog%2F2cac274d-a6d2-4644-8155-efd6fa870304-ZNXmtDIpboRSkQl1NTtQNedBw6Wt68.webp",
+      "previous": "/api/catalog/media?pathname=catalog%2Fbd545d91-b721-4feb-908a-ce87a95177e4-oNji6Gx5ZjssFertNJolI4cHcV74Nw.webp",
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Fcf7c8523-0ffc-4815-80c6-18baed85622f-5GO9kQLq70sSFEQuYG4B7kf5jZuIN9.webp",
+      "bytes": 436000
+    },
+    {
+      "id": "9e5cbb62-ea83-41d0-b46b-73a30c072ba9",
+      "itemId": "696ff821-a3af-4966-85db-42bbfeb7161c",
+      "original": "/api/catalog/media?pathname=catalog%2F6e4d8dd8-2ed9-4b7f-8634-f27a33629562-uXopGHucJU2l6TtGlkKhR25rRBsVOT.webp",
+      "previous": "/api/catalog/media?pathname=catalog%2F355d8ba3-6c4f-419c-9d32-0d0c406b5556-zkYOIGikJmFRoGvuefzgwOnscfjv2M.webp",
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Ff0793d95-3ab3-4f1d-a1cd-4507ba6a7cb4-WcPuWYkKZJ7Jh9nOBV1R4LFYXSWLKu.webp",
+      "bytes": 1275472
+    }
+  ],
+  "updatedAt": "2026-10-28T15:57:50.916Z"
+}
