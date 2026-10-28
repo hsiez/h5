@@ -298,7 +298,7 @@ export function StorefrontItem({
           <div className={styles.previewSkeleton} aria-hidden="true"><span /><span /><span /></div>
         </div>
       </div> : <div className={styles.dialogIllustration} aria-hidden="true">
-        <Image src="/illustrations/coffee-chat-metal-cups-spaced-stipple.webp" alt="" width={1536} height={1024} unoptimized />
+        <Image src="/illustrations/coffee-chat-metal-cups-spaced-stipple-420.webp" alt="" width={1536} height={1024} unoptimized />
       </div>}
       <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={submission === 'success' ? -1 : undefined}>{submission === 'success' ? 'Email Sent' : 'How to claim'}</h2>
       <div id={dialogDescriptionId} className={styles.dialogIntro}>

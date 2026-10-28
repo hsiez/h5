@@ -1,0 +1,98 @@
+{
+  "recipe": "prepare-stipple.ts at 420 columns, normal tone",
+  "createdAt": "2026-10-28T05:00:18.393Z",
+  "updated": true,
+  "photos": [
+    {
+      "id": "d7d8f02e-4c10-4e15-a886-0fec1fa5d94d",
+      "itemId": "696ff821-a3af-4966-85db-42bbfeb7161c",
+      "original": "/api/catalog/media?pathname=catalog%2F2cac274d-a6d2-4644-8155-efd6fa870304-ZNXmtDIpboRSkQl1NTtQNedBw6Wt68.webp",
+      "previous": "/api/catalog/media?pathname=catalog%2Fa25fea94-526b-4997-a32e-04af2133d952-2R2OXGaIzglkIHX0VPAWMNYqUCOIC9.webp",
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Fbd545d91-b721-4feb-908a-ce87a95177e4-oNji6Gx5ZjssFertNJolI4cHcV74Nw.webp",
+      "bytes": 203356,
+      "previousDeletedAt": "2026-10-28T16:04:35.739Z"
+    },
+    {
+      "id": "9e5cbb62-ea83-41d0-b46b-73a30c072ba9",
+      "itemId": "696ff821-a3af-4966-85db-42bbfeb7161c",
+      "original": "/api/catalog/media?pathname=catalog%2F6e4d8dd8-2ed9-4b7f-8634-f27a33629562-uXopGHucJU2l6TtGlkKhR25rRBsVOT.webp",
+      "previous": "/api/catalog/media?pathname=catalog%2Fe2f6364c-72de-42b1-8a7b-898e23ce4f91-aHUeNnwtvv4rI2VhlT7Iv6pWP4nGPm.webp",
+      "newDrawing": "/api/catalog/media?pathname=catalog%2F355d8ba3-6c4f-419c-9d32-0d0c406b5556-zkYOIGikJmFRoGvuefzgwOnscfjv2M.webp",
+      "bytes": 767532,
+      "previousDeletedAt": "2026-10-28T16:04:35.739Z"
+    },
+    {
+      "id": "dd574e2a-4b00-4d72-bae3-a22845ec6e8c",
+      "itemId": "b19b8e7c-2f9d-4f66-ae2f-075e964d387f",
+      "original": "/api/catalog/media?pathname=catalog%2F0885cd77-7ca4-4423-b34a-572b15aef572-YgZWJ6J6oQcRUKMzfMwZJzSBNmBB8O.webp",
+      "previous": "/api/catalog/media?pathname=catalog%2F80ec9b61-f2d1-4f00-8a65-4a2d2f108124-5Zm3sjHCMwUR2OTfVpAyUbBMmyIA6e.webp",
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Ff47c8ae1-8a87-4a8c-895c-9ce93e1bddc0-8QaIMVMzdawgGst7JkqMtyahuEpJ6O.webp",
+      "bytes": 848288,
+      "previousDeletedAt": "2026-10-28T16:04:35.739Z"
+    },
+    {
+      "id": "ba98038a-8b4c-45da-99da-6b2cde89607f",
+      "itemId": "b19b8e7c-2f9d-4f66-ae2f-075e964d387f",
+      "original": "/api/catalog/media?pathname=catalog%2F92a4cbd0-7c68-4302-8fa8-80d0a43e4524-quVYfjIO7I5Uyr5nu7CgHUq6gxyCCi.webp",
+      "previous": "/api/catalog/media?pathname=catalog%2F8288d9d0-4bce-467c-a6b2-3339734a6212-wh9yiQMpwau1TO4LoNiWjhoI53QZSZ.webp",
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Fc9d58fa8-e997-4e38-8e7a-3b0975600e6f-hOvJu3VdzIdOrA39be7cgqiQrHXZSl.webp",
+      "bytes": 1681244,
+      "previousDeletedAt": "2026-10-28T16:04:35.739Z"
+    },
+    {
+      "id": "0eb3db54-a7b9-4ecf-b979-c2c939d93e17",
+      "itemId": "b804aa69-950d-4dda-aac4-df2ee7b1c976",
+      "original": "/api/catalog/media?pathname=catalog%2F10fd88cc-f63b-4c86-b0d7-f9fa53a9a875-BOE6G3uXOp4ZWeUUMARq3RBRryXGJk.webp",
+      "previous": "/api/catalog/media?pathname=catalog%2F1cca478d-4ca5-4099-81b9-0aaec3a760b0-AC6bZxBbpsOqK9EuKgz3Bjvl2pjJtv.webp",
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Fb44b7430-7fb3-42a6-94e3-a3f48e078f14-NZ0lFdKGs70tsSqeuzDw5FFI5ViPTJ.webp",
+      "bytes": 503892,
+      "previousDeletedAt": "2026-10-28T16:04:35.739Z"
+    },
+    {
+      "id": "15edb5b5-6c6b-4fec-a85e-a99d2256cc98",
+      "itemId": "b804aa69-950d-4dda-aac4-df2ee7b1c976",
+      "original": "/api/catalog/media?pathname=catalog%2F2d582e20-7d97-4b1f-826c-f6d3304b5be9-3SZ45YxejTEa7VpvN6SSHMdB7yKYyW.webp",
+      "previous": "/api/catalog/media?pathname=catalog%2Fbb908915-f5e8-4adf-9fb3-439b3b26ef26-JKSguadMzez1I8O9qTu3fNIDyn811W.webp",
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Ff18f7b05-2b8f-4274-8441-0dbd9930b0b8-Y04AZsxv5FAXOdUJHt2NQ4Kxkd28Vh.webp",
+      "bytes": 591948,
+      "previousDeletedAt": "2026-10-28T16:04:35.739Z"
+    },
+    {
+      "id": "abef0272-4d29-41ec-bd81-83e5c20faf78",
+      "itemId": "ef93dfc4-3ad1-45e4-a0eb-7ec3e24b7e72",
+      "original": "/api/catalog/media?pathname=catalog%2Fddf986f9-ee7c-44ba-8636-c776f8fa2acc-xcDeOd4jcRSzXW6j4l68t1SAhKaJyR.webp",
+      "previous": "/api/catalog/media?pathname=catalog%2Fc383920e-72a2-4e21-a39e-09ffb5b7c408-PTIp7ljxZMrPtUMgZFPNBLau8w9gcF.webp",
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Fad96a2ef-a2c1-4441-aa64-7bce10dc789b-hGux7djFpywWIuWqhMfACeptTIVlt8.webp",
+      "bytes": 1077980,
+      "previousDeletedAt": "2026-10-28T16:04:35.739Z"
+    },
+    {
+      "id": "4de677e3-82c4-4d28-89f4-426bc8cc4ae5",
+      "itemId": "ef93dfc4-3ad1-45e4-a0eb-7ec3e24b7e72",
+      "original": "/api/catalog/media?pathname=catalog%2Feba48d20-937e-4719-ba2c-71f1d91c984c-jwEB7ltStsM8oGn09UGLEU53g5wxYh.webp",
+      "previous": "/api/catalog/media?pathname=catalog%2F7e7ae1e3-9ea3-410d-88ed-a454d0399f45-v7B5gl9uFhKoKHYFwmBow6918KYdBh.webp",
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Fefb7bbb6-b999-4435-9749-1eb938c291f8-THlfdPMoAm74PMCgEcStBgKJnGqSiG.webp",
+      "bytes": 984066,
+      "previousDeletedAt": "2026-10-28T16:04:35.739Z"
+    },
+    {
+      "id": "0477aa84-1a43-485a-9da0-208e54d1ec20",
+      "itemId": "ff9783a4-f22e-4797-9307-044aaf85d33d",
+      "original": "/api/catalog/media?pathname=catalog%2F8f1819cd-f8f4-4511-a863-141a87cf8fc5-DFcuWZ6z6wBvFiNvJy77LlMWeCyU2n.webp",
+      "previous": "/api/catalog/media?pathname=catalog%2Fe864a095-656c-44f1-a818-52c5f23f7944-8dhL41xnVOEs4ohhTXK18vn5V8RVMu.webp",
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Fdf752326-8ff3-417f-bfa0-c9398325bddb-WIFYmtYt2BNZuS5lK8RULpJDBoEh5m.webp",
+      "bytes": 868492,
+      "previousDeletedAt": "2026-10-28T16:04:35.739Z"
+    },
+    {
+      "id": "c9619047-5f49-4057-88e5-10f5332a8865",
+      "itemId": "ff9783a4-f22e-4797-9307-044aaf85d33d",
+      "original": "/api/catalog/media?pathname=catalog%2F59986fc8-c05a-4c74-a681-aa1df52e2459-r49qSpnttPVgIQ79ZNYVCSpvLQFuGJ.webp",
+      "previous": "/api/catalog/media?pathname=catalog%2Fc1108b4d-390e-433c-9174-63ce8534984c-ZlBIZa5sNk1KstwmOMSyuDdL5fxH00.webp",
+      "newDrawing": "/api/catalog/media?pathname=catalog%2Fb6792ab4-ef56-4a5f-b730-048130fe17cf-dkXLEZ9lmy5ailMq1aKzfEVLIJK2kl.webp",
+      "bytes": 901412,
+      "previousDeletedAt": "2026-10-28T16:04:35.739Z"
+    }
+  ],
+  "updatedAt": "2026-10-28T05:00:37.744Z"
+}
