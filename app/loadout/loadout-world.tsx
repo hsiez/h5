@@ -15,7 +15,6 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import Image from "next/image";
-import { CursorTooltip } from "../_components/cursor-tooltip";
 import { PaperFrame } from "../_components/paper-frame";
 import styles from "./loadout.module.css";
 import { type ReviewText } from "./reviews";
@@ -245,8 +244,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
   const modeAnimations = useRef<Animation[]>([]);
   const modeAnimationGeneration = useRef(0);
   const modeTransitionRunning = useRef(false);
-  const [cursorInGrid, setCursorInGrid] = useState(false);
-  const [hoveredItemIndex, setHoveredItemIndex] = useState<number | null>(null);
   const [memory, setMemory] = useState<RegionMemory>(()=>Object.fromEntries(REGIONS.map(region=>[region.id,{stage:0,scrollTop:0}])));
   const [isPinching, setIsPinching] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -270,8 +267,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
   const focusedNavigationLocked = useRef(false);
   const focusedNavigationUnlockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const detailsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cursorTooltipRef = useRef<HTMLDivElement>(null);
-  const cursorTooltipHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusedSwipe = useRef<{
     pointerId: number;
     startY: number;
@@ -307,6 +302,26 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     () => REGIONS.find((region) => region.id === activeRegionId) ?? null,
     [activeRegionId, REGIONS],
   );
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || !activeRegion?.items.length) return;
+    const align = itemVisualAlignment(activeRegion.items[0]).left / 100;
+    const updateCopyPosition = () => {
+      const width = window.innerWidth;
+      const pageStyles = getComputedStyle(viewport.closest('main')!);
+      const gutter = Number.parseFloat(pageStyles.getPropertyValue('--overview-gutter'));
+      const maxWidth = Number.parseFloat(pageStyles.getPropertyValue('--overview-max-width'));
+      const gridWidth = Math.min(width - 2 * gutter, maxWidth);
+      const gridGap = Math.max(3, Math.min(width * .0045, 8));
+      const firstColumnWidth = (gridWidth - 2 * gridGap) / 3;
+      const pageLeft = (width - gridWidth) / 2 + firstColumnWidth * align;
+      viewport.style.setProperty('--focused-copy-left', `${pageLeft}px`);
+    };
+    updateCopyPosition();
+    window.addEventListener('resize', updateCopyPosition);
+    return () => window.removeEventListener('resize', updateCopyPosition);
+  }, [activeRegion, itemVisualAlignment]);
 
   const photoIndex = selectedPhoto.item === activeRegion?.items[activeItemIndex] ? selectedPhoto.index : 0;
   const detailSlug = activeRegion?.items[detailItemIndex];
@@ -357,19 +372,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     }
     if (request === photoSelectionRequest.current) setSelectedPhoto({item,index});
   }, [itemsBySlug, photoBounds]);
-
-  const positionCursorTooltip = useCallback((x: number, y: number) => {
-    const tooltip = cursorTooltipRef.current;
-    if (!tooltip) return;
-    const offset = 16;
-    const edge = 12;
-    const width = tooltip.offsetWidth;
-    const height = tooltip.offsetHeight;
-    const left = Math.max(edge, Math.min(x + offset, window.innerWidth - width - edge));
-    const top = Math.max(edge, Math.min(y + offset, window.innerHeight - height - edge));
-    tooltip.style.setProperty("--cursor-x", `${left}px`);
-    tooltip.style.setProperty("--cursor-y", `${top}px`);
-  }, []);
 
   const regionAtPoint = useCallback((x: number, y: number) => {
     const target = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-region-id]");
@@ -472,7 +474,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     // Both snapshots must contain stippling; reveal the photo only after arrival.
     flushSync(() => setImagesInTransit(true));
     const update = () => {
-      setHoveredItemIndex(null);
       setIsDensityTransitioning(true);
       setActiveItemIndex(nextItemIndex);
       setDetailItemIndex(nextItemIndex);
@@ -556,7 +557,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     const update = () => {
       setImagesInTransit(true);
       setRegionTitleVisible(false);
-      setHoveredItemIndex(null);
       if (nextRegion) {
         const remembered = memory[nextRegion] ?? {stage:0,scrollTop:0};
         const nextStage = targetStage ?? remembered.stage;
@@ -981,7 +981,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
           navigateFromHistory(null, -1);
           return;
         }
-        setHoveredItemIndex(null);
         setIsDensityTransitioning(true);
         setActiveRegionId(null);
         setStage(0);
@@ -1006,7 +1005,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
         return;
       }
       setIsDensityTransitioning(true);
-      setHoveredItemIndex(null);
       setActiveRegionId(region.id);
       setStage(itemIndex >= 0 ? 1 : 0);
       setActiveItemIndex(itemIndex >= 0 ? itemIndex : 0);
@@ -1055,7 +1053,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     if (focusedWheelTimer.current) clearTimeout(focusedWheelTimer.current);
     if (focusedNavigationUnlockTimer.current) clearTimeout(focusedNavigationUnlockTimer.current);
     if (detailsTimer.current) clearTimeout(detailsTimer.current);
-    if (cursorTooltipHideTimer.current) clearTimeout(cursorTooltipHideTimer.current);
   }, []);
 
   const onViewportKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -1127,23 +1124,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                     setImagesInTransit(false);
                   }
                 }}
-                onPointerEnter={(event) => {
-                  if (stage !== 0 || event.pointerType === "touch") return;
-                  positionCursorTooltip(event.clientX, event.clientY);
-                  setCursorInGrid(true);
-                }}
-                onPointerMove={(event) => {
-                  if (stage !== 0 || event.pointerType === "touch") return;
-                  positionCursorTooltip(event.clientX, event.clientY);
-                }}
-                onPointerLeave={() => {
-                  if (cursorTooltipHideTimer.current) {
-                    clearTimeout(cursorTooltipHideTimer.current);
-                    cursorTooltipHideTimer.current = null;
-                  }
-                  setCursorInGrid(false);
-                  setHoveredItemIndex(null);
-                }}
                 style={{
                   "--columns": DENSITY_STAGES[stage],
                   "--active-item": activeItemIndex,
@@ -1173,34 +1153,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                         "--visual-left": `${alignment.left}%`,
                       } as CSSProperties}
                       aria-label={`${item}, item ${index + 1} of ${activeRegion.items.length}`}
-                      onPointerEnter={(event) => {
-                        if (stage !== 0 || event.pointerType === "touch") return;
-                        if (cursorTooltipHideTimer.current) {
-                          clearTimeout(cursorTooltipHideTimer.current);
-                          cursorTooltipHideTimer.current = null;
-                        }
-                        positionCursorTooltip(event.clientX, event.clientY);
-                        setHoveredItemIndex(index);
-                      }}
-                      onPointerMove={(event) => {
-                        if (stage !== 0 || event.pointerType === "touch") return;
-                        positionCursorTooltip(event.clientX, event.clientY);
-                      }}
-                      onPointerLeave={() => {
-                        if (cursorTooltipHideTimer.current) {
-                          clearTimeout(cursorTooltipHideTimer.current);
-                        }
-                        cursorTooltipHideTimer.current = setTimeout(() => {
-                          setHoveredItemIndex(null);
-                          cursorTooltipHideTimer.current = null;
-                        }, 140);
-                      }}
                       onClick={(event) => {
-                        if (cursorTooltipHideTimer.current) {
-                          clearTimeout(cursorTooltipHideTimer.current);
-                          cursorTooltipHideTimer.current = null;
-                        }
-                        setHoveredItemIndex(null);
                         if (stage === 0) {
                           commitDensity(1, event.clientX, event.clientY);
                         } else {
@@ -1304,11 +1257,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                   </aside>
                 );
               })() : null}
-              {stage === 1 ? (
-                <p className={styles.focusedPosition} aria-live="polite">
-                  {activeItemIndex + 1} / {activeRegion.items.length}
-                </p>
-              ) : null}
             </div>
           </section>
         ) : (
@@ -1316,45 +1264,17 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
             <h1
               className={styles.worldTitle}
               data-visible={regionTitleVisible ? "true" : "false"}
-              style={{
-                "--first-item-left": `${itemVisualAlignment(REGIONS[0]?.items[0]).left}%`,
-              } as CSSProperties}
             >
-              <span className={styles.worldTitleRegion}>
-                <span>Things worth mentioning</span>
-              </span>
+              Things worth mentioning
             </h1>
-            <div
-              className={styles.worldGrid}
-              onPointerEnter={(event) => {
-                if (event.pointerType === "touch") return;
-                positionCursorTooltip(event.clientX, event.clientY);
-                setCursorInGrid(true);
-              }}
-              onPointerMove={(event) => {
-                if (event.pointerType === "touch") return;
-                positionCursorTooltip(event.clientX, event.clientY);
-              }}
-              onPointerLeave={() => {
-                setCursorInGrid(false);
-                setHoveredItemIndex(null);
-              }}
-            >
+            <div className={styles.worldGrid}>
               {REGIONS.map((region, regionIndex) => (
                 <button
                   key={region.id}
                   className={styles.regionCard}
                   data-region-id={region.id}
                   aria-label={region.name}
-                  onPointerEnter={(event) => {
-                    if (event.pointerType === "touch") return;
-                    positionCursorTooltip(event.clientX, event.clientY);
-                    setHoveredItemIndex(regionIndex);
-                  }}
-                  onPointerLeave={() => setHoveredItemIndex(null)}
                   onClick={() => {
-                    setCursorInGrid(false);
-                    setHoveredItemIndex(null);
                     switchMode(region.id, 0);
                   }}
                 >
@@ -1411,14 +1331,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
           </section>
         )}
       </div>
-      <CursorTooltip
-        ref={cursorTooltipRef}
-        expanded={hoveredItemIndex !== null}
-        visible={cursorInGrid && (activeRegion === null || stage === 0)}
-        detail={activeRegion === null && hoveredItemIndex !== null
-          ? (REGIONS[hoveredItemIndex]?.name ?? "view")
-          : "view"}
-      />
     </main>
   );
 }
