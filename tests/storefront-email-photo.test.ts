@@ -18,4 +18,14 @@ describe('email photo', () => {
       expect(Math.abs(channel - [244, 244, 241][index])).toBeLessThanOrEqual(2);
     }
   });
+
+  it('removes transparent margins so the item fills the email image', async () => {
+    const input = await sharp({ create: { width: 1000, height: 1000, channels: 4, background: '#00000000' } })
+      .composite([{ input: { create: { width: 600, height: 300, channels: 4, background: '#444444ff' } }, left: 200, top: 350 }])
+      .png().toBuffer();
+    const output = await emailPhotoJpeg(input);
+    const metadata = await sharp(output).metadata();
+    expect(metadata.width).toBeLessThanOrEqual(720);
+    expect(metadata.height).toBeLessThan(400);
+  });
 });

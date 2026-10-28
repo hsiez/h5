@@ -76,6 +76,27 @@ export async function resolveClaimLink(token: string) {
   return url.toString();
 }
 
+export async function claimCancellationDetails(token: string) {
+  if (!/^[A-Za-z0-9_-]{40,100}$/.test(token)) throw new FlowError('Invalid link', 404);
+  const result = await db().query<{title:string;status:string}>(`
+    SELECT i.title,c.status FROM claim_requests c
+    JOIN storefront_items i ON i.id=c.item_id WHERE c.token_hash=$1`, [tokenHash(token)]);
+  if (!result.rows[0]) throw new FlowError('Invalid link', 404);
+  return result.rows[0];
+}
+
+export async function cancelUnscheduledClaim(token: string) {
+  if (!/^[A-Za-z0-9_-]{40,100}$/.test(token)) throw new FlowError('Invalid link', 404);
+  return transaction(async client => {
+    const result = await client.query<{id:string}>(`
+      UPDATE claim_requests SET status='canceled',updated_at=now()
+      WHERE token_hash=$1 AND status='link_sent' RETURNING id`, [tokenHash(token)]);
+    if (!result.rows[0]) return false;
+    await client.query("INSERT INTO claim_events(claim_request_id,action,actor) VALUES($1,'CLAIM_CANCELED','recipient')", [result.rows[0].id]);
+    return true;
+  });
+}
+
 export async function subscribeToAvailability(slug: string, emailValue: string) {
   const email = normalEmail(emailValue);
   return transaction(async client => {

@@ -31,10 +31,11 @@ export async function deliverPendingEmail(limit = 20) {
   for (const row of rows.rows) {
     if (row.status !== 'link_sent' || row.item_status !== 'available') continue;
     const link = new URL(`/api/storefront/claim-link/${newToken(row.claim_request_id)}`,baseUrl()).toString();
+    const cancelLink = new URL(`/api/storefront/cancel/${newToken(row.claim_request_id)}`,baseUrl()).toString();
     const unsubscribe=row.alert_subscription_id ? new URL(`/api/storefront/unsubscribe/${newToken(row.alert_subscription_id)}`,baseUrl()).toString() : null;
     const message = row.kind === 'availability_alert'
       ? availabilityAlertEmail(row.title, link, unsubscribe)
-      : claimEmail({ title: row.title, imageUrl: absoluteEmailPhotoUrl(row.photo_src, baseUrl()), logoUrl: new URL('/brand/h5-email-logo.png', baseUrl()).toString(), schedulingUrl: link });
+      : claimEmail({ title: row.title, imageUrl: absoluteEmailPhotoUrl(row.photo_src, baseUrl()), schedulingUrl: link, cancelUrl: cancelLink });
     const response = await fetch('https://api.resend.com/emails', {
       method:'POST', headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','Idempotency-Key':row.id},
       body:JSON.stringify({from,to:row.email,...message})
