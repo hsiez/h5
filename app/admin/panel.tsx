@@ -24,7 +24,7 @@ export function AdminDashboard() {
  async function refresh(){try{setCatalog(await api('/api/admin/catalog/items'));setError('');}catch(e){setError(String(e));}}
  useEffect(()=>{api('/api/admin/catalog/items').then(setCatalog).catch(e=>setError(String(e)));},[]);
  const item=catalog?.items.find(i=>i.id===selected);
- return <main className={styles.admin}><header className={styles.header}><div><p className={styles.eyebrow}>Harley Siezar / Admin</p><h1>Your collection</h1></div><div className={styles.actions}><a href="/things?view=world" target="_blank" rel="noreferrer">View world ↗</a><button onClick={async()=>{try{await api('/api/admin/session','DELETE');window.location.reload();}catch(e){setError(String(e));}}}>Sign out</button></div></header>
+ return <main className={styles.admin}><header className={styles.header}><div><p className={styles.eyebrow}>Harley Siezar / Admin</p><h1>Your collection</h1></div><div className={styles.actions}><a href="/things" target="_blank" rel="noreferrer">View world ↗</a><button onClick={async()=>{try{await api('/api/admin/session','DELETE');window.location.reload();}catch(e){setError(String(e));}}}>Sign out</button></div></header>
  <nav className={styles.tabs}>{['items','regions','requests','operations'].map(t=><button key={t} aria-current={tab===t?'page':undefined} onClick={()=>{setTab(t);setSelected(null);}}>{t}</button>)}</nav>
  {error&&<p role="alert" className={styles.error}>{error} <button onClick={refresh}>Retry</button></p>}
  {!catalog&&!error&&<p>Loading your collection…</p>}

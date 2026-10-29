@@ -157,9 +157,7 @@ function writeCatalogUrl(
   const url = new URL(window.location.href);
   url.search = "";
 
-  if (!regionId) {
-    url.searchParams.set("view", "world");
-  } else {
+  if (regionId) {
     url.searchParams.set("region", regionId);
     const region = REGIONS.find((candidate) => candidate.id === regionId);
     const item = itemIndex === undefined || itemIndex === null
@@ -209,7 +207,8 @@ function ReviewParts({ parts }: { parts: ReviewText[] }) {
   });
 }
 
-export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:boolean}) {
+export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:Catalog;preview?:boolean;initialSelection?:{regionId:string|null;itemIndex:number}}) {
+  const hasInitialSelection = initialSelection !== undefined;
   const REGIONS = useMemo<Region[]>(() => catalog.regions.map(region => ({id:region.id,name:region.name,heading:region.heading,note:region.description,kind:region.kind,items:catalog.items.filter(item=>item.regionId===region.id).map(item=>item.slug)})), [catalog]);
   const itemsBySlug = useMemo(() => Object.fromEntries(catalog.items.map(item=>[item.slug,item])), [catalog]);
   const legacyByPhoto = useMemo(() => Object.fromEntries(catalog.items
@@ -217,7 +216,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     .map(item => [item.photos[0].src, item.legacyKey!])), [catalog]);
   const [photoBounds, setPhotoBounds] = useState<Record<string, VisualBounds | null>>({});
   const [galleryHeights, setGalleryHeights] = useState<Record<string, number>>({});
-  const photoSelectionRequest = useRef(0);
   const rememberPhotoBounds = useCallback((src: string, image: HTMLImageElement) => {
     if (!src) return;
     const bounds = measureVisibleBounds(image);
@@ -243,10 +241,10 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
   const itemVisualAlignment = useCallback((slug?:string) => itemPresentation(slug), [itemPresentation]);
   const writeLoadoutUrl = useCallback((region:RegionId|null,itemIndex?:number|null,replace=false) => writeCatalogUrl(REGIONS,region,itemIndex,replace), [REGIONS]);
   const [selectedPhoto,setSelectedPhoto] = useState({item: "", index: 0});
-  const [activeRegionId, setActiveRegionId] = useState<RegionId | null>(REGIONS[0]?.id ?? null);
-  const [stage, setStage] = useState(0);
-  const [activeItemIndex, setActiveItemIndex] = useState(0);
-  const [detailItemIndex, setDetailItemIndex] = useState(0);
+  const [activeRegionId, setActiveRegionId] = useState<RegionId | null>(initialSelection ? initialSelection.regionId : REGIONS[0]?.id ?? null);
+  const [stage, setStage] = useState(initialSelection && initialSelection.itemIndex >= 0 ? 1 : 0);
+  const [activeItemIndex, setActiveItemIndex] = useState(Math.max(0, initialSelection?.itemIndex ?? 0));
+  const [detailItemIndex, setDetailItemIndex] = useState(Math.max(0, initialSelection?.itemIndex ?? 0));
   const [detailsVisible, setDetailsVisible] = useState(true);
   const [imagesInTransit, setImagesInTransit] = useState(false);
   const [isDensityTransitioning, setIsDensityTransitioning] = useState(false);
@@ -343,11 +341,14 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     const photos = itemsBySlug[detailSlug]?.photos;
     if (!photos || photos.length < 2) return;
     let cancelled = false;
-    void Promise.all(photos.map(async photo => {
+    void Promise.all(photos.map(async (photo, index) => {
       const image = new window.Image();
       image.src = photo.src;
+      const stippleSrc = photo.stippleSrc || (index === 0 ? GRAPHITE_IMAGES[itemsBySlug[detailSlug]?.legacyKey || ''] : undefined);
+      const stipple = stippleSrc && stippleSrc !== photo.src ? new window.Image() : null;
+      if (stipple) stipple.src = stippleSrc!;
       try {
-        await image.decode();
+        await Promise.all([image.decode(), stipple?.decode().catch(() => {})]);
         return {src: photo.src, bounds: measureVisibleBounds(image)};
       } catch {
         return {src: photo.src, bounds: null};
@@ -369,21 +370,9 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     return () => { cancelled = true; };
   }, [stage, detailSlug, detailGalleryKey, galleryHeights, itemsBySlug]);
 
-  const selectPhoto = useCallback(async (item: string, index: number) => {
-    const src = itemsBySlug[item]?.photos[index]?.src;
-    if (!src) return;
-    const request = ++photoSelectionRequest.current;
-    if (!(src in photoBounds)) {
-      const image = new window.Image();
-      image.src = src;
-      try {
-        await image.decode();
-        const bounds = measureVisibleBounds(image);
-        setPhotoBounds(current => src in current ? current : {...current, [src]: bounds});
-      } catch { /* Keep the existing presentation if an image cannot be measured. */ }
-    }
-    if (request === photoSelectionRequest.current) setSelectedPhoto({item,index});
-  }, [itemsBySlug, photoBounds]);
+  const selectPhoto = useCallback((item: string, index: number) => {
+    if (itemsBySlug[item]?.photos[index]) setSelectedPhoto({item,index});
+  }, [itemsBySlug]);
 
   const regionAtPoint = useCallback((x: number, y: number) => {
     const target = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-region-id]");
@@ -988,7 +977,8 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
       focusedWheelDelta.current = 0;
 
       const params = new URLSearchParams(window.location.search);
-      if (params.get("view") === "world") {
+      const requestedRegion = params.get("region");
+      if (params.get("view") === "world" || !requestedRegion) {
         if (fromHistory) {
           navigateFromHistory(null, -1);
           return;
@@ -1002,7 +992,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
         return;
       }
 
-      const requestedRegion = params.get("region");
       const region = REGIONS.find(
         (candidate) => candidate.id === requestedRegion,
       ) ?? REGIONS[0];
@@ -1031,14 +1020,14 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
       });
     };
 
-    restoreFromUrl();
+    if (!hasInitialSelection) restoreFromUrl();
     const handlePopState = () => restoreFromUrl(true);
     window.addEventListener("popstate", handlePopState);
     return () => {
       window.removeEventListener("popstate", handlePopState);
       window.history.scrollRestoration = previousScrollRestoration;
     };
-  }, [REGIONS]);
+  }, [REGIONS, hasInitialSelection]);
 
   useEffect(() => {
     const onGestureStart = (event: Event) => handleSafariStart(event as SafariGestureEvent);
@@ -1230,8 +1219,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                         <h1 ref={focusedTitleRef}>{data.title}</h1>
                       </div>
                     </header>
-                    {/* These handlers read the selection ref only after a click, never during render. */}
-                    {/* eslint-disable react-hooks/refs */}
                     {data.photos.length > 1 && (
                       <>
                         <div className={styles.photoHitZones} data-photo-navigation data-ready={galleryHeight ? "true" : "false"}>
@@ -1245,7 +1232,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                         </div>
                       </>
                     )}
-                    {/* eslint-enable react-hooks/refs */}
                     <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll tabIndex={0} aria-label="Item review" onScroll={(event) => {
                       viewportRef.current?.style.setProperty("--review-scroll", `${event.currentTarget.scrollTop}px`);
                     }}>
