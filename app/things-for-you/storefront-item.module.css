@@ -25,7 +25,7 @@
 .introduction p { margin: 0; }
 .introduction p + p { margin-top: 20px; }
 .availability { margin-top: 0; padding: 32px; border-radius: var(--radius-lg); background: var(--color-neutral-50); }
-.detailsRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5; }
+.detailsRow { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5; }
 .detailValue { color: var(--color-text-secondary); }
 .detailSeparator { color: var(--color-text-tertiary); }
 .purchaseRow { margin-top: 24px; }
@@ -152,14 +152,14 @@
 .cancelButton { min-height: 48px; padding: 8px; border: 0; background: transparent; color: var(--color-text-tertiary); cursor: pointer; }
 .success { margin: 0; font-family: var(--font-sans); font-size: var(--text-sm); }
 .formError { margin: 0; color: var(--color-danger-600); font-size: var(--text-xs); }
-.measurementsEntity { position: relative; display: inline-block; }
-.measurementsPopover { position: absolute; z-index: 20; top: 100%; left: 0; width: min(320px, calc(100vw - 80px)); margin-top: 0; padding: 8px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-4px); transition: opacity 200ms ease-out, transform 200ms ease-out, visibility 200ms; }
+.measurementsEntity { display: inline-block; }
+.measurementsPopover { position: absolute; z-index: 20; top: 100%; left: 0; width: min(320px, 100%); margin-top: 0; padding: 8px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-4px); transition: opacity 200ms ease-out, transform 200ms ease-out, visibility 200ms; }
 .measurementsEntity:hover .measurementsPopover, .measurementsEntity:focus-within .measurementsPopover { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
 .measurementsList { display: grid; gap: 8px; margin: 0; padding: 16px; border: 1px solid var(--color-border-soft); border-radius: var(--radius-sm); background: #fff; }
 .measurementsList > div { display: grid; grid-template-columns: minmax(80px, 1fr) 2fr; gap: 16px; }
 .measurementsList dt { color: var(--color-text-tertiary); }
-.ownerEntity { position: relative; display: inline-block; }
-.ownerCard { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; display: grid; width: min(320px, calc(100vw - 40px)); padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-xl); opacity: 0; pointer-events: none; transform: translateY(-4px); transition: opacity 200ms ease-out, transform 200ms ease-out; }
+.ownerEntity { display: inline-block; }
+.ownerCard { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; display: grid; width: min(320px, 100%); padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-xl); opacity: 0; pointer-events: none; transform: translateY(-4px); transition: opacity 200ms ease-out, transform 200ms ease-out; }
 .ownerEntity:hover .ownerCard, .ownerEntity:focus-within .ownerCard { opacity: 1; transform: translateY(0); }
 .ownerPhoto { position: relative; display: grid; width: 100%; aspect-ratio: 4 / 3; place-items: center; overflow: hidden; border-radius: var(--radius-sm); background: var(--color-neutral-50); color: var(--color-text-tertiary); font-family: var(--font-sans); font-size: var(--text-xs); }
 .ownerPhoto img { object-fit: cover; }

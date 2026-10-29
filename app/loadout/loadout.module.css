@@ -588,6 +588,7 @@
 /* Longer reviews scroll independently of the item carousel. */
 .detailsContent {
   max-height: min(var(--focused-image-height), 60svh);
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   pointer-events: auto;
