@@ -89,6 +89,8 @@
 .item {
   position: relative;
   min-width: 0;
+  user-select: none;
+  -webkit-user-select: none;
   padding: 0;
   border: 0;
   background: none;
@@ -165,8 +167,8 @@
   transition: opacity 180ms ease;
 }
 
-/* Reset immediately to stippling before movement/snapshot capture.
-   Only the settled, focused item crossfades into its photograph. */
+/* Keep world-to-region snapshots stippled, then reveal color in the region.
+   Focused items retain their color through density and gallery movement. */
 .item:not([data-photo-ready="true"]) .itemPhoto,
 .item:not([data-photo-ready="true"]) .itemDither {
   transition: none;
@@ -315,16 +317,6 @@
   align-items: center;
   justify-content: center;
   pointer-events: auto;
-  animation: gallery-control-fade 180ms ease-out both;
-}
-
-@keyframes gallery-control-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .photoNavigation { animation: none; }
 }
 
 .photoHitZones {

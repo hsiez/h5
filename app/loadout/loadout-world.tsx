@@ -244,6 +244,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
   const [detailItemIndex, setDetailItemIndex] = useState(Math.max(0, initialSelection?.itemIndex ?? 0));
   const [detailsVisible, setDetailsVisible] = useState(true);
   const [imagesInTransit, setImagesInTransit] = useState(false);
+  const [enteringRegion, setEnteringRegion] = useState(false);
   const [isDensityTransitioning, setIsDensityTransitioning] = useState(false);
   const [regionTitleVisible, setRegionTitleVisible] = useState(true);
   const modeAnimations = useRef<Animation[]>([]);
@@ -549,6 +550,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
 
     const update = () => {
       setImagesInTransit(true);
+      setEnteringRegion(Boolean(nextRegion && !activeRegionId));
       setRegionTitleVisible(false);
       if (nextRegion) {
         const remembered = memory[nextRegion] ?? {stage:0,scrollTop:0};
@@ -605,6 +607,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
       delete viewportRef.current?.dataset.modeTransition;
       setRegionTitleVisible(true);
       setImagesInTransit(false);
+      setEnteringRegion(false);
     };
     if (reducedMotion) {
       finish();
@@ -932,6 +935,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
         modeAnimations.current.forEach((animation) => animation.cancel());
         modeAnimations.current = [];
         modeTransitionRunning.current = false;
+        setEnteringRegion(false);
         delete viewportRef.current?.dataset.modeTransition;
         setRegionTitleVisible(true);
       }
@@ -1132,9 +1136,10 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                     <button
                       key={`${activeRegion.id}-${index}`}
                       className={styles.item}
+                      onDragStart={event => event.preventDefault()}
                       data-item-id={`${activeRegion.id}-${index}`}
                       data-active={index === activeItemIndex ? "true" : "false"}
-                      data-photo-ready={stage === 1 && index === activeItemIndex && !imagesInTransit ? "true" : "false"}
+                      data-photo-ready={stage === 1 || !enteringRegion || !imagesInTransit ? "true" : "false"}
                       tabIndex={stage === 1 && index !== activeItemIndex ? -1 : 0}
                       style={{
                         "--item-index": index,
@@ -1167,6 +1172,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                           <>
                             <Image
                               src={imageSrc}
+                              draggable={false}
                               onLoad={event => rememberPhotoBounds(imageSrc, event.currentTarget)}
                               onError={() => rememberDefaultPhotoBounds(imageSrc)}
                               unoptimized={imageSrc.startsWith("https://") || imageSrc.startsWith("/api/catalog/media?")}
@@ -1177,6 +1183,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                             />
                             <Image
                               src={data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.stippleSrc || ((stage !== 1 || index !== activeItemIndex || photoIndex === 0) ? GRAPHITE_IMAGES[data?.legacyKey || legacyByPhoto[data?.photos[0]?.src || ""] || ""] : undefined) || imageSrc}
+                              draggable={false}
                               alt=""
                               fill
                               unoptimized
