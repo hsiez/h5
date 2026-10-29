@@ -15,7 +15,8 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import Image from "next/image";
-import { PaperFrame } from "../_components/paper-frame";
+import { FocusImageGallery } from "./focus-image-gallery";
+import { OverflowFade } from "../_components/overflow-fade";
 import styles from "./loadout.module.css";
 import { type ReviewText } from "./reviews";
 import type { Catalog } from "@/lib/catalog/types";
@@ -84,10 +85,6 @@ const ITEM_ALPHA_BOUNDS: Record<string, { left: number; top: number }> = {
 };
 
 type VisualBounds = { left: number; top: number; width: number; height: number };
-
-function photoGalleryKey(item: string, photos: {src: string}[]) {
-  return `${item}:${photos.map(photo => photo.src).join('|')}`;
-}
 
 function measureVisibleBounds(image: HTMLImageElement): VisualBounds | null {
   const width = image.naturalWidth, height = image.naturalHeight;
@@ -215,7 +212,6 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
     .filter(item => item.legacyKey && item.photos[0]?.src)
     .map(item => [item.photos[0].src, item.legacyKey!])), [catalog]);
   const [photoBounds, setPhotoBounds] = useState<Record<string, VisualBounds | null>>({});
-  const [galleryHeights, setGalleryHeights] = useState<Record<string, number>>({});
   const rememberPhotoBounds = useCallback((src: string, image: HTMLImageElement) => {
     if (!src) return;
     const bounds = measureVisibleBounds(image);
@@ -241,12 +237,14 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
   const itemVisualAlignment = useCallback((slug?:string) => itemPresentation(slug), [itemPresentation]);
   const writeLoadoutUrl = useCallback((region:RegionId|null,itemIndex?:number|null,replace=false) => writeCatalogUrl(REGIONS,region,itemIndex,replace), [REGIONS]);
   const [selectedPhoto,setSelectedPhoto] = useState({item: "", index: 0});
+  const [galleryHeights, setGalleryHeights] = useState<Record<string, number[]>>({});
   const [activeRegionId, setActiveRegionId] = useState<RegionId | null>(initialSelection ? initialSelection.regionId : REGIONS[0]?.id ?? null);
   const [stage, setStage] = useState(initialSelection && initialSelection.itemIndex >= 0 ? 1 : 0);
   const [activeItemIndex, setActiveItemIndex] = useState(Math.max(0, initialSelection?.itemIndex ?? 0));
   const [detailItemIndex, setDetailItemIndex] = useState(Math.max(0, initialSelection?.itemIndex ?? 0));
   const [detailsVisible, setDetailsVisible] = useState(true);
   const [imagesInTransit, setImagesInTransit] = useState(false);
+  const [enteringRegion, setEnteringRegion] = useState(false);
   const [isDensityTransitioning, setIsDensityTransitioning] = useState(false);
   const [regionTitleVisible, setRegionTitleVisible] = useState(true);
   const modeAnimations = useRef<Animation[]>([]);
@@ -334,42 +332,37 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
   const photoIndex = selectedPhoto.item === activeRegion?.items[activeItemIndex] ? selectedPhoto.index : 0;
   const detailSlug = activeRegion?.items[detailItemIndex];
   const detailPhotos = detailSlug ? itemsBySlug[detailSlug]?.photos : undefined;
-  const detailGalleryKey = detailSlug && detailPhotos ? photoGalleryKey(detailSlug, detailPhotos) : "";
+  const detailGalleryKey = detailSlug && detailPhotos ? `${detailSlug}:${detailPhotos.map(photo => photo.src).join('|')}` : "";
 
   useEffect(() => {
-    if (stage !== 1 || !detailSlug || !detailGalleryKey || galleryHeights[detailGalleryKey]) return;
-    const photos = itemsBySlug[detailSlug]?.photos;
-    if (!photos || photos.length < 2) return;
+    if (stage !== 1 || !detailSlug || !detailPhotos || detailPhotos.length < 2 || galleryHeights[detailGalleryKey]) return;
     let cancelled = false;
-    void Promise.all(photos.map(async (photo, index) => {
+    void Promise.all(detailPhotos.map(async (photo, index) => {
       const image = new window.Image();
       image.src = photo.src;
-      const stippleSrc = photo.stippleSrc || (index === 0 ? GRAPHITE_IMAGES[itemsBySlug[detailSlug]?.legacyKey || ''] : undefined);
-      const stipple = stippleSrc && stippleSrc !== photo.src ? new window.Image() : null;
-      if (stipple) stipple.src = stippleSrc!;
-      try {
-        await Promise.all([image.decode(), stipple?.decode().catch(() => {})]);
-        return {src: photo.src, bounds: measureVisibleBounds(image)};
-      } catch {
-        return {src: photo.src, bounds: null};
+      const stippleSrc = photo.stippleSrc || (index === 0 ? GRAPHITE_IMAGES[itemsBySlug[detailSlug]?.legacyKey || ""] : undefined);
+      if (stippleSrc && stippleSrc !== photo.src) {
+        const stipple = new window.Image();
+        stipple.src = stippleSrc;
+        void stipple.decode().catch(() => {});
       }
-    })).then(results => {
+      try {
+        await image.decode();
+        return measureVisibleBounds(image);
+      } catch {
+        return null;
+      }
+    })).then(bounds => {
       if (cancelled) return;
-      const firstBounds = results[0]?.bounds;
-      const galleryScale = catalogVisualPresentation(firstBounds ?? undefined).scale;
-      setPhotoBounds(current => {
-        const next = {...current};
-        for (const {src,bounds} of results) next[src] = bounds;
-        return next;
-      });
+      const scale = catalogVisualPresentation(bounds[0] ?? undefined).scale;
+      const firstTop = bounds[0]?.top ?? 0;
       setGalleryHeights(current => ({
         ...current,
-        [detailGalleryKey]: Math.max(...results.map(({bounds}) => bounds ? bounds.height * galleryScale / 100 : 1)),
+        [detailGalleryKey]: bounds.map(bound => bound ? Math.max(0.1, (bound.top + bound.height - firstTop) * scale / 100) : 1),
       }));
     });
     return () => { cancelled = true; };
-  }, [stage, detailSlug, detailGalleryKey, galleryHeights, itemsBySlug]);
-
+  }, [stage, detailSlug, detailPhotos, detailGalleryKey, galleryHeights, itemsBySlug]);
   const selectPhoto = useCallback((item: string, index: number) => {
     if (itemsBySlug[item]?.photos[index]) setSelectedPhoto({item,index});
   }, [itemsBySlug]);
@@ -557,6 +550,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
 
     const update = () => {
       setImagesInTransit(true);
+      setEnteringRegion(Boolean(nextRegion && !activeRegionId));
       setRegionTitleVisible(false);
       if (nextRegion) {
         const remembered = memory[nextRegion] ?? {stage:0,scrollTop:0};
@@ -613,6 +607,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
       delete viewportRef.current?.dataset.modeTransition;
       setRegionTitleVisible(true);
       setImagesInTransit(false);
+      setEnteringRegion(false);
     };
     if (reducedMotion) {
       finish();
@@ -940,6 +935,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
         modeAnimations.current.forEach((animation) => animation.cancel());
         modeAnimations.current = [];
         modeTransitionRunning.current = false;
+        setEnteringRegion(false);
         delete viewportRef.current?.dataset.modeTransition;
         setRegionTitleVisible(true);
       }
@@ -1140,9 +1136,10 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                     <button
                       key={`${activeRegion.id}-${index}`}
                       className={styles.item}
+                      onDragStart={event => event.preventDefault()}
                       data-item-id={`${activeRegion.id}-${index}`}
                       data-active={index === activeItemIndex ? "true" : "false"}
-                      data-photo-ready={stage === 1 && index === activeItemIndex && !imagesInTransit ? "true" : "false"}
+                      data-photo-ready={stage === 1 || !enteringRegion || !imagesInTransit ? "true" : "false"}
                       tabIndex={stage === 1 && index !== activeItemIndex ? -1 : 0}
                       style={{
                         "--item-index": index,
@@ -1175,6 +1172,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                           <>
                             <Image
                               src={imageSrc}
+                              draggable={false}
                               onLoad={event => rememberPhotoBounds(imageSrc, event.currentTarget)}
                               onError={() => rememberDefaultPhotoBounds(imageSrc)}
                               unoptimized={imageSrc.startsWith("https://") || imageSrc.startsWith("/api/catalog/media?")}
@@ -1185,6 +1183,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                             />
                             <Image
                               src={data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.stippleSrc || ((stage !== 1 || index !== activeItemIndex || photoIndex === 0) ? GRAPHITE_IMAGES[data?.legacyKey || legacyByPhoto[data?.photos[0]?.src || ""] || ""] : undefined) || imageSrc}
+                              draggable={false}
                               alt=""
                               fill
                               unoptimized
@@ -1205,13 +1204,27 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                 const data = itemsBySlug[detailItem];
                 if (!data) return null;
                 const content = data.review || {title:data.title,about:[],pros:[],cons:[]};
-                const galleryKey = photoGalleryKey(detailItem, data.photos);
-                const galleryHeight = galleryHeights[galleryKey];
+                const detailsBody = <div className={styles.detailsBody}>
+                  {activeRegion.kind !== 'storefront' && <section className={styles.detailSection}>
+                    {content.about.map((paragraph, index) => <p key={index}>
+                      {index === 0 && <em className={styles.reviewLeadIn}>I acquired{' '}</em>}
+                      <ReviewParts parts={paragraph} />
+                    </p>)}
+                  </section>}
+                  {activeRegion.kind !== 'storefront' && (["pros", "cons"] as const).filter(section=>content[section].length).map((section) => (
+                    <section key={section} className={styles.detailSection}>
+                      <p><em className={styles.reviewLeadIn}>{section === "pros" ? "I love" : "Only notes:"}{' '}</em>{content[section].map((piece, pieceIndex) => <Fragment key={pieceIndex}>
+                        {pieceIndex > 0 && " "}
+                        {typeof piece === "string" ? piece : <ReviewParts parts={piece} />}
+                      </Fragment>)}</p>
+                    </section>
+                  ))}
+                  {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded slug={preview?undefined:data.slug} title={data.title} story={data.description} storyParts={data.review?.about} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
+                </div>;
                 return (
                   <aside
                     className={styles.focusedDetails}
                     data-visible={detailsVisible && !isDensityTransitioning ? "true" : "false"}
-                    style={{"--focused-visual-height": galleryHeight ?? 1} as CSSProperties}
                     aria-live="polite"
                   >
                     <header className={styles.detailsHeader}>
@@ -1219,40 +1232,18 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                         <h1 ref={focusedTitleRef}>{data.title}</h1>
                       </div>
                     </header>
-                    {data.photos.length > 1 && (
-                      <>
-                        <div className={styles.photoHitZones} data-photo-navigation data-ready={galleryHeight ? "true" : "false"}>
-                          <button type="button" aria-label="Previous photo" onClick={() => void selectPhoto(detailItem,(photoIndex + data.photos.length - 1) % data.photos.length)} />
-                          <button type="button" aria-label="Next photo" onClick={() => void selectPhoto(detailItem,(photoIndex + 1) % data.photos.length)} />
-                        </div>
-                        <div className={styles.photoNavigation} data-photo-navigation data-ready={galleryHeight ? "true" : "false"} role="group" aria-label={`Photos of ${data.title}`}>
-                          <PaperFrame elevation="popover" className={styles.photoDotFrame}>
-                            {data.photos.map((photo,index) => <button key={photo.src} type="button" className={styles.photoDot} aria-label={`Show photo ${index+1} of ${data.photos.length}`} aria-current={photoIndex === index ? "true" : undefined} onClick={() => void selectPhoto(detailItem,index)} />)}
-                          </PaperFrame>
-                        </div>
-                      </>
-                    )}
-                    <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll tabIndex={0} aria-label="Item review" onScroll={(event) => {
-                      viewportRef.current?.style.setProperty("--review-scroll", `${event.currentTarget.scrollTop}px`);
-                    }}>
-                      <div className={styles.detailsBody}>
-                        {activeRegion.kind !== 'storefront' && <section className={styles.detailSection}>
-                          {content.about.map((paragraph, index) => <p key={index}>
-                            {index === 0 && <em className={styles.reviewLeadIn}>I acquired{' '}</em>}
-                            <ReviewParts parts={paragraph} />
-                          </p>)}
-                        </section>}
-                        {activeRegion.kind !== 'storefront' && (["pros", "cons"] as const).filter(section=>content[section].length).map((section) => (
-                          <section key={section} className={styles.detailSection}>
-                            <p><em className={styles.reviewLeadIn}>{section === "pros" ? "I love" : "Only notes:"}{' '}</em>{content[section].map((piece, pieceIndex) => <Fragment key={pieceIndex}>
-                              {pieceIndex > 0 && " "}
-                              {typeof piece === "string" ? piece : <ReviewParts parts={piece} />}
-                            </Fragment>)}</p>
-                          </section>
-                        ))}
-                        {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded slug={preview?undefined:data.slug} title={data.title} story={data.description} storyParts={data.review?.about} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
+                    <FocusImageGallery title={data.title} photos={data.photos} selectedIndex={photoIndex} visualHeight={galleryHeights[detailGalleryKey]?.[photoIndex]} onSelect={index => selectPhoto(detailItem,index)} />
+                    {activeRegion.kind === 'storefront' ? (
+                      <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll data-storefront="true" tabIndex={-1} aria-label="Item review">
+                        {detailsBody}
                       </div>
-                    </div>
+                    ) : (
+                      <OverflowFade key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} dataReviewScroll label="Item review" onScroll={(event) => {
+                        viewportRef.current?.style.setProperty("--review-scroll", `${event.currentTarget.scrollTop}px`);
+                      }}>
+                        {detailsBody}
+                      </OverflowFade>
+                    )}
                   </aside>
                 );
               })() : null}
