@@ -15,7 +15,6 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import Image from "next/image";
-import { CursorTooltip } from "../_components/cursor-tooltip";
 import { PaperFrame } from "../_components/paper-frame";
 import styles from "./loadout.module.css";
 import { type ReviewText } from "./reviews";
@@ -216,20 +215,30 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
   const legacyByPhoto = useMemo(() => Object.fromEntries(catalog.items
     .filter(item => item.legacyKey && item.photos[0]?.src)
     .map(item => [item.photos[0].src, item.legacyKey!])), [catalog]);
-  const [photoBounds, setPhotoBounds] = useState<Record<string, VisualBounds>>({});
+  const [photoBounds, setPhotoBounds] = useState<Record<string, VisualBounds | null>>({});
   const [galleryHeights, setGalleryHeights] = useState<Record<string, number>>({});
   const photoSelectionRequest = useRef(0);
   const rememberPhotoBounds = useCallback((src: string, image: HTMLImageElement) => {
     if (!src) return;
     const bounds = measureVisibleBounds(image);
-    if (bounds) setPhotoBounds(current => current[src] ? current : {...current, [src]: bounds});
+    setPhotoBounds(current => src in current ? current : {...current, [src]: bounds});
   }, []);
-  const itemPresentation = useCallback((slug?: string, selectedIndex = 0) => {
+  const rememberDefaultPhotoBounds = useCallback((src: string) => {
+    setPhotoBounds(current => src in current ? current : {...current, [src]: null});
+  }, []);
+  const itemPresentation = useCallback((slug?: string) => {
     const item = slug ? itemsBySlug[slug] : undefined;
-    const legacyKey = selectedIndex === 0 ? item?.legacyKey || legacyByPhoto[item?.photos[0]?.src || ''] : undefined;
+    const legacyKey = item?.legacyKey || legacyByPhoto[item?.photos[0]?.src || ''];
     const legacy = legacyKey ? ITEM_PRESENTATION[legacyKey] : undefined;
     if (legacy && legacyKey) return {...legacy, ...legacyVisualAlignment(legacyKey)};
-    return catalogVisualPresentation(photoBounds[item?.photos[selectedIndex]?.src || '']);
+    // A gallery keeps one presentation across photos; changing it per photo
+    // makes the artwork appear to resize as the user navigates.
+    return catalogVisualPresentation(photoBounds[item?.photos[0]?.src || ''] ?? undefined);
+  }, [itemsBySlug, legacyByPhoto, photoBounds]);
+  const itemVisualReady = useCallback((slug: string) => {
+    const item = itemsBySlug[slug];
+    const src = item?.photos[0]?.src;
+    return !src || Boolean(item?.legacyKey || legacyByPhoto[src]) || src in photoBounds;
   }, [itemsBySlug, legacyByPhoto, photoBounds]);
   const itemVisualAlignment = useCallback((slug?:string) => itemPresentation(slug), [itemPresentation]);
   const writeLoadoutUrl = useCallback((region:RegionId|null,itemIndex?:number|null,replace=false) => writeCatalogUrl(REGIONS,region,itemIndex,replace), [REGIONS]);
@@ -245,8 +254,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
   const modeAnimations = useRef<Animation[]>([]);
   const modeAnimationGeneration = useRef(0);
   const modeTransitionRunning = useRef(false);
-  const [cursorInGrid, setCursorInGrid] = useState(false);
-  const [hoveredItemIndex, setHoveredItemIndex] = useState<number | null>(null);
   const [memory, setMemory] = useState<RegionMemory>(()=>Object.fromEntries(REGIONS.map(region=>[region.id,{stage:0,scrollTop:0}])));
   const [isPinching, setIsPinching] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -270,8 +277,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
   const focusedNavigationLocked = useRef(false);
   const focusedNavigationUnlockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const detailsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cursorTooltipRef = useRef<HTMLDivElement>(null);
-  const cursorTooltipHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusedSwipe = useRef<{
     pointerId: number;
     startY: number;
@@ -308,6 +313,26 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     [activeRegionId, REGIONS],
   );
 
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || !activeRegion?.items.length) return;
+    const align = itemVisualAlignment(activeRegion.items[0]).left / 100;
+    const updateCopyPosition = () => {
+      const width = window.innerWidth;
+      const pageStyles = getComputedStyle(viewport.closest('main')!);
+      const gutter = Number.parseFloat(pageStyles.getPropertyValue('--overview-gutter'));
+      const maxWidth = Number.parseFloat(pageStyles.getPropertyValue('--overview-max-width'));
+      const gridWidth = Math.min(width - 2 * gutter, maxWidth);
+      const gridGap = Math.max(3, Math.min(width * .0045, 8));
+      const firstColumnWidth = (gridWidth - 2 * gridGap) / 3;
+      const pageLeft = (width - gridWidth) / 2 + firstColumnWidth * align;
+      viewport.style.setProperty('--focused-copy-left', `${pageLeft}px`);
+    };
+    updateCopyPosition();
+    window.addEventListener('resize', updateCopyPosition);
+    return () => window.removeEventListener('resize', updateCopyPosition);
+  }, [activeRegion, itemVisualAlignment]);
+
   const photoIndex = selectedPhoto.item === activeRegion?.items[activeItemIndex] ? selectedPhoto.index : 0;
   const detailSlug = activeRegion?.items[detailItemIndex];
   const detailPhotos = detailSlug ? itemsBySlug[detailSlug]?.photos : undefined;
@@ -329,14 +354,16 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
       }
     })).then(results => {
       if (cancelled) return;
+      const firstBounds = results[0]?.bounds;
+      const galleryScale = catalogVisualPresentation(firstBounds ?? undefined).scale;
       setPhotoBounds(current => {
         const next = {...current};
-        for (const {src,bounds} of results) if (bounds) next[src] = bounds;
+        for (const {src,bounds} of results) next[src] = bounds;
         return next;
       });
       setGalleryHeights(current => ({
         ...current,
-        [detailGalleryKey]: Math.max(...results.map(({bounds}) => catalogVisualPresentation(bounds ?? undefined).visibleHeight)),
+        [detailGalleryKey]: Math.max(...results.map(({bounds}) => bounds ? bounds.height * galleryScale / 100 : 1)),
       }));
     });
     return () => { cancelled = true; };
@@ -346,30 +373,17 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     const src = itemsBySlug[item]?.photos[index]?.src;
     if (!src) return;
     const request = ++photoSelectionRequest.current;
-    if (!photoBounds[src]) {
+    if (!(src in photoBounds)) {
       const image = new window.Image();
       image.src = src;
       try {
         await image.decode();
         const bounds = measureVisibleBounds(image);
-        if (bounds) setPhotoBounds(current => current[src] ? current : {...current, [src]: bounds});
+        setPhotoBounds(current => src in current ? current : {...current, [src]: bounds});
       } catch { /* Keep the existing presentation if an image cannot be measured. */ }
     }
     if (request === photoSelectionRequest.current) setSelectedPhoto({item,index});
   }, [itemsBySlug, photoBounds]);
-
-  const positionCursorTooltip = useCallback((x: number, y: number) => {
-    const tooltip = cursorTooltipRef.current;
-    if (!tooltip) return;
-    const offset = 16;
-    const edge = 12;
-    const width = tooltip.offsetWidth;
-    const height = tooltip.offsetHeight;
-    const left = Math.max(edge, Math.min(x + offset, window.innerWidth - width - edge));
-    const top = Math.max(edge, Math.min(y + offset, window.innerHeight - height - edge));
-    tooltip.style.setProperty("--cursor-x", `${left}px`);
-    tooltip.style.setProperty("--cursor-y", `${top}px`);
-  }, []);
 
   const regionAtPoint = useCallback((x: number, y: number) => {
     const target = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-region-id]");
@@ -472,7 +486,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     // Both snapshots must contain stippling; reveal the photo only after arrival.
     flushSync(() => setImagesInTransit(true));
     const update = () => {
-      setHoveredItemIndex(null);
       setIsDensityTransitioning(true);
       setActiveItemIndex(nextItemIndex);
       setDetailItemIndex(nextItemIndex);
@@ -556,7 +569,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     const update = () => {
       setImagesInTransit(true);
       setRegionTitleVisible(false);
-      setHoveredItemIndex(null);
       if (nextRegion) {
         const remembered = memory[nextRegion] ?? {stage:0,scrollTop:0};
         const nextStage = targetStage ?? remembered.stage;
@@ -981,7 +993,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
           navigateFromHistory(null, -1);
           return;
         }
-        setHoveredItemIndex(null);
         setIsDensityTransitioning(true);
         setActiveRegionId(null);
         setStage(0);
@@ -1006,7 +1017,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
         return;
       }
       setIsDensityTransitioning(true);
-      setHoveredItemIndex(null);
       setActiveRegionId(region.id);
       setStage(itemIndex >= 0 ? 1 : 0);
       setActiveItemIndex(itemIndex >= 0 ? itemIndex : 0);
@@ -1055,7 +1065,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     if (focusedWheelTimer.current) clearTimeout(focusedWheelTimer.current);
     if (focusedNavigationUnlockTimer.current) clearTimeout(focusedNavigationUnlockTimer.current);
     if (detailsTimer.current) clearTimeout(detailsTimer.current);
-    if (cursorTooltipHideTimer.current) clearTimeout(cursorTooltipHideTimer.current);
   }, []);
 
   const onViewportKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -1127,23 +1136,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                     setImagesInTransit(false);
                   }
                 }}
-                onPointerEnter={(event) => {
-                  if (stage !== 0 || event.pointerType === "touch") return;
-                  positionCursorTooltip(event.clientX, event.clientY);
-                  setCursorInGrid(true);
-                }}
-                onPointerMove={(event) => {
-                  if (stage !== 0 || event.pointerType === "touch") return;
-                  positionCursorTooltip(event.clientX, event.clientY);
-                }}
-                onPointerLeave={() => {
-                  if (cursorTooltipHideTimer.current) {
-                    clearTimeout(cursorTooltipHideTimer.current);
-                    cursorTooltipHideTimer.current = null;
-                  }
-                  setCursorInGrid(false);
-                  setHoveredItemIndex(null);
-                }}
                 style={{
                   "--columns": DENSITY_STAGES[stage],
                   "--active-item": activeItemIndex,
@@ -1153,8 +1145,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                 {activeRegion.items.map((item, index) => {
                   const data = itemsBySlug[item];
                   const imageSrc = data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.src;
-                  const alternatePhoto = stage === 1 && index === activeItemIndex && photoIndex > 0;
-                  const presentation = itemPresentation(item, alternatePhoto ? photoIndex : 0);
+                  const presentation = itemPresentation(item);
                   const alignment = presentation;
                   return (
                     <button
@@ -1173,34 +1164,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                         "--visual-left": `${alignment.left}%`,
                       } as CSSProperties}
                       aria-label={`${item}, item ${index + 1} of ${activeRegion.items.length}`}
-                      onPointerEnter={(event) => {
-                        if (stage !== 0 || event.pointerType === "touch") return;
-                        if (cursorTooltipHideTimer.current) {
-                          clearTimeout(cursorTooltipHideTimer.current);
-                          cursorTooltipHideTimer.current = null;
-                        }
-                        positionCursorTooltip(event.clientX, event.clientY);
-                        setHoveredItemIndex(index);
-                      }}
-                      onPointerMove={(event) => {
-                        if (stage !== 0 || event.pointerType === "touch") return;
-                        positionCursorTooltip(event.clientX, event.clientY);
-                      }}
-                      onPointerLeave={() => {
-                        if (cursorTooltipHideTimer.current) {
-                          clearTimeout(cursorTooltipHideTimer.current);
-                        }
-                        cursorTooltipHideTimer.current = setTimeout(() => {
-                          setHoveredItemIndex(null);
-                          cursorTooltipHideTimer.current = null;
-                        }, 140);
-                      }}
                       onClick={(event) => {
-                        if (cursorTooltipHideTimer.current) {
-                          clearTimeout(cursorTooltipHideTimer.current);
-                          cursorTooltipHideTimer.current = null;
-                        }
-                        setHoveredItemIndex(null);
                         if (stage === 0) {
                           commitDensity(1, event.clientX, event.clientY);
                         } else {
@@ -1212,6 +1176,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                         className={styles.itemMedia}
                         data-shared-item-index={index}
                         data-has-image={imageSrc ? "true" : "false"}
+                        data-visual-ready={itemVisualReady(item) ? "true" : "false"}
                         aria-hidden="true"
                         style={{
                           viewTransitionName: `loadout-${activeRegion.id}-${index}`,
@@ -1222,6 +1187,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                             <Image
                               src={imageSrc}
                               onLoad={event => rememberPhotoBounds(imageSrc, event.currentTarget)}
+                              onError={() => rememberDefaultPhotoBounds(imageSrc)}
                               unoptimized={imageSrc.startsWith("https://") || imageSrc.startsWith("/api/catalog/media?")}
                               alt=""
                               fill
@@ -1304,11 +1270,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                   </aside>
                 );
               })() : null}
-              {stage === 1 ? (
-                <p className={styles.focusedPosition} aria-live="polite">
-                  {activeItemIndex + 1} / {activeRegion.items.length}
-                </p>
-              ) : null}
             </div>
           </section>
         ) : (
@@ -1316,45 +1277,17 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
             <h1
               className={styles.worldTitle}
               data-visible={regionTitleVisible ? "true" : "false"}
-              style={{
-                "--first-item-left": `${itemVisualAlignment(REGIONS[0]?.items[0]).left}%`,
-              } as CSSProperties}
             >
-              <span className={styles.worldTitleRegion}>
-                <span>Things worth mentioning</span>
-              </span>
+              Things worth mentioning
             </h1>
-            <div
-              className={styles.worldGrid}
-              onPointerEnter={(event) => {
-                if (event.pointerType === "touch") return;
-                positionCursorTooltip(event.clientX, event.clientY);
-                setCursorInGrid(true);
-              }}
-              onPointerMove={(event) => {
-                if (event.pointerType === "touch") return;
-                positionCursorTooltip(event.clientX, event.clientY);
-              }}
-              onPointerLeave={() => {
-                setCursorInGrid(false);
-                setHoveredItemIndex(null);
-              }}
-            >
+            <div className={styles.worldGrid}>
               {REGIONS.map((region, regionIndex) => (
                 <button
                   key={region.id}
                   className={styles.regionCard}
                   data-region-id={region.id}
                   aria-label={region.name}
-                  onPointerEnter={(event) => {
-                    if (event.pointerType === "touch") return;
-                    positionCursorTooltip(event.clientX, event.clientY);
-                    setHoveredItemIndex(regionIndex);
-                  }}
-                  onPointerLeave={() => setHoveredItemIndex(null)}
                   onClick={() => {
-                    setCursorInGrid(false);
-                    setHoveredItemIndex(null);
                     switchMode(region.id, 0);
                   }}
                 >
@@ -1370,6 +1303,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                           key={index}
                           data-world-item-index={index}
                           data-has-image={imageSrc ? "true" : "false"}
+                          data-visual-ready={itemVisualReady(item) ? "true" : "false"}
                           style={{
                             "--item-index": index + regionIndex * 7,
                             "--item-scale": presentation?.scale ?? 1,
@@ -1394,6 +1328,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                               unoptimized
                               aria-hidden="true"
                               onLoad={event => rememberPhotoBounds(itemsBySlug[item].photos[0].src, event.currentTarget)}
+                              onError={() => rememberDefaultPhotoBounds(itemsBySlug[item].photos[0].src)}
                               style={{opacity:0, pointerEvents:'none'}}
                             />}
                             </>
@@ -1411,14 +1346,6 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
           </section>
         )}
       </div>
-      <CursorTooltip
-        ref={cursorTooltipRef}
-        expanded={hoveredItemIndex !== null}
-        visible={cursorInGrid && (activeRegion === null || stage === 0)}
-        detail={activeRegion === null && hoveredItemIndex !== null
-          ? (REGIONS[hoveredItemIndex]?.name ?? "view")
-          : "view"}
-      />
     </main>
   );
 }

@@ -18,7 +18,7 @@ export const ITEM_REVIEWS: Record<string, ItemReview> = {
     cons: ["I wear it so often that the red now dictates the rest of my wardrobe."],
   },
   Jeans: {
-    title: "Oni Kiraku super wide jeans",
+    title: "Selvedge denim jeans",
     about: [["these 222-BKOL “Kiraku” super wide jeans in black olive in ", { text: "Ueno", entity: { kind: "location", name: "Ueno", city: "Tokyo, Japan", latitude: 35.71, longitude: 139.776, zoom: 13.5 } }, ". They’re my first pair of selvedge denim."]],
     pros: ["how light and flowy these feel, almost like pajama bottoms. So comfortable.", "The legs are wide, but the fit feels more structured around the hips and waist. I like that support in high-waisted pants.", "The earthy color works with the rest of my closet."],
     cons: ["the light fabric and wide cut make it harder to get the whiskers and stacks I’d hoped to develop."],
