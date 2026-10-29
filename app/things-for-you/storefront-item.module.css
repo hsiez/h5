@@ -20,7 +20,6 @@
 .claiming { margin-top: 64px; -webkit-user-select: none; user-select: none; }
 .measurementsList dd { -webkit-user-select: text; user-select: text; }
 .introduction { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: var(--text-lg); line-height: 1.8; text-wrap: pretty; }
-.introduction h2 { margin: 0 0 20px; color: var(--color-text-tertiary); font-size: 32px; font-style: italic; font-weight: 400; line-height: 1.2; }
 .storyLeadIn { color: var(--color-neutral-400); font-size: 32px; font-weight: 400; font-style: italic; line-height: 36px; }
 .introduction p { margin: 0; }
 .introduction p + p { margin-top: 20px; }
@@ -171,5 +170,14 @@
 @media (max-width: 760px) { .item { padding-bottom: 64px; } .columns { grid-template-columns: minmax(0, 1fr); gap: 32px; margin-top: var(--spacing-title-content); } .gallery { max-width: 560px; } .content { max-width: 65ch; } .claiming { margin-top: 48px; } .availability { padding: 24px; } }
 @media (max-width: 480px) { .claimDialog { padding: 24px; } }
 @media (prefers-reduced-motion: reduce) { .ownerCard, .measurementsPopover, .galleryDot::after { transition: none; } .loadingSheen { animation: none; background-position: 50% 0; } }
-.embedded { margin-top:32px; }
-.embedded .claiming { margin-top:24px; }
+.embedded { height: 100%; }
+.embedded article, .embedded article > div, .embedded .content { height: 100%; min-height: 0; }
+.embedded .content { display: flex; flex-direction: column; }
+.embedded .storyScroll { flex: 0 1 auto; }
+.claiming[data-embedded="true"] { flex: none; width: min(440px, 90%); margin-top: 48px; }
+.claiming[data-embedded="true"] .availability { padding: 20px 24px; }
+.claiming[data-embedded="true"] .purchaseRow { margin-top: 16px; }
+@media (max-width: 1100px) {
+  .embedded, .embedded article, .embedded article > div, .embedded .content { height: auto; }
+  .embedded .storyScroll { max-height: min(42svh, 400px); }
+}

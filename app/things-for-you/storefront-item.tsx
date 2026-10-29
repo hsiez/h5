@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { flushSync } from 'react-dom';
 import { PaperFrame } from '../_components/paper-frame';
+import { OverflowFade } from '../_components/overflow-fade';
 import { InlineReference } from '../loadout/inline-reference';
 import type { ReviewText } from '../loadout/reviews';
 import { StorefrontStatusBadge } from './storefront-status-badge';
@@ -184,6 +185,14 @@ export function StorefrontItem({
     }
   }
 
+  const introduction = (storyParts?.length || story || reason) && <section className={styles.introduction} aria-label="About this item">
+            {storyParts?.length ? storyParts.map((paragraph, index) => <p key={index}>
+              {index === 0 && <em className={styles.storyLeadIn}>I am forfeiting{' '}</em>}
+              {paragraph.map((part, partIndex) => typeof part === 'string' ? <span key={partIndex}>{part}</span> : <InlineReference key={partIndex} text={part.text} entity={part.entity} />)}
+            </p>) : story && <p><em className={styles.storyLeadIn}>I am forfeiting{' '}</em>{story}</p>}
+            {reason && <p>{reason}</p>}
+          </section>;
+
   return <div className={embedded ? styles.embedded : styles.page}>
     <article className={embedded ? undefined : styles.item}>
       {!embedded && <h1>{title}</h1>}
@@ -207,15 +216,9 @@ export function StorefrontItem({
         </div>
 }
         <div className={styles.content}>
-          {(storyParts?.length || story || reason) && <section className={styles.introduction} aria-label="About this item">
-            {storyParts?.length ? storyParts.map((paragraph, index) => <p key={index}>
-              {index === 0 && <em className={styles.storyLeadIn}>I am forfeiting{' '}</em>}
-              {paragraph.map((part, partIndex) => typeof part === 'string' ? <span key={partIndex}>{part}</span> : <InlineReference key={partIndex} text={part.text} entity={part.entity} />)}
-            </p>) : story && <><h2>I’m forfeiting</h2><p>{story}</p></>}
-            {reason && <p>{reason}</p>}
-          </section>}
+          {embedded ? <OverflowFade className={styles.storyScroll} label="About this item">{introduction}</OverflowFade> : introduction}
 
-          <section className={styles.claiming} aria-label="Adoption details">
+          <section className={styles.claiming} data-embedded={embedded ? 'true' : undefined} aria-label="Adoption details">
             <section className={styles.availability} aria-label="Shopping details">
               <div className={styles.detailsRow}>
                 <StorefrontStatusBadge status={currentStatus} />
