@@ -215,20 +215,30 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
   const legacyByPhoto = useMemo(() => Object.fromEntries(catalog.items
     .filter(item => item.legacyKey && item.photos[0]?.src)
     .map(item => [item.photos[0].src, item.legacyKey!])), [catalog]);
-  const [photoBounds, setPhotoBounds] = useState<Record<string, VisualBounds>>({});
+  const [photoBounds, setPhotoBounds] = useState<Record<string, VisualBounds | null>>({});
   const [galleryHeights, setGalleryHeights] = useState<Record<string, number>>({});
   const photoSelectionRequest = useRef(0);
   const rememberPhotoBounds = useCallback((src: string, image: HTMLImageElement) => {
     if (!src) return;
     const bounds = measureVisibleBounds(image);
-    if (bounds) setPhotoBounds(current => current[src] ? current : {...current, [src]: bounds});
+    setPhotoBounds(current => src in current ? current : {...current, [src]: bounds});
   }, []);
-  const itemPresentation = useCallback((slug?: string, selectedIndex = 0) => {
+  const rememberDefaultPhotoBounds = useCallback((src: string) => {
+    setPhotoBounds(current => src in current ? current : {...current, [src]: null});
+  }, []);
+  const itemPresentation = useCallback((slug?: string) => {
     const item = slug ? itemsBySlug[slug] : undefined;
-    const legacyKey = selectedIndex === 0 ? item?.legacyKey || legacyByPhoto[item?.photos[0]?.src || ''] : undefined;
+    const legacyKey = item?.legacyKey || legacyByPhoto[item?.photos[0]?.src || ''];
     const legacy = legacyKey ? ITEM_PRESENTATION[legacyKey] : undefined;
     if (legacy && legacyKey) return {...legacy, ...legacyVisualAlignment(legacyKey)};
-    return catalogVisualPresentation(photoBounds[item?.photos[selectedIndex]?.src || '']);
+    // A gallery keeps one presentation across photos; changing it per photo
+    // makes the artwork appear to resize as the user navigates.
+    return catalogVisualPresentation(photoBounds[item?.photos[0]?.src || ''] ?? undefined);
+  }, [itemsBySlug, legacyByPhoto, photoBounds]);
+  const itemVisualReady = useCallback((slug: string) => {
+    const item = itemsBySlug[slug];
+    const src = item?.photos[0]?.src;
+    return !src || Boolean(item?.legacyKey || legacyByPhoto[src]) || src in photoBounds;
   }, [itemsBySlug, legacyByPhoto, photoBounds]);
   const itemVisualAlignment = useCallback((slug?:string) => itemPresentation(slug), [itemPresentation]);
   const writeLoadoutUrl = useCallback((region:RegionId|null,itemIndex?:number|null,replace=false) => writeCatalogUrl(REGIONS,region,itemIndex,replace), [REGIONS]);
@@ -344,14 +354,16 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
       }
     })).then(results => {
       if (cancelled) return;
+      const firstBounds = results[0]?.bounds;
+      const galleryScale = catalogVisualPresentation(firstBounds ?? undefined).scale;
       setPhotoBounds(current => {
         const next = {...current};
-        for (const {src,bounds} of results) if (bounds) next[src] = bounds;
+        for (const {src,bounds} of results) next[src] = bounds;
         return next;
       });
       setGalleryHeights(current => ({
         ...current,
-        [detailGalleryKey]: Math.max(...results.map(({bounds}) => catalogVisualPresentation(bounds ?? undefined).visibleHeight)),
+        [detailGalleryKey]: Math.max(...results.map(({bounds}) => bounds ? bounds.height * galleryScale / 100 : 1)),
       }));
     });
     return () => { cancelled = true; };
@@ -361,13 +373,13 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
     const src = itemsBySlug[item]?.photos[index]?.src;
     if (!src) return;
     const request = ++photoSelectionRequest.current;
-    if (!photoBounds[src]) {
+    if (!(src in photoBounds)) {
       const image = new window.Image();
       image.src = src;
       try {
         await image.decode();
         const bounds = measureVisibleBounds(image);
-        if (bounds) setPhotoBounds(current => current[src] ? current : {...current, [src]: bounds});
+        setPhotoBounds(current => src in current ? current : {...current, [src]: bounds});
       } catch { /* Keep the existing presentation if an image cannot be measured. */ }
     }
     if (request === photoSelectionRequest.current) setSelectedPhoto({item,index});
@@ -1133,8 +1145,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                 {activeRegion.items.map((item, index) => {
                   const data = itemsBySlug[item];
                   const imageSrc = data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.src;
-                  const alternatePhoto = stage === 1 && index === activeItemIndex && photoIndex > 0;
-                  const presentation = itemPresentation(item, alternatePhoto ? photoIndex : 0);
+                  const presentation = itemPresentation(item);
                   const alignment = presentation;
                   return (
                     <button
@@ -1165,6 +1176,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                         className={styles.itemMedia}
                         data-shared-item-index={index}
                         data-has-image={imageSrc ? "true" : "false"}
+                        data-visual-ready={itemVisualReady(item) ? "true" : "false"}
                         aria-hidden="true"
                         style={{
                           viewTransitionName: `loadout-${activeRegion.id}-${index}`,
@@ -1175,6 +1187,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                             <Image
                               src={imageSrc}
                               onLoad={event => rememberPhotoBounds(imageSrc, event.currentTarget)}
+                              onError={() => rememberDefaultPhotoBounds(imageSrc)}
                               unoptimized={imageSrc.startsWith("https://") || imageSrc.startsWith("/api/catalog/media?")}
                               alt=""
                               fill
@@ -1290,6 +1303,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                           key={index}
                           data-world-item-index={index}
                           data-has-image={imageSrc ? "true" : "false"}
+                          data-visual-ready={itemVisualReady(item) ? "true" : "false"}
                           style={{
                             "--item-index": index + regionIndex * 7,
                             "--item-scale": presentation?.scale ?? 1,
@@ -1314,6 +1328,7 @@ export function LoadoutWorld({catalog,preview=false}:{catalog:Catalog;preview?:b
                               unoptimized
                               aria-hidden="true"
                               onLoad={event => rememberPhotoBounds(itemsBySlug[item].photos[0].src, event.currentTarget)}
+                              onError={() => rememberDefaultPhotoBounds(itemsBySlug[item].photos[0].src)}
                               style={{opacity:0, pointerEvents:'none'}}
                             />}
                             </>

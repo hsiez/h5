@@ -141,6 +141,18 @@
   display: none;
 }
 
+/* Wait for the photo bounds before showing artwork at its final scale. */
+.itemMedia[data-has-image="true"][data-visual-ready="false"],
+.miniGrid > span[data-has-image="true"][data-visual-ready="false"] {
+  opacity: 0;
+}
+
+.itemMedia[data-has-image="true"][data-visual-ready="true"],
+.miniGrid > span[data-has-image="true"][data-visual-ready="true"] {
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+
 .itemImage {
   z-index: 1;
   object-fit: contain;
