@@ -1,8 +1,10 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { flushSync } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import { PaperFrame } from '../_components/paper-frame';
 import { OverflowFade } from '../_components/overflow-fade';
 import { InlineReference } from '../loadout/inline-reference';
@@ -19,6 +21,7 @@ const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type StorefrontItemProps = {
   embedded?: boolean;
+  factsUnderTitle?: boolean;
   status: StorefrontItemStatus;
   buttonVariant?: StorefrontButtonVariant;
   title: string;
@@ -39,11 +42,39 @@ export type StorefrontItemProps = {
   onClaimEmailChange?: (email: string) => void;
 };
 
+export function StorefrontItemFacts({ size, condition, measurements, leadingSeparator = false }: Pick<StorefrontItemProps, 'size' | 'condition' | 'measurements'> & { leadingSeparator?: boolean }) {
+  const measurementsId = useId();
+  const displaySize = size.trim().toLowerCase() === 'm' ? 'medium' : size;
+  const displayCondition = condition.trim().toLowerCase() === 'used' ? 'gently used' : condition;
+
+  return <>
+    {leadingSeparator && <span className={styles.detailSeparator} aria-hidden="true">·</span>}
+    <span className={styles.detailValue}>
+      {measurements.length > 0 ? <span className={styles.measurementsEntity}>
+        <button type="button" className={entityStyles.trigger} aria-label={`Size: ${displaySize || 'View measurements'}. View measurements`} aria-describedby={measurementsId}>{displaySize || 'Measurements'}</button>
+        <PaperFrame elevation="popover" className={styles.measurementsPopover}>
+          <dl id={measurementsId} className={styles.measurementsList}>
+            {measurements.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+          </dl>
+        </PaperFrame>
+      </span> : <span aria-label={`Size: ${displaySize}`}>{displaySize}</span>}
+    </span>
+    <span className={styles.detailSeparator} aria-hidden="true">·</span>
+    <span className={styles.detailValue} aria-label={`Condition: ${displayCondition}`}>{displayCondition}</span>
+  </>;
+}
+
 export function StorefrontItem({
-  embedded = false, status, buttonVariant = 'layered', title, story, storyParts, reason, photos, size, condition, measurements, owner, slug,
+  embedded = false, factsUnderTitle = false, status, buttonVariant = 'layered', title, story, storyParts, reason, photos, size, condition, measurements, owner, slug,
   initialAction = null, initialSubmission = 'idle', initialEmail = '', initialAcknowledged = false, initialError = '', onClaimEmailChange,
 }: StorefrontItemProps) {
+  const router = useRouter();
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setPortalRoot(document.body));
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
   const [action, setAction] = useState<Action | null>(initialAction);
   const [submission, setSubmission] = useState<Submission>(initialSubmission);
   const [email, setEmail] = useState(initialEmail);
@@ -60,7 +91,6 @@ export function StorefrontItem({
   const dialogTitleId = useId();
   const dialogDescriptionId = useId();
   const ownerId = useId();
-  const measurementsId = useId();
   const photo = photos[photoIndex];
   useEffect(() => {
     if (!slug) return;
@@ -88,8 +118,6 @@ export function StorefrontItem({
   }, [slug]);
 
   const currentStatus = slug ? liveStatus : status;
-  const displaySize = size.trim().toLowerCase() === 'm' ? 'medium' : size;
-  const displayCondition = condition.trim().toLowerCase() === 'used' ? 'gently used' : condition;
   const expectedAction = currentStatus === 'available' ? 'claim' : currentStatus === 'pending' || currentStatus === 'reserved' ? 'notify' : null;
   const activeAction = action === expectedAction ? action : null;
   const claimReady = emailValid && acknowledged;
@@ -98,15 +126,54 @@ export function StorefrontItem({
   useEffect(() => {
     const dialog = claimDialogRef.current;
     if (!dialog) return;
-    if (activeAction === 'claim' && !dialog.open) dialog.showModal();
+    if (activeAction === 'claim' && !dialog.open) {
+      dialog.showModal();
+      dialog.scrollTop = 0;
+      dialogHeadingRef.current?.focus({ preventScroll: true });
+    }
     if (activeAction !== 'claim' && dialog.open) dialog.close();
   }, [activeAction, submission]);
+
+  useEffect(() => {
+    if (activeAction !== 'claim') return;
+    const dialog = claimDialogRef.current;
+    if (!dialog) return;
+
+    const scrollY = window.scrollY;
+    const html = document.documentElement;
+    const body = document.body;
+    const previous = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      bodyPosition: body.style.position,
+      bodyTop: body.style.top,
+      bodyWidth: body.style.width,
+    };
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+
+    return () => {
+      html.style.overflow = previous.htmlOverflow;
+      body.style.overflow = previous.bodyOverflow;
+      body.style.position = previous.bodyPosition;
+      body.style.top = previous.bodyTop;
+      body.style.width = previous.bodyWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [activeAction]);
 
   useEffect(() => {
     if (activeAction === 'claim' && submission === 'success' && !transitioningRef.current) dialogHeadingRef.current?.focus();
   }, [activeAction, submission]);
 
   function open(nextAction: Action) {
+    if (nextAction === 'claim' && slug && window.matchMedia('(max-width: 700px)').matches) {
+      router.push(`/things/claim/${encodeURIComponent(slug)}`, { transitionTypes: ['claim-forward'] });
+      return;
+    }
     setSubmission('idle');
     setFormError('');
     setEmail('');
@@ -193,7 +260,12 @@ export function StorefrontItem({
             {reason && <p>{reason}</p>}
           </section>;
 
-  return <div className={embedded ? styles.embedded : styles.page}>
+  const metadataRow = <div className={styles.detailsRow}>
+    <StorefrontStatusBadge status={currentStatus} />
+    <StorefrontItemFacts size={size} condition={condition} measurements={measurements} leadingSeparator />
+  </div>;
+
+  return <div className={embedded ? styles.embedded : styles.page} data-mobile-claim={embedded && currentStatus === 'available' && slug ? 'true' : undefined} data-facts-under-title={factsUnderTitle ? 'true' : undefined} data-status={currentStatus}>
     <article className={embedded ? undefined : styles.item}>
       {!embedded && <h1>{title}</h1>}
       <div className={embedded ? undefined : styles.columns}>
@@ -220,22 +292,7 @@ export function StorefrontItem({
 
           <section className={styles.claiming} data-embedded={embedded ? 'true' : undefined} aria-label="Adoption details">
             <section className={styles.availability} aria-label="Shopping details">
-              <div className={styles.detailsRow}>
-                <StorefrontStatusBadge status={currentStatus} />
-                <span className={styles.detailSeparator} aria-hidden="true">·</span>
-                <span className={styles.detailValue}>
-                  {measurements.length > 0 ? <span className={styles.measurementsEntity}>
-                    <button type="button" className={entityStyles.trigger} aria-label={`Size: ${displaySize || 'View measurements'}. View measurements`} aria-describedby={measurementsId}>{displaySize || 'Measurements'}</button>
-                    <PaperFrame elevation="popover" className={styles.measurementsPopover}>
-                      <dl id={measurementsId} className={styles.measurementsList}>
-                        {measurements.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
-                      </dl>
-                    </PaperFrame>
-                  </span> : <span aria-label={`Size: ${displaySize}`}>{displaySize}</span>}
-                </span>
-                <span className={styles.detailSeparator} aria-hidden="true">·</span>
-                <span className={styles.detailValue} aria-label={`Condition: ${displayCondition}`}>{displayCondition}</span>
-              </div>
+              {metadataRow}
               <div className={styles.purchaseRow}>
                 <section className={styles.actionRow} aria-label="Item status and action" aria-live="polite">
                 {currentStatus === 'claimed' ? <p className={styles.claimedText}>
@@ -284,9 +341,20 @@ export function StorefrontItem({
         </div>
       </div>
     </article>
-    <dialog ref={claimDialogRef} className={styles.claimDialog} aria-labelledby={dialogTitleId} aria-describedby={dialogDescriptionId}
+    {embedded && currentStatus === 'available' && slug && portalRoot && createPortal(<div className={styles.mobileClaimBar}>
+      <Link className={primaryButtonClassName} href={`/things/claim/${encodeURIComponent(slug)}`} transitionTypes={['claim-forward']}>
+        {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
+        <span className={styles.buttonLabel}>Claim for 1 coffee</span>
+      </Link>
+    </div>, portalRoot)}
+    <dialog ref={claimDialogRef} className={styles.claimDialog} data-state={submission === 'success' ? 'success' : 'entry'} aria-labelledby={dialogTitleId} aria-describedby={dialogDescriptionId}
       onCancel={event => { if (submission === 'loading') event.preventDefault(); }}
       onClose={() => { if (submission !== 'success') cancel(); }}>
+      <button className={styles.mobileDialogClose} type="button" aria-label="Close" onClick={cancel} disabled={submission === 'loading'}>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <path d="M4 4 16 16M16 4 4 16" />
+        </svg>
+      </button>
       <div ref={dialogBodyRef} className={styles.dialogBody}>
       {submission === 'success' ? <div className={styles.emailPreview} role="group" aria-label="Email preview">
         <div className={styles.previewHeader}>
@@ -303,7 +371,8 @@ export function StorefrontItem({
       </div> : <div className={styles.dialogIllustration} aria-hidden="true">
         <Image src="/illustrations/coffee-chat-metal-cups-spaced-stipple-420.webp" alt="" width={1536} height={1024} unoptimized />
       </div>}
-      <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={submission === 'success' ? -1 : undefined}>{submission === 'success' ? 'Email Sent' : 'How to claim'}</h2>
+      <div className={`${styles.dialogContent} ${styles.claimGlass}`}>
+      <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={-1}>{submission === 'success' ? 'Email Sent' : 'How to claim'}</h2>
       <div id={dialogDescriptionId} className={styles.dialogIntro}>
         {submission === 'success'
           ? <p>Open the email to choose a time and place for coffee. If you don’t see it, check your spam folder.</p>
@@ -318,7 +387,7 @@ export function StorefrontItem({
         <div className={styles.formField}>
           <p id={claimMessageId} className={styles.claimMessage} aria-live="polite">{(formError || (submission === 'error' && initialError)) && <span>{formError || initialError}</span>}</p>
           <input id={emailId} type="email" aria-label="Email address" aria-describedby={claimMessageId} aria-invalid={formError === 'Enter your email address.' || formError === 'Enter a valid email address.'} autoComplete="email" value={email} onChange={event => { setEmail(event.target.value); onClaimEmailChange?.(event.target.value); setEmailValid(event.target.validity.valid && Boolean(event.target.value.trim())); setFormError(''); }}
-            placeholder="you@example.com" pattern={EMAIL_ADDRESS_PATTERN.source} disabled={submission === 'loading'} required autoFocus />
+            placeholder="you@example.com" pattern={EMAIL_ADDRESS_PATTERN.source} disabled={submission === 'loading'} required />
         </div>
         <label className={styles.acknowledgement}>
           <input type="checkbox" checked={acknowledged} onChange={event => { setAcknowledged(event.target.checked); setFormError(''); }} disabled={submission === 'loading'} required />
@@ -329,10 +398,11 @@ export function StorefrontItem({
           <button className={`${primaryButtonClassName}${submission === 'loading' ? ` ${styles.loadingButton}` : ''}`} type="submit" disabled={submission === 'loading' || !claimReady}>
             {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
             {submission === 'loading' && <span className={styles.loadingSheen} aria-hidden="true" />}
-            <span className={styles.buttonLabel}>{submission === 'loading' ? 'Sending…' : 'Submit'}</span>
+            <span className={styles.buttonLabel}>{submission === 'loading' ? 'Sending…' : <><span className={styles.desktopSubmitLabel}>Submit</span><span className={styles.mobileSubmitLabel}>Submit request</span></>}</span>
           </button>
         </div>
       </form>}
+      </div>
       </div>
     </dialog>
   </div>;

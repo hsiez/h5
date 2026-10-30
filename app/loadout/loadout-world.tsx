@@ -16,13 +16,14 @@ import {
 import { flushSync } from "react-dom";
 import Image from "next/image";
 import { FocusImageGallery } from "./focus-image-gallery";
+import { FocusImageViewer } from "./focus-image-viewer";
 import { OverflowFade } from "../_components/overflow-fade";
 import styles from "./loadout.module.css";
 import { type ReviewText } from "./reviews";
 import type { Catalog } from "@/lib/catalog/types";
 import worldThumbnails from "./world-thumbnails.json";
 import worldPhotoBounds from "./world-photo-bounds.json";
-import { StorefrontItem } from "../things-for-you/storefront-item";
+import { StorefrontItem, StorefrontItemFacts } from "../things-for-you/storefront-item";
 import { InlineReference } from "./inline-reference";
 
 // Mode motion has one owner: Web Animations. Geometry comes from the rendered
@@ -241,6 +242,8 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
   const itemVisualAlignment = useCallback((slug?:string) => itemPresentation(slug), [itemPresentation]);
   const writeLoadoutUrl = useCallback((region:RegionId|null,itemIndex?:number|null,replace=false) => writeCatalogUrl(REGIONS,region,itemIndex,replace), [REGIONS]);
   const [selectedPhoto,setSelectedPhoto] = useState({item: "", index: 0});
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [viewerImageRect, setViewerImageRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [galleryHeights, setGalleryHeights] = useState<Record<string, number[]>>({});
   const [activeRegionId, setActiveRegionId] = useState<RegionId | null>(initialSelection ? initialSelection.regionId : REGIONS[0]?.id ?? null);
   const [stage, setStage] = useState(initialSelection && initialSelection.itemIndex >= 0 ? 1 : 0);
@@ -847,6 +850,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
   }, [activeItemIndex, activeRegion, reducedMotion, stage, writeLoadoutUrl]);
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.target instanceof Element && event.target.closest('dialog')) return;
     const horizontal = window.matchMedia("(max-width: 1100px)").matches;
     if (event.target instanceof Element && event.target.closest("[data-review-scroll]") && !horizontal) return;
     if (event.target instanceof Element && event.target.closest("a, input, textarea, select, [data-review-scroll] button, [data-photo-navigation] button")) return;
@@ -1106,6 +1110,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
   }, []);
 
   const onViewportKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.target instanceof Element && event.target.closest('dialog')) return;
     if (event.target instanceof Element && event.target.closest("[data-review-scroll]")) return;
     if (stage !== 1 || !activeRegion) return;
     if (event.key === "ArrowDown" || event.key === "PageDown") {
@@ -1131,12 +1136,13 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
   }, [activeItemIndex, activeRegion, moveFocusedItem, reducedMotion, stage, writeLoadoutUrl]);
 
   return (
-    <main className={styles.page}>
+    <main className={styles.page} data-things-page>
       <div
         ref={viewportRef}
         className={styles.viewport}
         data-mode={activeRegionId ? "region" : "world"}
         data-stage={stage}
+        data-focus-kind={activeRegion?.kind}
         data-pinching={isPinching ? "true" : "false"}
         data-density-transitioning={isDensityTransitioning ? "true" : "false"}
         tabIndex={stage === 1 ? 0 : undefined}
@@ -1275,19 +1281,30 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                       </Fragment>)}</p>
                     </section>
                   ))}
-                  {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded slug={preview?undefined:data.slug} title={data.title} story={data.description} storyParts={data.review?.about} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
+                  {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded factsUnderTitle slug={preview?undefined:data.slug} title={data.title} story={data.description} storyParts={data.review?.about} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
                 </div>;
                 return (
+                  <>
                   <aside
                     className={styles.focusedDetails}
                     data-visible={detailsVisible && !isDensityTransitioning ? "true" : "false"}
                     aria-live="polite"
+                    style={{
+                      "--focused-mobile-visual-height": Math.min(1, Math.max(0.55, itemPresentation(detailItem).visibleHeight + 0.08)),
+                    } as CSSProperties}
                   >
                     <header className={styles.detailsHeader}>
                       <div className={styles.detailsHeaderInner}>
                         <h1 ref={focusedTitleRef}>{data.title}</h1>
+                        {activeRegion.kind === 'storefront' && <div className={styles.mobileTitleFacts}><StorefrontItemFacts size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label, value]) => ({ label, value }))} /></div>}
                       </div>
                     </header>
+                    {data.photos.length > 0 && <button className={styles.mobileGalleryTrigger} type="button" aria-label={`View photos of ${data.title}`} aria-haspopup="dialog" onClick={() => {
+                      const image = viewportRef.current?.querySelector<HTMLImageElement>(`.${styles.item}[data-active="true"] .${styles.itemPhoto}`);
+                      const rect = image?.getBoundingClientRect();
+                      setViewerImageRect(rect ? { top: rect.top, left: rect.left, width: rect.width, height: rect.height } : null);
+                      setImageViewerOpen(true);
+                    }} />}
                     <FocusImageGallery title={data.title} photos={data.photos} selectedIndex={photoIndex} visualHeight={galleryHeights[detailGalleryKey]?.[photoIndex]} onSelect={index => selectPhoto(detailItem,index)} />
                     {activeRegion.kind === 'storefront' ? (
                       <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll data-storefront="true" tabIndex={-1} aria-label="Item review">
@@ -1301,6 +1318,8 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                       </OverflowFade>
                     )}
                   </aside>
+                  <FocusImageViewer open={imageViewerOpen} imageRect={viewerImageRect} title={data.title} photos={data.photos} selectedIndex={photoIndex} onSelect={index => selectPhoto(detailItem,index)} onClose={() => setImageViewerOpen(false)} />
+                  </>
                 );
               })() : null}
             </div>

@@ -307,6 +307,7 @@
   pointer-events: none;
 }
 .focusImageGallery[data-ready="false"] { visibility: hidden; }
+.mobileGalleryTrigger { display: none; }
 
 .photoNavigation {
   position: absolute;
@@ -365,11 +366,12 @@
   max-width: 14ch;
   margin: 0;
   font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
-  font-size: clamp(30px, 4vw, 52px);
+  font-size: var(--focus-item-title-size);
   font-weight: 400;
   line-height: .98;
   letter-spacing: -.045em;
 }
+.mobileTitleFacts { display: none; }
 
 .detailsBody {
   display: block;
@@ -413,6 +415,7 @@
   .viewport[data-stage="1"] {
     --focused-column-gap: var(--spacing-focus-columns-compact);
   }
+  .viewport[data-stage="1"][data-focus-kind="storefront"] { --mobile-title-height: 64px; }
 }
 
 @media (max-width: 760px) {
@@ -646,7 +649,7 @@
 .reviewLeadIn {
   color: var(--color-neutral-400);
   font-family: inherit;
-  font-size: clamp(24px, 2.9vw, 32px);
+  font-size: var(--focus-item-lead-in-size);
   font-weight: 400;
   font-style: italic;
   line-height: 1.125;
@@ -656,7 +659,7 @@
 @media (min-width: 1101px) {
   .viewport[data-stage="1"] {
     --focused-top-padding: var(--loadout-title-top);
-    --focused-title-height: var(--focused-measured-title-height, calc(clamp(32px, 4vw, 56px) * 1.05));
+    --focused-title-height: var(--focused-measured-title-height, calc(var(--focus-item-title-size) * 1.05));
     --focused-title-gap: 24px;
     --focused-horizontal-padding: clamp(20px, 5vw, 72px);
     --focused-column-gap: clamp(20px, 3vw, 48px);
@@ -701,7 +704,7 @@
   }
   .detailsHeaderInner h1 {
     max-width: none;
-    font-size: clamp(32px, 4vw, 56px);
+    font-size: var(--focus-item-title-size);
     line-height: 1.05;
     letter-spacing: -.035em;
   }
@@ -722,8 +725,11 @@
 @media (max-width: 1100px) {
   .detailSection + .detailSection { margin-top: calc(var(--spacing) * 14); }
   .viewport[data-stage="1"] {
-    --mobile-title-height: 112px;
-    --focused-image-width: min(84vw, 420px);
+    --mobile-title-height: 32px;
+    --mobile-title-image-gap: var(--space-mobile-6);
+    --mobile-image-text-gap: var(--space-mobile-6);
+    --focused-mobile-gutter: var(--space-mobile-3);
+    --focused-image-width: min(420px, calc(100vw - 2 * var(--focused-mobile-gutter)));
     --focused-image-height: calc(var(--focused-image-width) * 242 / 218);
     height: auto;
     min-height: 100svh;
@@ -736,7 +742,7 @@
   .viewport[data-stage="1"] .itemLayout {
     position: absolute;
     inset: 0 0 auto;
-    height: calc(32px + var(--mobile-title-height) + var(--spacing-title-content) + var(--focused-image-height));
+    height: calc(var(--space-mobile-2) + var(--mobile-title-height) + var(--mobile-title-image-gap) + var(--focused-image-height));
     flex-direction: row;
     transform: translateX(calc(var(--active-item) * -100%));
   }
@@ -745,10 +751,10 @@
     height: 100%;
     min-width: 100%;
     box-sizing: border-box;
-    padding: 32px 24px 0;
+    padding: var(--space-mobile-2) var(--focused-mobile-gutter) 0;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: var(--mobile-title-height) var(--focused-image-height);
-    row-gap: var(--spacing-title-content);
+    row-gap: var(--mobile-title-image-gap);
     align-content: start;
   }
   .viewport[data-stage="1"] .itemMedia {
@@ -757,32 +763,34 @@
     justify-self: center;
     align-self: start;
   }
-  .focusImageGallery { grid-column: 1; justify-self: center; }
-  .focusedDetails:has(.focusImageGallery) { grid-template-rows: var(--mobile-title-height) calc(var(--focused-image-height) + 54px) auto auto; }
   .focusedDetails {
     position: relative;
     inset: auto;
     width: 100%;
     box-sizing: border-box;
-    padding: 32px 24px 64px;
+    padding: var(--space-mobile-2) var(--focused-mobile-gutter) var(--space-mobile-6);
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: var(--mobile-title-height) var(--focused-image-height) auto auto;
-    row-gap: var(--spacing-title-content);
+    grid-template-rows: var(--mobile-title-height) var(--mobile-title-image-gap) calc(var(--focused-image-height) * var(--focused-mobile-visual-height, 1)) var(--mobile-image-text-gap) auto;
+    row-gap: 0;
     align-content: start;
   }
   .detailsHeaderInner { width: 100%; justify-self: stretch; padding: 0; }
   .detailsHeaderInner h1 { max-width: none; }
+  .mobileTitleFacts { position: relative; display: flex; max-width: 100%; align-items: center; gap: var(--space-mobile-1); margin-top: var(--space-mobile-1); color: var(--color-text-tertiary); font-family: var(--font-sans); font-size: 12px; line-height: 1.25; pointer-events: auto; }
+  .mobileTitleFacts > span[aria-hidden="true"] { display: none; }
+  .mobileTitleFacts > span:not([aria-hidden="true"]) { display: inline-flex; box-sizing: border-box; align-items: center; padding: 6px 10px; border-radius: var(--radius-full); background: var(--color-neutral-50); color: var(--color-text-tertiary); white-space: nowrap; }
+  .mobileTitleFacts button { padding: 0; background: transparent; color: inherit; }
   .detailsHeader {
     display: block;
     grid-column: 1;
-    grid-row: 3;
+    grid-row: 1;
     width: var(--focused-image-width);
     justify-self: center;
     align-self: start;
   }
   .detailsContent {
     grid-column: 1;
-    grid-row: 4;
+    grid-row: 5;
     width: var(--focused-image-width);
     justify-self: center;
     align-self: start;
@@ -790,10 +798,25 @@
     max-height: none;
     overflow: visible;
     padding: 0;
-    margin-top: -16px;
+    margin-top: 0;
   }
   .detailsContent[data-storefront="true"] .detailsBody { height: auto; }
-  .focusImageGallery ~ .detailsContent { padding-top: 16px; }
+  .focusImageGallery { display: none; }
+  .mobileGalleryTrigger {
+    display: block;
+    grid-column: 1;
+    grid-row: 3;
+    z-index: 2;
+    width: var(--focused-image-width);
+    height: 100%;
+    justify-self: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: zoom-in;
+    pointer-events: auto;
+  }
+  .mobileGalleryTrigger:focus-visible { outline: 2px solid var(--color-neutral-900); outline-offset: -2px; }
   .detailSection p { max-width: 32em; }
 }
 .emptyRegion { grid-column:1/-1; padding:32px; color:var(--color-text-tertiary); }

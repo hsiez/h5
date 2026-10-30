@@ -25,6 +25,15 @@
   --spacing-focus-columns: 56px;
   --spacing-focus-columns-compact: 32px;
 
+  /* Mobile layout rhythm: use these notches for page insets and section gaps. */
+  --space-mobile-1: 8px;
+  --space-mobile-2: 16px;
+  --space-mobile-3: 24px;
+  --space-mobile-4: 32px;
+  --space-mobile-5: 48px;
+  --space-mobile-6: 64px;
+  --space-mobile-7: 96px;
+
   /* ---- Type scale (rems anchored at 16px root) ---- */
   --text-xs: 0.875rem;    /* 14px — captions, badges, micro-meta */
   --text-xs--line-height: 1.25rem;
@@ -42,6 +51,10 @@
   --text-3xl--line-height: 2.5rem;
   --text-4xl: 3rem;       /* 48px — hero */
   --text-4xl--line-height: 3.25rem;
+
+  /* Focus-item type stays in the same hierarchy across every region. */
+  --focus-item-title-size: clamp(30px, 4vw, 52px);
+  --focus-item-lead-in-size: clamp(24px, 2.9vw, 32px);
 
   /* ---- Font weight — three values, no more ---- */
   --font-weight-normal: 400;    /* body */
@@ -170,6 +183,49 @@ body {
   font-weight: var(--font-weight-normal);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+@media (min-width: 1101px) {
+  :root { --focus-item-title-size: clamp(32px, 4vw, 56px); }
+}
+
+html:has([data-things-page]),
+body:has([data-things-page]) {
+  background: #fff;
+}
+
+html:has([data-claim-page]),
+body:has([data-claim-page]) {
+  background: #f4f4f1;
+}
+
+::view-transition-old(.claim-forward) { animation: 280ms ease-out both claimSlideLeftOut; }
+::view-transition-new(.claim-forward) { animation: 280ms ease-out both claimSlideRightIn; }
+::view-transition-old(.claim-back) { animation: 280ms ease-out both claimSlideRightOut; }
+::view-transition-new(.claim-back) { animation: 280ms ease-out both claimSlideLeftIn; }
+
+@keyframes claimSlideLeftOut {
+  from { transform: translateX(0); }
+  to { transform: translateX(-48px); }
+}
+@keyframes claimSlideRightIn {
+  from { transform: translateX(48px); }
+  to { transform: translateX(0); }
+}
+@keyframes claimSlideRightOut {
+  from { transform: translateX(0); }
+  to { transform: translateX(48px); }
+}
+@keyframes claimSlideLeftIn {
+  from { transform: translateX(-48px); }
+  to { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(.claim-forward),
+  ::view-transition-new(.claim-forward),
+  ::view-transition-old(.claim-back),
+  ::view-transition-new(.claim-back) { animation-duration: 0s; }
 }
 
 html[data-loadout-density-transition]::view-transition-old(root) {

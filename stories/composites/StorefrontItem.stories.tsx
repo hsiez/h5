@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { StorefrontItem } from '../../app/things-for-you/storefront-item';
+import { MobileClaimPage } from '../../app/things/claim/[slug]/mobile-claim-page';
 import { storefrontItemSample } from '../../app/things-for-you/storefront-item-sample';
 
 const meta: Meta<typeof StorefrontItem> = {
@@ -22,6 +23,7 @@ const item = storefrontItemSample;
 export const Available: Story = { args: { ...item, status: 'available' } };
 export const WithInlineStory: Story = { args: { ...item, status: 'available', storyParts: [['this cap because it deserves to be worn more often.']], story: 'This cap deserves to be worn more often.' } };
 export const ClaimEmailInput: Story = { args: { ...Available.args, initialAction: 'claim' } };
+export const MobileClaimBaseline: Story = { args: { ...ClaimEmailInput.args }, render: args => <MobileClaimPage title={args.title} />, parameters: { docs: { description: { story: 'Standalone claim page, shown with a simulated submit. View at mobile width.' } } } };
 export const SendingClaimEmail: Story = { args: { ...ClaimEmailInput.args, initialSubmission: 'loading' } };
 export const ClaimEmailSent: Story = { args: { ...ClaimEmailInput.args, initialSubmission: 'success', initialEmail: 'you@example.com' } };
 export const ClaimEmailError: Story = { args: { ...ClaimEmailInput.args, initialSubmission: 'error' } };

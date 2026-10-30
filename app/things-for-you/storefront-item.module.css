@@ -1,6 +1,6 @@
 .page { min-height: 100svh; background: #fff; color: var(--color-text-primary); }
 .item { width: min(1120px, 100%); margin-inline: auto; padding: clamp(40px, 8vw, 112px) clamp(20px, 4vw, 56px) 96px; }
-.item h1 { max-width: 14ch; margin: 0; font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: clamp(32px, 4vw, 56px); font-weight: 400; letter-spacing: -.04em; line-height: 1.05; }
+.item h1 { max-width: 14ch; margin: 0; font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: var(--focus-item-title-size); font-weight: 400; letter-spacing: -.04em; line-height: 1.05; }
 .columns { display: grid; grid-template-columns: minmax(0, 1.16fr) minmax(280px, .84fr); align-items: start; gap: var(--spacing-focus-columns); margin-top: calc(var(--spacing-title-content) + var(--spacing-title-content-optical)); }
 .gallery, .content { min-width: 0; }
 .photo { position: relative; display: grid; width: 100%; aspect-ratio: 218 / 242; place-items: center; background: #fff; }
@@ -20,7 +20,7 @@
 .claiming { margin-top: 64px; -webkit-user-select: none; user-select: none; }
 .measurementsList dd { -webkit-user-select: text; user-select: text; }
 .introduction { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: var(--text-lg); line-height: 1.8; text-wrap: pretty; }
-.storyLeadIn { color: var(--color-neutral-400); font-size: 32px; font-weight: 400; font-style: italic; line-height: 36px; }
+.storyLeadIn { color: var(--color-neutral-400); font-size: var(--focus-item-lead-in-size); font-weight: 400; font-style: italic; line-height: 1.125; }
 .introduction p { margin: 0; }
 .introduction p + p { margin-top: 20px; }
 .availability { margin-top: 0; padding: 32px; border-radius: var(--radius-lg); background: var(--color-neutral-50); }
@@ -99,6 +99,8 @@
 .claimDialog { width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 32px; overflow: auto; border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); background: #fff; color: var(--color-text-primary); box-shadow: var(--shadow-xl); font-family: var(--font-sans); }
 .claimDialog::backdrop { background: rgb(20 20 20 / 42%); }
 .dialogBody { display: flow-root; }
+.dialogContent { display: contents; }
+.mobileDialogClose, .mobileClaimBar { display: none; }
 .dialogIllustration { display: grid; place-items: center; margin: -12px 0 20px; }
 .dialogIllustration img { display: block; width: 100%; height: 188px; object-fit: cover; object-position: center; }
 .emailPreview {
@@ -130,7 +132,9 @@
 .previewSkeleton span { display: block; width: 70%; height: 7px; border-radius: var(--radius-full); background: var(--color-neutral-200); }
 .previewSkeleton span:nth-child(2) { width: 88%; }
 .previewSkeleton span:nth-child(3) { width: 58%; }
-.claimDialog h2 { margin: 0; font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: 32px; font-weight: 400; line-height: 1.2; }
+.claimDialog h2, .claimTitle { margin: 0; font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: 32px; font-weight: 400; line-height: 1.2; }
+.claimGlass { border: 1px solid rgb(255 255 255 / 70%); border-radius: 20px; background: rgb(255 255 255 / 72%); -webkit-backdrop-filter: blur(5px) contrast(1.05); backdrop-filter: blur(5px) contrast(1.05); }
+.claimDialog h2:focus { outline: none; }
 .dialogIntro { display: grid; gap: 12px; margin: 8px 0 8px; color: var(--color-text-secondary); font-size: 16px; line-height: 1.5; }
 .dialogIntro p { margin: 0; }
 .claimForm { display: grid; gap: 20px; font-size: var(--text-sm); }
@@ -149,6 +153,7 @@
 .dialogActions .primaryButton:disabled:not(.loadingButton)::after { opacity: .7; }
 .dialogActions .primaryButton:disabled:not(.loadingButton) .buttonGrain { opacity: .12; }
 .cancelButton { min-height: 48px; padding: 8px; border: 0; background: transparent; color: var(--color-text-tertiary); cursor: pointer; }
+.mobileSubmitLabel { display: none; }
 .success { margin: 0; font-family: var(--font-sans); font-size: var(--text-sm); }
 .formError { margin: 0; color: var(--color-danger-600); font-size: var(--text-xs); }
 .measurementsEntity { display: inline-block; }
@@ -180,4 +185,112 @@
 @media (max-width: 1100px) {
   .embedded, .embedded article, .embedded article > div, .embedded .content { height: auto; }
   .embedded .storyScroll { max-height: min(42svh, 400px); }
+  .claiming[data-embedded="true"] { width: 100%; max-width: 440px; margin-inline: auto; }
+  .embedded[data-facts-under-title="true"] .detailsRow { display: none; }
+}
+
+@media (max-width: 700px) {
+  .embedded[data-mobile-claim="true"] .claiming { display: none; }
+  .embedded[data-mobile-claim="true"] { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+  .embedded .storyScroll {
+    max-height: none;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .embedded[data-mobile-claim="true"] .claiming .purchaseRow { display: none; }
+  .mobileClaimBar {
+    position: fixed;
+    z-index: 20;
+    inset: auto 0 0;
+    display: flex;
+    justify-content: center;
+    padding: var(--space-mobile-2) var(--space-mobile-3) calc(var(--space-mobile-2) + env(safe-area-inset-bottom));
+    background: transparent;
+  }
+  .mobileClaimBar::before {
+    position: absolute;
+    z-index: -1;
+    inset: -32px 0 0;
+    background: linear-gradient(to bottom, rgb(255 255 255 / 0), #fff 32px);
+    pointer-events: none;
+    content: '';
+  }
+  .mobileClaimBar .primaryButton { width: min(100%, 420px); min-height: 52px; text-decoration: none; }
+  .claimDialog {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100svh;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: #f4f4f1;
+    box-shadow: none;
+  }
+  .claimDialog[open] { animation: mobileClaimIn 180ms ease-out both; }
+  .claimDialog::backdrop { background: #fff; }
+  .dialogBody {
+    position: relative;
+    isolation: isolate;
+    height: 100%;
+    max-height: none;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 68px 20px calc(32px + env(safe-area-inset-bottom));
+  }
+  .mobileDialogClose {
+    position: absolute;
+    z-index: 3;
+    top: 16px;
+    right: 14px;
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 78%);
+    color: var(--color-text-primary);
+    cursor: pointer;
+  }
+  .mobileDialogClose svg { display: block; }
+  .mobileDialogClose:focus-visible { outline: 2px solid var(--color-neutral-900); outline-offset: 2px; }
+  .dialogIllustration {
+    position: absolute;
+    z-index: -1;
+    inset: 0 0 auto;
+    height: min(38svh, 280px);
+    margin: 0;
+    overflow: hidden;
+    opacity: 1;
+    pointer-events: none;
+  }
+  .dialogIllustration img { width: 100%; height: 100%; object-fit: contain; transform: none; filter: none; }
+  .dialogContent {
+    position: relative;
+    display: block;
+    margin-top: clamp(80px, 15svh, 132px);
+    padding: 24px 20px;
+  }
+  .claimDialog[data-state="success"] .dialogBody { min-height: 0; }
+  .claimDialog[data-state="success"] .emailPreview { margin: 36px 0 0; }
+  .claimDialog[data-state="success"] .dialogContent { margin-top: 8px; }
+  .claimForm .dialogActions { width: 100%; }
+  .claimForm .dialogActions .cancelButton { display: none; }
+  .claimForm .dialogActions .primaryButton { width: 100%; min-height: 52px; }
+  .claimForm .desktopSubmitLabel { display: none; }
+  .claimForm .mobileSubmitLabel { display: inline; }
+  .dialogActions .primaryButton { min-height: 48px; }
+  @keyframes mobileClaimIn { from { opacity: 0; } to { opacity: 1; } }
+}
+
+@media (max-width: 700px) and (prefers-reduced-motion: reduce) {
+  .claimDialog[open], .claimDialog::backdrop { animation: none; }
 }
