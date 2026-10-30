@@ -20,6 +20,8 @@ import { OverflowFade } from "../_components/overflow-fade";
 import styles from "./loadout.module.css";
 import { type ReviewText } from "./reviews";
 import type { Catalog } from "@/lib/catalog/types";
+import worldThumbnails from "./world-thumbnails.json";
+import worldPhotoBounds from "./world-photo-bounds.json";
 import { StorefrontItem } from "../things-for-you/storefront-item";
 import { InlineReference } from "./inline-reference";
 
@@ -211,7 +213,9 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
   const legacyByPhoto = useMemo(() => Object.fromEntries(catalog.items
     .filter(item => item.legacyKey && item.photos[0]?.src)
     .map(item => [item.photos[0].src, item.legacyKey!])), [catalog]);
-  const [photoBounds, setPhotoBounds] = useState<Record<string, VisualBounds | null>>({});
+  const [photoBounds, setPhotoBounds] = useState<Record<string, VisualBounds | null>>(
+    () => worldPhotoBounds as Record<string, VisualBounds>
+  );
   const rememberPhotoBounds = useCallback((src: string, image: HTMLImageElement) => {
     if (!src) return;
     const bounds = measureVisibleBounds(image);
@@ -244,6 +248,9 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
   const [detailItemIndex, setDetailItemIndex] = useState(Math.max(0, initialSelection?.itemIndex ?? 0));
   const [detailsVisible, setDetailsVisible] = useState(true);
   const [imagesInTransit, setImagesInTransit] = useState(false);
+  const [fullStippleReady, setFullStippleReady] = useState<Record<string, true>>({});
+  const preloadedStipples = useRef(new Set<string>());
+  const preloadMounted = useRef(false);
   const [enteringRegion, setEnteringRegion] = useState(false);
   const [isDensityTransitioning, setIsDensityTransitioning] = useState(false);
   const [regionTitleVisible, setRegionTitleVisible] = useState(true);
@@ -282,6 +289,52 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
     horizontal: boolean;
   } | null>(null);
   const reducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    preloadMounted.current = true;
+    return () => { preloadMounted.current = false; };
+  }, []);
+
+  useEffect(() => {
+    const regions = activeRegionId ? REGIONS.filter(region => region.id === activeRegionId) : REGIONS;
+    const sources = [...new Set(Array.from({length: 6}, (_, index) => regions.map(region => {
+      const item = itemsBySlug[region.items[index]];
+      return item?.photos[0]?.stippleSrc || GRAPHITE_IMAGES[item?.legacyKey || legacyByPhoto[item?.photos[0]?.src || ""] || ""] || item?.photos[0]?.src;
+    })).flat())].filter((src): src is string => Boolean(src && (worldThumbnails as Record<string, string>)[src] && !preloadedStipples.current.has(src)));
+    if (!sources.length) return;
+
+    let secondFrame = 0;
+    // A second animation frame starts these requests only after the browser has
+    // had a chance to paint the lightweight world thumbnails.
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        let next = 0;
+        const preload = async () => {
+          while (preloadMounted.current && next < sources.length) {
+            const src = sources[next++];
+            if (preloadedStipples.current.has(src)) continue;
+            preloadedStipples.current.add(src);
+            const image = new window.Image();
+            image.decoding = "async";
+            image.fetchPriority = "low";
+            image.src = src;
+            try {
+              await image.decode();
+              if (preloadMounted.current) setFullStippleReady(current => current[src] ? current : {...current, [src]: true});
+            } catch { preloadedStipples.current.delete(src); }
+          }
+        };
+        // Limit simultaneous full-size decodes so they do not monopolize the
+        // main thread immediately after the first paint.
+        void preload();
+        void preload();
+      });
+    });
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+    };
+  }, [activeRegionId, REGIONS, itemsBySlug, legacyByPhoto]);
 
   useLayoutEffect(() => {
     viewportRef.current?.style.setProperty("--review-scroll", "0px");
@@ -1130,6 +1183,9 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                 {activeRegion.items.map((item, index) => {
                   const data = itemsBySlug[item];
                   const imageSrc = data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.src;
+                  const fullStippleSrc = data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.stippleSrc || ((stage !== 1 || index !== activeItemIndex || photoIndex === 0) ? GRAPHITE_IMAGES[data?.legacyKey || legacyByPhoto[data?.photos[0]?.src || ""] || ""] : undefined) || imageSrc;
+                  const thumbnailSrc = fullStippleSrc ? (worldThumbnails as Record<string, string>)[fullStippleSrc] : undefined;
+                  const stippleSrc = thumbnailSrc && !fullStippleReady[fullStippleSrc] ? thumbnailSrc : fullStippleSrc;
                   const presentation = itemPresentation(item);
                   const alignment = presentation;
                   return (
@@ -1182,7 +1238,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                               className={`${styles.itemImage} ${styles.itemPhoto}`}
                             />
                             <Image
-                              src={data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.stippleSrc || ((stage !== 1 || index !== activeItemIndex || photoIndex === 0) ? GRAPHITE_IMAGES[data?.legacyKey || legacyByPhoto[data?.photos[0]?.src || ""] || ""] : undefined) || imageSrc}
+                              src={stippleSrc || imageSrc}
                               draggable={false}
                               alt=""
                               fill
@@ -1273,7 +1329,12 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                     aria-hidden="true"
                   >
                     {region.items.slice(0, 6).map((item, index) => {
-                      const imageSrc = itemsBySlug[item]?.photos[0]?.stippleSrc || GRAPHITE_IMAGES[itemsBySlug[item]?.legacyKey || legacyByPhoto[itemsBySlug[item]?.photos[0]?.src || ""] || ""] || itemsBySlug[item]?.photos[0]?.src;
+                      const fullStippleSrc = itemsBySlug[item]?.photos[0]?.stippleSrc || GRAPHITE_IMAGES[itemsBySlug[item]?.legacyKey || legacyByPhoto[itemsBySlug[item]?.photos[0]?.src || ""] || ""] || itemsBySlug[item]?.photos[0]?.src;
+                      // The resting world uses the small drawing. Keep the full
+                      // drawing while its tile is enlarged by the mode animation.
+                      const thumbnailSrc = fullStippleSrc ? (worldThumbnails as Record<string, string>)[fullStippleSrc] : undefined;
+                      const imageSrc = imagesInTransit && fullStippleSrc && fullStippleReady[fullStippleSrc]
+                        ? fullStippleSrc : thumbnailSrc || fullStippleSrc;
                       const presentation = itemPresentation(item);
                       return (
                         <span
@@ -1292,13 +1353,13 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                             <>
                             <Image
                               src={imageSrc}
-                              unoptimized={imageSrc.startsWith("https://") || imageSrc.startsWith("/api/catalog/media?")}
+                              unoptimized
                               alt=""
                               fill
                               sizes="(min-width: 900px) 12vw, 24vw"
                               className={styles.itemImage}
                             />
-                            {itemsBySlug[item]?.photos[0]?.src && !itemsBySlug[item]?.legacyKey && !legacyByPhoto[itemsBySlug[item]?.photos[0]?.src || ""] && <Image
+                            {itemsBySlug[item]?.photos[0]?.src && !(itemsBySlug[item].photos[0].src in photoBounds) && !itemsBySlug[item]?.legacyKey && !legacyByPhoto[itemsBySlug[item]?.photos[0]?.src || ""] && <Image
                               src={itemsBySlug[item].photos[0].src}
                               alt=""
                               fill
