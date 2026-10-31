@@ -10,7 +10,7 @@ for(const width of [390,1440]) {
  });
  for(const slug of ['hat','coat','wallet','work-jacket']) {
   const region=slug==='work-jacket'?'things-for-you':'edc';
-  await page.goto(`${baseURL}/things/item/${slug}`);
+  await page.goto(`${baseURL}/things/${slug}`);
   await page.waitForTimeout(800);
   const positions=await page.evaluate(()=>window.copyPositions);
   assert.ok(positions.length);
@@ -19,7 +19,7 @@ for(const width of [390,1440]) {
   await page.locator(`[data-motion-image=${slug}]`).waitFor();
   await page.waitForTimeout(200);
   await page.locator(`[data-motion-image=${slug}]`).click({force:true});
-  await page.waitForURL(`**/things/item/${slug}`);
+  await page.waitForURL(`**/things/${slug}`);
   await page.waitForTimeout(750);
   await page.evaluate(()=>window.scrollTo(0,200));
   await page.goBack(); await page.waitForURL(`**/things?region=${region}`);

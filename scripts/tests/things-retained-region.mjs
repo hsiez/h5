@@ -17,7 +17,7 @@ for(const width of [390,1440]) for(const [region,slug] of [['edc','wallet'],['th
  });
  for(let i=0;i<4;i++) {
   await wallet.click();
-  await page.waitForURL(`**/things/item/${slug}`);
+  await page.waitForURL(`**/things/${slug}`);
   await page.locator('[data-item-layer]').waitFor();
   assert.ok(await page.evaluate(()=>window.savedGrid.isConnected));
   assert.ok(await page.locator('[data-things-background]').evaluate(e=>e.inert));
@@ -29,7 +29,7 @@ for(const width of [390,1440]) for(const [region,slug] of [['edc','wallet'],['th
   assert.ok(Math.abs(state.scroll-state.saved)<2,JSON.stringify(state));
   assert.equal(state.inert,false);
  }
- await page.goForward();await page.waitForURL(`**/things/item/${slug}`);
+ await page.goForward();await page.waitForURL(`**/things/${slug}`);
  await page.locator('[data-item-layer]').waitFor();
  await page.reload();
  await page.locator('[data-stage="1"]').waitFor();

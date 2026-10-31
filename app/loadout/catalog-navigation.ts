@@ -8,7 +8,7 @@ export function regionHref(regionId: string | null, preview = false) {
 export function itemHref(slug: string, regionId: string, preview = false) {
   return preview
     ? `${regionHref(regionId, true)}&item=${encodeURIComponent(slug)}`
-    : `/things/item/${encodeURIComponent(slug)}`;
+    : `/things/${encodeURIComponent(slug)}`;
 }
 
 export function previewSelection(catalog: Catalog, query: { region?: string; item?: string }) {

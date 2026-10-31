@@ -28,7 +28,7 @@ const browser = await engine.launch(engine === chromium ? {channel:'chrome'} : {
    const index=i%2===0?5:0;
    const slug=index===5?'wallet':'hat';
    await page.locator(`[data-item-id="edc-${index}"]`).click();
-   await page.waitForURL(`**/things/item/${slug}`);
+   await page.waitForURL(`**/things/${slug}`);
    await page.locator('[data-stage="1"]').waitFor();
    assert.equal(await page.locator('[data-things-motion]').count(),0);
    // Return during the forward animation, then select the other product immediately.
@@ -42,14 +42,14 @@ const browser = await engine.launch(engine === chromium ? {channel:'chrome'} : {
     document.querySelector('[data-item-id="edc-5"]').click();
     document.querySelector('[data-item-id="edc-0"]').click();
    });
-   await page.waitForURL('**/things/item/hat');
+   await page.waitForURL('**/things/hat');
    await page.goBack();
    await page.waitForURL('**/things?region=edc');
    await page.locator('[data-stage="0"]').waitFor();
   }
   // Interrupt the return to region immediately with another Back.
   await page.locator('[data-item-id="edc-5"]').click();
-  await page.waitForURL('**/things/item/wallet');
+  await page.waitForURL('**/things/wallet');
   await page.goBack();
   await page.waitForURL('**/things?region=edc');
   await page.evaluate(()=>history.back());

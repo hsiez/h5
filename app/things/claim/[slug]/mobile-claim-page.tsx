@@ -18,7 +18,7 @@ export function MobileClaimPage({ slug, title, initialState = 'entry', initialEm
   const [state, setState] = useState<'entry' | 'sending' | 'sent'>(initialState);
   const errorId = useId();
   const claimReady = EMAIL_ADDRESS_PATTERN.test(email.trim()) && acknowledged;
-  const returnHref = slug ? `/things?region=things-for-you&item=${encodeURIComponent(slug)}` : '/things?region=things-for-you';
+  const returnHref = slug ? `/things/${encodeURIComponent(slug)}` : '/things?region=things-for-you';
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

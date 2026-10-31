@@ -25,6 +25,6 @@ export default async function ThingsPage({
   const itemIndex = query.item
     ? regionItems.findIndex(item => item.slug === query.item)
     : -1;
-  if (itemIndex >= 0) redirect(`/things/item/${encodeURIComponent(regionItems[itemIndex].slug)}`);
+  if (itemIndex >= 0) redirect(`/things/${encodeURIComponent(regionItems[itemIndex].slug)}`);
   return <LoadoutWorld key={region?.id ?? 'world'} catalog={catalog} initialSelection={{ regionId: region?.id ?? null, itemIndex }} />;
 }

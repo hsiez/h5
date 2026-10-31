@@ -23,6 +23,7 @@ const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type StorefrontItemProps = {
   embedded?: boolean;
+  externalMobileActions?: boolean;
   factsUnderTitle?: boolean;
   status: StorefrontItemStatus;
   buttonVariant?: StorefrontButtonVariant;
@@ -67,14 +68,19 @@ export function StorefrontItemFacts({ size, condition, measurements, leadingSepa
 }
 
 export function StorefrontItem({
-  embedded = false, factsUnderTitle = false, status, buttonVariant = 'layered', title, story, storyParts, reason, photos, size, condition, measurements, owner, slug,
+  embedded = false, externalMobileActions = false, factsUnderTitle = false, status, buttonVariant = 'layered', title, story, storyParts, reason, photos, size, condition, measurements, owner, slug,
   initialAction = null, initialSubmission = 'idle', initialEmail = '', initialAcknowledged = false, initialError = '', onClaimEmailChange,
 }: StorefrontItemProps) {
   const router = useRouter();
   const [photoIndex, setPhotoIndex] = useState(0);
+  const itemRoot = useRef<HTMLDivElement>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setPortalRoot(document.body));
+    const frame = window.requestAnimationFrame(() => {
+      // Keep the footer in the focused layer's stacking and keyboard scope.
+      const layer = itemRoot.current?.closest('[data-item-layer]');
+      setPortalRoot(layer?.querySelector<HTMLElement>('[data-item-footer]') ?? document.body);
+    });
     return () => window.cancelAnimationFrame(frame);
   }, []);
   const [action, setAction] = useState<Action | null>(initialAction);
@@ -267,7 +273,7 @@ export function StorefrontItem({
     <StorefrontItemFacts size={size} condition={condition} measurements={measurements} leadingSeparator />
   </div>;
 
-  return <div className={embedded ? styles.embedded : styles.page} data-mobile-claim={embedded && currentStatus === 'available' && slug ? 'true' : undefined} data-facts-under-title={factsUnderTitle ? 'true' : undefined} data-status={currentStatus}>
+  return <div ref={itemRoot} className={embedded ? styles.embedded : styles.page} data-mobile-claim={embedded && currentStatus === 'available' && slug ? 'true' : undefined} data-facts-under-title={factsUnderTitle ? 'true' : undefined} data-status={currentStatus}>
     <article className={embedded ? undefined : styles.item}>
       {!embedded && <h1>{title}</h1>}
       <div className={embedded ? undefined : styles.columns}>
@@ -343,7 +349,7 @@ export function StorefrontItem({
         </div>
       </div>
     </article>
-    {embedded && currentStatus === 'available' && slug && portalRoot && createPortal(<div className={styles.mobileClaimBar}>
+    {embedded && !externalMobileActions && currentStatus === 'available' && slug && portalRoot && createPortal(<div className={styles.mobileClaimBar}>
       <Link className={primaryButtonClassName} href={`/things/claim/${encodeURIComponent(slug)}`} transitionTypes={['claim-forward']}>
         {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
         <span className={styles.buttonLabel}>Claim for 1 coffee</span>
