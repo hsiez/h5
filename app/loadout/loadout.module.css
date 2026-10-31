@@ -47,10 +47,6 @@
   opacity: 1;
 }
 
-.viewport[data-pinching="true"] .sheet,
-.viewport[data-pinching="true"] .world {
-  will-change: transform;
-}
 
 .region { min-height: 100%; }
 
@@ -98,8 +94,7 @@
   cursor: pointer;
   text-align: left;
   transform-origin: top left;
-  content-visibility: auto;
-  contain-intrinsic-size: auto 160px;
+  /* Grid row geometry must be final before shared-image motion measures it. */
 }
 
 .itemMedia {
@@ -114,15 +109,6 @@
   background:
     linear-gradient(145deg, rgba(255,255,255,.5), transparent 44%),
     hsl(calc(38 + (var(--item-index) * 23)), calc(8% + (var(--item-index) * 2%)), calc(91% - (var(--item-index) * .45%)));
-}
-
-/* Keep offscreen items rendered while they travel from the world thumbnail. */
-.viewport[data-mode-transition] .item {
-  content-visibility: visible;
-}
-
-.viewport[data-mode-transition] {
-  pointer-events: none;
 }
 
 .itemMedia::after {
@@ -168,7 +154,7 @@
 }
 
 /* Keep world-to-region snapshots stippled, then reveal color in the region.
-   Focused items retain their color through density and gallery movement. */
+   Focused items retain their color during route and gallery movement. */
 .item:not([data-photo-ready="true"]) .itemPhoto,
 .item:not([data-photo-ready="true"]) .itemDither {
   transition: none;
@@ -199,7 +185,7 @@
   height: 100svh;
   min-height: 0;
   overflow: hidden;
-  touch-action: none;
+  touch-action: pan-y pinch-zoom;
   outline: none;
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
@@ -210,25 +196,17 @@
 }
 
 .viewport[data-stage="1"] .itemLayout {
-  display: flex;
+  display: block;
   height: 100%;
-  flex-direction: column;
   gap: 0;
   padding: 0;
-  transform: translateY(calc(var(--active-item) * -100svh));
-  transition: transform 480ms cubic-bezier(.2, .75, .2, 1);
-  will-change: transform;
 }
 
-.viewport[data-density-transitioning="true"] .itemLayout {
-  transition: none;
-}
 
 .viewport[data-stage="1"] .item {
   display: grid;
   width: 100%;
   height: 100svh;
-  flex: 0 0 100svh;
   grid-template-columns: minmax(0, 1.16fr) minmax(280px, .84fr);
   grid-template-rows: var(--focused-header-height) var(--focused-image-height);
   column-gap: var(--focused-column-gap);
@@ -411,53 +389,6 @@
 
 .detailSection li span { color: var(--muted); }
 
-@media (max-width: 960px) {
-  .viewport[data-stage="1"] {
-    --focused-column-gap: var(--spacing-focus-columns-compact);
-  }
-}
-
-@media (max-width: 760px) {
-  .viewport[data-stage="1"] .item {
-    grid-template-columns: 1fr;
-    grid-template-rows: var(--focused-header-height) 1fr;
-    align-items: start;
-  }
-
-  .viewport[data-stage="1"] .itemMedia {
-    grid-column: 1;
-    grid-row: 2;
-    width: min(100%, 44svh);
-  }
-
-  .focusedDetails {
-    grid-template-columns: 1fr;
-    grid-template-rows: var(--focused-header-height) 1fr;
-  }
-
-  .detailsContent {
-    grid-column: 1;
-    grid-row: 2;
-    align-self: end;
-    padding-bottom: 8svh;
-    transform: none;
-  }
-
-  .detailsHeader {
-    display: block;
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .detailsHeaderInner {
-    grid-column: 1;
-    width: min(100%, 44svh);
-    justify-self: center;
-  }
-
-  .notesSection { display: none; }
-  .detailSection p { max-width: 32ch; }
-}
 
 .world {
   min-height: 100svh;
@@ -582,6 +513,15 @@
 
 @media (max-width: 700px) {
   .worldGrid { grid-template-columns: 1fr; }
+  .miniGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+  .miniGrid > span:nth-child(n + 5) { display: none; }
+  .viewport[data-mode="region"][data-stage="0"] .gridHeader,
+  .viewport[data-mode="region"][data-stage="0"] .itemLayout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -593,7 +533,7 @@
   .viewport[data-stage="1"] .itemLayout { transition: none; }
 }
 
-/* Longer reviews scroll independently of the item carousel. */
+/* Desktop reviews scroll within the focused item. */
 .detailsContent {
   max-height: min(var(--focused-image-height), 60svh);
   overflow-x: hidden;
@@ -657,6 +597,9 @@
 /* Focused view: keep the copy at the region-title position, with the image to its right. */
 @media (min-width: 1101px) {
   .viewport[data-stage="1"] {
+    --focused-region-width: min(calc(100vw - 2 * var(--overview-gutter)), var(--overview-max-width));
+    --focused-region-gap: clamp(3px, .45vw, 8px);
+    --focused-copy-left: calc((100vw - var(--focused-region-width)) / 2 + (var(--focused-region-width) - 2 * var(--focused-region-gap)) / 3 * var(--focused-first-item-align, 0));
     --focused-top-padding: var(--loadout-title-top);
     --focused-title-height: var(--focused-measured-title-height, calc(var(--focus-item-title-size) * 1.05));
     --focused-title-gap: 24px;
@@ -689,10 +632,15 @@
 
   .focusImageGallery { grid-column: 2; }
 
+  .focusedDetails { grid-template-rows: max-content var(--focused-image-height); }
+  .detailsHeader, .detailsContent {
+    position: relative;
+    grid-column: 1;
+    justify-self: start;
+    margin-left: calc(var(--focused-copy-left) - max(var(--focused-horizontal-padding), calc((100vw - 1440px) / 2 + var(--focused-horizontal-padding))));
+  }
   .detailsHeader {
-    position: fixed;
-    top: var(--loadout-title-top);
-    left: var(--focused-copy-left);
+    grid-row: 1;
     display: block;
     width: var(--focused-copy-width);
   }
@@ -708,9 +656,7 @@
     letter-spacing: -.035em;
   }
   .detailsContent {
-    position: fixed;
-    top: calc(var(--focused-top-padding) + var(--focused-title-height) + var(--focused-title-gap));
-    left: var(--focused-copy-left);
+    grid-row: 2;
     width: var(--focused-copy-width);
     height: var(--focused-image-height);
     max-height: var(--focused-image-height);
@@ -720,7 +666,7 @@
   .detailSection p { max-width: 32em; }
 }
 
-/* Narrow focus: one column with document scrolling and horizontal item movement. */
+/* Narrow focus: a single item with native document scrolling. */
 @media (max-width: 1100px) {
   .detailSection + .detailSection { margin-top: calc(var(--spacing) * 14); }
   .viewport[data-stage="1"] {
@@ -742,11 +688,8 @@
     position: absolute;
     inset: 0 0 auto;
     height: calc(var(--space-mobile-2) + var(--mobile-title-height) + var(--mobile-title-image-gap) + var(--focused-image-height));
-    flex-direction: row;
-    transform: translateX(calc(var(--active-item) * -100%));
   }
   .viewport[data-stage="1"] .item {
-    flex: 0 0 100%;
     height: 100%;
     min-width: 100%;
     box-sizing: border-box;
@@ -820,3 +763,7 @@
   .detailSection p { max-width: 32em; }
 }
 .emptyRegion { grid-column:1/-1; padding:32px; color:var(--color-text-tertiary); }
+
+/* Every region item uses the drawing until the shared entrance completes. */
+.viewport[data-region-entering="true"] .itemPhoto { opacity: 0; transition: none; }
+.viewport[data-region-entering="true"] .itemDither { opacity: 1; transition: none; }

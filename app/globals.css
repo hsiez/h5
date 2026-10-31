@@ -228,34 +228,6 @@ body:has([data-claim-page]) {
   ::view-transition-new(.claim-back) { animation-duration: 0s; }
 }
 
-html[data-loadout-density-transition]::view-transition-old(root) {
-  animation: none;
-  opacity: 0;
-}
-
-html[data-loadout-density-transition]::view-transition-new(root) {
-  animation: none;
-  opacity: 1;
-}
-
-/* Move one snapshot per item. Blending old/new artwork exposes the different
-   image alignment in the grid and focused layouts as a double outline. */
-html[data-loadout-density-transition]::view-transition-old(*) {
-  animation: none;
-  opacity: 0;
-}
-
-html[data-loadout-density-transition]::view-transition-new(*) {
-  animation: none;
-  opacity: 1;
-  mix-blend-mode: normal;
-}
-
-html[data-loadout-density-transition]::view-transition-group(*) {
-  animation-duration: 620ms;
-  animation-timing-function: cubic-bezier(.2, .72, .16, 1);
-}
-
 .seattle-word {
   color: #22a855;
   -webkit-text-stroke: 4px #e6b800;
@@ -472,4 +444,15 @@ button:hover .bell-clapper {
 .thin-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(20, 20, 20, 0.12);
   border-radius: 2px;
+}
+
+/* ThingsMotion reads these tokens. Router navigation never waits for animation. */
+:root {
+  --motion-things-focus-duration: 620ms;
+  --motion-things-grid-duration: 400ms;
+  --motion-things-fade-duration: 180ms;
+  --motion-things-focus-easing: cubic-bezier(.2, .72, .16, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --motion-things-focus-duration: 0s; --motion-things-grid-duration: 0s; --motion-things-fade-duration: 0s; }
 }

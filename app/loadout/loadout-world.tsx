@@ -2,19 +2,19 @@
 
 import {
   Fragment,
+  startTransition,
   type CSSProperties,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
-  useEffectEvent,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { flushSync } from "react-dom";
 import Image from "next/image";
+import { itemHref, regionHref } from "./catalog-navigation";
+import { useThingsMotion } from "./things-motion";
+import { useRouter } from "next/navigation";
 import { FocusImageGallery } from "./focus-image-gallery";
 import { FocusImageViewer } from "./focus-image-viewer";
 import { OverflowFade } from "../_components/overflow-fade";
@@ -26,18 +26,7 @@ import worldPhotoBounds from "./world-photo-bounds.json";
 import { StorefrontItem, StorefrontItemFacts } from "../things-for-you/storefront-item";
 import { InlineReference } from "./inline-reference";
 
-// Mode motion has one owner: Web Animations. Geometry comes from the rendered
-// source/destination, so responsive layouts and pinch previews need no offsets.
-const MODE_MOTION = {
-  enter: { duration: 450, easing: "cubic-bezier(.42, 0, .18, 1)" },
-  exit: { duration: 450, easing: "cubic-bezier(.2, .72, .18, 1)" },
-} as const;
-
-const DENSITY_STAGES = [3, 1] as const;
-const MIN_PREVIEW_SCALE = 0.56;
-const MAX_PREVIEW_SCALE = 5.4;
-const ONE_LEVEL_STRENGTH = Math.log(1.055);
-const TWO_LEVEL_STRENGTH = Math.log(1.3);
+const COLUMNS_BY_VIEW = [3, 1] as const;
 
 type RegionId = string;
 
@@ -48,16 +37,6 @@ type Region = {
   heading: string;
   kind: "review" | "storefront";
   items: string[];
-};
-
-type RegionMemory = Record<RegionId, { stage: number; scrollTop: number }>;
-type GestureSource = "touch" | "wheel" | "safari";
-type GesturePhase = "idle" | "tracking" | "locked";
-
-type SafariGestureEvent = Event & {
-  scale: number;
-  clientX: number;
-  clientY: number;
 };
 
 const GRAPHITE_IMAGES: Record<string, string> = {
@@ -124,10 +103,6 @@ function catalogVisualPresentation(bounds?: VisualBounds) {
 
 const FOCUSED_VISUAL_TOP = 0;
 
-function itemSlug(item: string) {
-  return item.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
-
 function baseItemName(item: string) {
   return item.replace(/\s+\d+$/, "");
 }
@@ -148,49 +123,6 @@ function legacyVisualAlignment(item: string) {
   };
 }
 
-function writeCatalogUrl(
-  REGIONS: Region[],
-  regionId: RegionId | null,
-  itemIndex?: number | null,
-  replace = false,
-) {
-  const url = new URL(window.location.href);
-  url.search = "";
-
-  if (regionId) {
-    url.searchParams.set("region", regionId);
-    const region = REGIONS.find((candidate) => candidate.id === regionId);
-    const item = itemIndex === undefined || itemIndex === null
-      ? null
-      : region?.items[itemIndex];
-    if (item) url.searchParams.set("item", itemSlug(item));
-  }
-
-  window.history[replace ? "replaceState" : "pushState"](
-    {},
-    "",
-    `${url.pathname}${url.search}`,
-  );
-}
-
-function distance(a: PointerEvent | ReactPointerEvent, b: PointerEvent | ReactPointerEvent) {
-  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-}
-
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReduced(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-
-  return reduced;
-}
-
 function ReviewParts({ parts }: { parts: ReviewText[] }) {
   return parts.map((part, index) => {
     if (typeof part === "string") {
@@ -207,8 +139,7 @@ function ReviewParts({ parts }: { parts: ReviewText[] }) {
   });
 }
 
-export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:Catalog;preview?:boolean;initialSelection?:{regionId:string|null;itemIndex:number}}) {
-  const hasInitialSelection = initialSelection !== undefined;
+export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedItem=false}:{catalog:Catalog;preview?:boolean;dedicatedItem?:boolean;initialSelection?:{regionId:string|null;itemIndex:number}}) {
   const REGIONS = useMemo<Region[]>(() => catalog.regions.map(region => ({id:region.id,name:region.name,heading:region.heading,note:region.description,kind:region.kind,items:catalog.items.filter(item=>item.regionId===region.id).map(item=>item.slug)})), [catalog]);
   const itemsBySlug = useMemo(() => Object.fromEntries(catalog.items.map(item=>[item.slug,item])), [catalog]);
   const legacyByPhoto = useMemo(() => Object.fromEntries(catalog.items
@@ -240,59 +171,23 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
     return !src || Boolean(item?.legacyKey || legacyByPhoto[src]) || src in photoBounds;
   }, [itemsBySlug, legacyByPhoto, photoBounds]);
   const itemVisualAlignment = useCallback((slug?:string) => itemPresentation(slug), [itemPresentation]);
-  const writeLoadoutUrl = useCallback((region:RegionId|null,itemIndex?:number|null,replace=false) => writeCatalogUrl(REGIONS,region,itemIndex,replace), [REGIONS]);
+  const router = useRouter();
+
   const [selectedPhoto,setSelectedPhoto] = useState({item: "", index: 0});
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [viewerImageRect, setViewerImageRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [galleryHeights, setGalleryHeights] = useState<Record<string, number[]>>({});
-  const [activeRegionId, setActiveRegionId] = useState<RegionId | null>(initialSelection ? initialSelection.regionId : REGIONS[0]?.id ?? null);
-  const [stage, setStage] = useState(initialSelection && initialSelection.itemIndex >= 0 ? 1 : 0);
-  const [activeItemIndex, setActiveItemIndex] = useState(Math.max(0, initialSelection?.itemIndex ?? 0));
-  const [detailItemIndex, setDetailItemIndex] = useState(Math.max(0, initialSelection?.itemIndex ?? 0));
-  const [detailsVisible, setDetailsVisible] = useState(true);
-  const [imagesInTransit, setImagesInTransit] = useState(false);
+  const activeRegionId = initialSelection ? initialSelection.regionId : REGIONS[0]?.id ?? null;
+  const stage = initialSelection && initialSelection.itemIndex >= 0 ? 1 : 0;
+  const activeItemIndex = Math.max(0, initialSelection?.itemIndex ?? 0);
+  const detailItemIndex = Math.max(0, initialSelection?.itemIndex ?? 0);
   const [fullStippleReady, setFullStippleReady] = useState<Record<string, true>>({});
   const preloadedStipples = useRef(new Set<string>());
   const preloadMounted = useRef(false);
-  const [enteringRegion, setEnteringRegion] = useState(false);
-  const [isDensityTransitioning, setIsDensityTransitioning] = useState(false);
-  const [regionTitleVisible, setRegionTitleVisible] = useState(true);
-  const modeAnimations = useRef<Animation[]>([]);
-  const modeAnimationGeneration = useRef(0);
-  const modeTransitionRunning = useRef(false);
-  const [memory, setMemory] = useState<RegionMemory>(()=>Object.fromEntries(REGIONS.map(region=>[region.id,{stage:0,scrollTop:0}])));
-  const [isPinching, setIsPinching] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const focusedTitleRef = useRef<HTMLHeadingElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
-  const pointers = useRef(new Map<number, { clientX: number; clientY: number }>());
-  const gesture = useRef({ startDistance: 0, startScale: 1, x: 0, y: 0 });
-  const gestureSession = useRef<{
-    phase: GesturePhase;
-    source: GestureSource | null;
-    targetRegion: RegionId | null;
-    targetItemIndex: number | null;
-  }>({ phase: "idle", source: null, targetRegion: null, targetItemIndex: null });
-  const gestureUnlockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const frame = useRef<number | null>(null);
-  const pendingScale = useRef(1);
-  const rawScale = useRef(1);
-  const focusedWheelDelta = useRef(0);
-  const focusedWheelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const focusedNavigationLocked = useRef(false);
-  const focusedNavigationUnlockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const detailsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const focusedSwipe = useRef<{
-    pointerId: number;
-    startY: number;
-    currentY: number;
-    startX: number;
-    currentX: number;
-    horizontal: boolean;
-  } | null>(null);
-  const reducedMotion = useReducedMotion();
-
   useEffect(() => {
     preloadMounted.current = true;
     return () => { preloadMounted.current = false; };
@@ -365,25 +260,8 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
     [activeRegionId, REGIONS],
   );
 
-  useLayoutEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport || !activeRegion?.items.length) return;
-    const align = itemVisualAlignment(activeRegion.items[0]).left / 100;
-    const updateCopyPosition = () => {
-      const width = window.innerWidth;
-      const pageStyles = getComputedStyle(viewport.closest('main')!);
-      const gutter = Number.parseFloat(pageStyles.getPropertyValue('--overview-gutter'));
-      const maxWidth = Number.parseFloat(pageStyles.getPropertyValue('--overview-max-width'));
-      const gridWidth = Math.min(width - 2 * gutter, maxWidth);
-      const gridGap = Math.max(3, Math.min(width * .0045, 8));
-      const firstColumnWidth = (gridWidth - 2 * gridGap) / 3;
-      const pageLeft = (width - gridWidth) / 2 + firstColumnWidth * align;
-      viewport.style.setProperty('--focused-copy-left', `${pageLeft}px`);
-    };
-    updateCopyPosition();
-    window.addEventListener('resize', updateCopyPosition);
-    return () => window.removeEventListener('resize', updateCopyPosition);
-  }, [activeRegion, itemVisualAlignment]);
+
+  useThingsMotion(viewportRef, `${activeRegionId ?? "world"}:${stage === 1 ? activeItemIndex : "grid"}`, stage === 1);
 
   const photoIndex = selectedPhoto.item === activeRegion?.items[activeItemIndex] ? selectedPhoto.index : 0;
   const detailSlug = activeRegion?.items[detailItemIndex];
@@ -423,734 +301,20 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
     if (itemsBySlug[item]?.photos[index]) setSelectedPhoto({item,index});
   }, [itemsBySlug]);
 
-  const regionAtPoint = useCallback((x: number, y: number) => {
-    const target = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-region-id]");
-    return (target?.dataset.regionId as RegionId | undefined) ?? null;
-  }, []);
-
-  const constrainPreviewScale = useCallback((nextScale: number) => {
-    let minimum = 0.86;
-    let maximum = 1.6;
-
-    if (activeRegionId) {
-      const currentColumns = DENSITY_STAGES[stage];
-      minimum = stage === 0
-        ? 0.58
-        : currentColumns / DENSITY_STAGES[stage - 1];
-      maximum = stage === DENSITY_STAGES.length - 1
-        ? 1.14
-        : currentColumns / DENSITY_STAGES[stage + 1];
-    }
-
-    if (nextScale < minimum) {
-      const overshoot = minimum * 0.06;
-      return Math.max(
-        MIN_PREVIEW_SCALE,
-        minimum - overshoot * (1 - Math.exp(-(minimum - nextScale) / Math.max(minimum, 0.01))),
-      );
-    }
-    if (nextScale > maximum) {
-      const overshoot = maximum * 0.06;
-      return Math.min(
-        MAX_PREVIEW_SCALE,
-        maximum + overshoot * (1 - Math.exp(-(nextScale - maximum) / Math.max(maximum, 0.01))),
-      );
-    }
-    return nextScale;
-  }, [activeRegionId, stage]);
-
-  const applyPreviewScale = useCallback((nextScale: number, x: number, y: number) => {
-    const surface = activeRegionId ? sheetRef.current : worldRef.current;
-    if (!surface || modeTransitionRunning.current) return;
-
-    pendingScale.current = constrainPreviewScale(nextScale);
-    gesture.current.x = x;
-    gesture.current.y = y;
-    if (frame.current !== null) return;
-
-    frame.current = requestAnimationFrame(() => {
-      const scale = pendingScale.current;
-      const surfaceRect = surface.getBoundingClientRect();
-      surface.style.transformOrigin = `${gesture.current.x - surfaceRect.left}px ${gesture.current.y - surfaceRect.top}px`;
-      surface.style.transform = `scale(${scale})`;
-      frame.current = null;
-    });
-  }, [activeRegionId, constrainPreviewScale]);
-
-  const visibleItems = useCallback(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) return [] as HTMLElement[];
-    const overscan = window.innerHeight * 0.6;
-    return Array.from(viewport.querySelectorAll<HTMLElement>("[data-item-id]"))
-      .filter((item) => {
-        const rect = item.getBoundingClientRect();
-        return rect.bottom > -overscan && rect.top < window.innerHeight + overscan;
-      });
-  }, []);
-
-  const commitDensity = useCallback((
-    targetStage: number,
-    focalX?: number,
-    focalY?: number,
-    historyItemIndex?: number,
-  ) => {
-    const viewport = viewportRef.current;
-    const sheet = sheetRef.current;
-    if (modeTransitionRunning.current || (targetStage === 1 && !activeRegion?.items.length)) return;
-    if (!viewport || !sheet || targetStage === stage) {
-      if (sheet) sheet.style.transform = "";
-      setIsPinching(false);
-      return;
-    }
-
-    const x = focalX ?? window.innerWidth / 2;
-    const y = focalY ?? window.innerHeight / 2;
-    const candidates = visibleItems();
-    const anchor = candidates.reduce<HTMLElement | null>((best, item) => {
-      const rect = item.getBoundingClientRect();
-      const itemDistance = Math.hypot(rect.left + rect.width / 2 - x, rect.top + rect.height / 2 - y);
-      if (!best) return item;
-      const bestRect = best.getBoundingClientRect();
-      const bestDistance = Math.hypot(bestRect.left + bestRect.width / 2 - x, bestRect.top + bestRect.height / 2 - y);
-      return itemDistance < bestDistance ? item : best;
-    }, null);
-    const anchorId = anchor?.dataset.itemId;
-    const anchorIndex = Number(anchorId?.split("-").at(-1));
-    const nextItemIndex = historyItemIndex ?? (targetStage === 1 && Number.isFinite(anchorIndex)
-      ? anchorIndex
-      : activeItemIndex);
-
-    sheet.style.transform = "";
-    // Both snapshots must contain stippling; reveal the photo only after arrival.
-    flushSync(() => setImagesInTransit(true));
-    const update = () => {
-      setIsDensityTransitioning(true);
-      setActiveItemIndex(nextItemIndex);
-      setDetailItemIndex(nextItemIndex);
-      setDetailsVisible(true);
-      setStage(targetStage);
-      window.scrollTo(0, 0);
-    };
-    const transitionDocument = document as Document & {
-      startViewTransition?: (callback: () => void) => { finished: Promise<void> };
-    };
-    if (reducedMotion || !transitionDocument.startViewTransition) {
-      flushSync(update);
-      requestAnimationFrame(() => {
-        setIsDensityTransitioning(false);
-        setImagesInTransit(false);
-      });
-    } else {
-      document.documentElement.dataset.loadoutDensityTransition = targetStage === 1
-        ? "focus"
-        : "grid";
-      const transition = transitionDocument.startViewTransition(() => flushSync(update));
-      transition.finished.then(
-        () => {
-          delete document.documentElement.dataset.loadoutDensityTransition;
-          setIsDensityTransitioning(false);
-          setImagesInTransit(false);
-        },
-        () => {
-          delete document.documentElement.dataset.loadoutDensityTransition;
-          setIsDensityTransitioning(false);
-          setImagesInTransit(false);
-        },
-      );
-    }
-
-    if (activeRegionId && historyItemIndex === undefined) {
-      writeLoadoutUrl(
-        activeRegionId,
-        targetStage === 1 ? nextItemIndex : null,
-      );
-    }
-
-    setIsPinching(false);
-  }, [activeItemIndex, activeRegionId, activeRegion?.items.length, reducedMotion, stage, visibleItems, writeLoadoutUrl]);
-
-  const switchMode = useCallback((
-    nextRegion: RegionId | null,
-    targetStage?: number,
-    targetItemIndex?: number | null,
-    focalY?: number,
-    fromHistory = false,
-  ) => {
-    if (!fromHistory && (modeTransitionRunning.current || nextRegion === activeRegionId)) return;
-    const generation = ++modeAnimationGeneration.current;
-    // History navigation must interrupt motion rather than discard the new URL.
-    // Measure the current animated positions before cancelling below.
-    if (frame.current !== null) {
-      cancelAnimationFrame(frame.current);
-      frame.current = null;
-    }
-    const direction = nextRegion ? "enter" : "exit";
-    const regionId = nextRegion ?? activeRegionId;
-    const sourceSelector = nextRegion && !activeRegionId
-      ? `[data-region-id="${regionId}"] [data-world-item-index]`
-      : "[data-shared-item-index]";
-    const sourceRects = Array.from(
-      viewportRef.current?.querySelectorAll<HTMLElement>(sourceSelector) ?? [],
-      (item) => item.getBoundingClientRect(),
-    );
-
-    modeAnimations.current.forEach((animation) => animation.cancel());
-    modeAnimations.current = [];
-    const viewport = viewportRef.current;
-    if (activeRegionId && viewport) {
-      setMemory((current) => ({
-        ...current,
-        [activeRegionId]: { stage, scrollTop: window.scrollY },
-      }));
-    }
-
-    const update = () => {
-      setImagesInTransit(true);
-      setEnteringRegion(Boolean(nextRegion && !activeRegionId));
-      setRegionTitleVisible(false);
-      if (nextRegion) {
-        const remembered = memory[nextRegion] ?? {stage:0,scrollTop:0};
-        const nextStage = targetStage ?? remembered.stage;
-        setActiveRegionId(nextRegion);
-        setStage(nextStage);
-        if (targetItemIndex !== undefined && targetItemIndex !== null) {
-          setActiveItemIndex(targetItemIndex);
-          setDetailItemIndex(targetItemIndex);
-        }
-        if (fromHistory) setDetailsVisible(true);
-        if (!fromHistory) writeLoadoutUrl(
-          nextRegion,
-          nextStage === 1 ? targetItemIndex : null,
-        );
-      } else {
-        setActiveRegionId(null);
-        setStage(0);
-        window.scrollTo(0, 0);
-        if (!fromHistory) writeLoadoutUrl(null);
-      }
-      setIsPinching(false);
-    };
-
-    const surface = activeRegionId ? sheetRef.current : worldRef.current;
-    if (surface) surface.style.transform = "";
-
-    // Commit and settle scroll before measuring, in the same frame. No destination
-    // frame is painted before its inverse transform has been installed.
-    modeTransitionRunning.current = true;
-    flushSync(update);
-    if (nextRegion) {
-      const item = targetItemIndex != null
-        ? viewportRef.current?.querySelector<HTMLElement>(
-          `[data-item-id="${nextRegion}-${targetItemIndex}"]`,
-        )
-        : null;
-      // Focused items are positioned by the carousel, not document scrolling.
-      if ((targetStage ?? memory[nextRegion].stage) === 1) {
-        window.scrollTo(0, 0);
-      } else if (item) {
-        const rect = item.getBoundingClientRect();
-        window.scrollBy(0, rect.top + rect.height / 2 - (focalY ?? window.innerHeight / 2));
-      } else {
-        window.scrollTo(0, targetStage === undefined ? memory[nextRegion].scrollTop : 0);
-      }
-    }
-
-    const finish = () => {
-      if (generation !== modeAnimationGeneration.current) return;
-      modeAnimations.current.forEach((animation) => animation.cancel());
-      modeAnimations.current = [];
-      modeTransitionRunning.current = false;
-      delete viewportRef.current?.dataset.modeTransition;
-      setRegionTitleVisible(true);
-      setImagesInTransit(false);
-      setEnteringRegion(false);
-    };
-    if (reducedMotion) {
-      finish();
-      return;
-    }
-
-    const destinationSelector = nextRegion
-      ? "[data-shared-item-index]"
-      : `[data-region-id="${regionId}"] [data-world-item-index]`;
-    const destinations = Array.from(
-      viewportRef.current?.querySelectorAll<HTMLElement>(destinationSelector) ?? [],
-    );
-    if (viewportRef.current) viewportRef.current.dataset.modeTransition = direction;
-    // Read every destination before writing animations. Animate transforms rather
-    // than snapshot widths: the artwork visibly scales as it travels into place.
-    const destinationRects = destinations.map((item) => item.getBoundingClientRect());
-    modeAnimations.current = destinations.flatMap((destination, index) => {
-      const source = sourceRects[index];
-      const target = destinationRects[index];
-      if (!source || !source.width || !source.height || !target.width || !target.height) return [];
-      return [destination.animate([
-        {
-          transformOrigin: "0 0",
-          transform: `translate(${source.left - target.left}px, ${source.top - target.top}px) scale(${source.width / target.width}, ${source.height / target.height})`,
-        },
-        { transformOrigin: "0 0", transform: "none" },
-      ], { ...MODE_MOTION[direction], fill: "both" })];
-    });
-    // Cancellation also settles finished; never leave the interaction lock stuck.
-    void Promise.allSettled(modeAnimations.current.map((animation) => animation.finished)).then(finish);
-
-  }, [activeRegionId, memory, reducedMotion, stage, writeLoadoutUrl]);
-
-  const resetPreview = useCallback(() => {
-    const surface = activeRegionId ? sheetRef.current : worldRef.current;
-    if (surface) surface.style.transform = "";
-    pendingScale.current = 1;
-    rawScale.current = 1;
-    setIsPinching(false);
-  }, [activeRegionId]);
-
-  const endGesture = useCallback((x: number, y: number) => {
-    const signedStrength = Math.log(Math.max(rawScale.current, 0.001));
-    const strength = Math.abs(signedStrength);
-    const currentPosition = activeRegionId ? stage + 1 : 0;
-
-    if (strength < ONE_LEVEL_STRENGTH) {
-      resetPreview();
-      return;
-    }
-
-    const levels = strength >= TWO_LEVEL_STRENGTH ? 2 : 1;
-    const direction = signedStrength > 0 ? 1 : -1;
-    const targetPosition = Math.max(0, Math.min(2, currentPosition + direction * levels));
-
-    if (targetPosition === currentPosition) {
-      resetPreview();
-    } else if (targetPosition === 0) {
-      switchMode(null);
-    } else if (!activeRegionId) {
-      switchMode(
-        gestureSession.current.targetRegion ?? REGIONS[0]?.id ?? null,
-        targetPosition - 1,
-        targetPosition === 2 ? gestureSession.current.targetItemIndex : null,
-        y,
-      );
-    } else {
-      commitDensity(targetPosition - 1, x, y);
-    }
-  }, [activeRegionId, commitDensity, resetPreview, stage, switchMode, REGIONS]);
-
-  const beginGesture = useCallback((source: GestureSource, x: number, y: number) => {
-    if (modeTransitionRunning.current) return false;
-    const session = gestureSession.current;
-    if (session.phase === "locked") return false;
-    if (session.phase === "tracking") return session.source === source;
-
-    session.phase = "tracking";
-    session.source = source;
-    session.targetRegion = activeRegionId ? null : regionAtPoint(x, y);
-    const worldItem = activeRegionId
-      ? null
-      : document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-world-item-index]");
-    session.targetItemIndex = worldItem
-      ? Number(worldItem.dataset.worldItemIndex)
-      : null;
-    pendingScale.current = 1;
-    rawScale.current = 1;
-    gesture.current.x = x;
-    gesture.current.y = y;
-    setIsPinching(true);
-    return true;
-  }, [activeRegionId, regionAtPoint]);
-
-  const lockGestureUntilQuiet = useCallback((delay = 320) => {
-    gestureSession.current.phase = "locked";
-    if (gestureUnlockTimer.current) clearTimeout(gestureUnlockTimer.current);
-    gestureUnlockTimer.current = setTimeout(() => {
-      gestureSession.current = {
-        phase: "idle",
-        source: null,
-        targetRegion: null,
-        targetItemIndex: null,
-      };
-    }, delay);
-  }, []);
-
-  const stepWheelZoom = useCallback((direction: 1 | -1, x: number, y: number) => {
-    const currentPosition = activeRegionId ? stage + 1 : 0;
-    const targetPosition = Math.max(0, Math.min(2, currentPosition + direction));
-
-    if (targetPosition === currentPosition) {
-      resetPreview();
-    } else if (targetPosition === 0) {
-      switchMode(null);
-    } else if (!activeRegionId) {
-      const targetRegion = gestureSession.current.targetRegion;
-      if (!targetRegion) {
-        resetPreview();
-        return;
-      }
-      switchMode(targetRegion, 0, null, y);
-    } else {
-      commitDensity(targetPosition - 1, x, y);
-    }
-  }, [activeRegionId, commitDensity, resetPreview, stage, switchMode]);
-
-  const finishGesture = useCallback((source: GestureSource, x: number, y: number) => {
-    const session = gestureSession.current;
-    if (session.phase !== "tracking" || session.source !== source) return;
-
-    const strength = Math.abs(Math.log(Math.max(rawScale.current, 0.001)));
-    const commitsMove = strength >= ONE_LEVEL_STRENGTH;
-
-    if (commitsMove) {
-      lockGestureUntilQuiet();
-    } else {
-      session.phase = "idle";
-      session.source = null;
-      session.targetRegion = null;
-      session.targetItemIndex = null;
-    }
-
-    endGesture(x, y);
-  }, [endGesture, lockGestureUntilQuiet]);
-
-  const cancelGesture = useCallback((source: GestureSource) => {
-    if (gestureSession.current.source !== source) return;
-    gestureSession.current = {
-      phase: "idle",
-      source: null,
-      targetRegion: null,
-      targetItemIndex: null,
-    };
-    resetPreview();
-  }, [resetPreview]);
-
-  const moveFocusedItem = useCallback((direction: 1 | -1) => {
-    if (stage !== 1 || !activeRegion || focusedNavigationLocked.current) return;
-    const nextIndex = Math.max(
-      0,
-      Math.min(activeRegion.items.length - 1, activeItemIndex + direction),
-    );
-    if (nextIndex === activeItemIndex) return;
-
-    focusedNavigationLocked.current = true;
-    setDetailsVisible(false);
-    setImagesInTransit(!reducedMotion);
-    setActiveItemIndex(nextIndex);
-    if (window.matchMedia("(max-width: 1100px)").matches) window.scrollTo(0, 0);
-    writeLoadoutUrl(activeRegion.id, nextIndex, true);
-    if (detailsTimer.current) clearTimeout(detailsTimer.current);
-    detailsTimer.current = setTimeout(() => {
-      setDetailItemIndex(nextIndex);
-      setDetailsVisible(true);
-    }, reducedMotion ? 0 : 150);
-    if (focusedNavigationUnlockTimer.current) {
-      clearTimeout(focusedNavigationUnlockTimer.current);
-    }
-    focusedNavigationUnlockTimer.current = setTimeout(() => {
-      focusedNavigationLocked.current = false;
-      focusedNavigationUnlockTimer.current = null;
-    }, reducedMotion ? 80 : 520);
-  }, [activeItemIndex, activeRegion, reducedMotion, stage, writeLoadoutUrl]);
-
-  function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.target instanceof Element && event.target.closest('dialog')) return;
-    const horizontal = window.matchMedia("(max-width: 1100px)").matches;
-    if (event.target instanceof Element && event.target.closest("[data-review-scroll]") && !horizontal) return;
-    if (event.target instanceof Element && event.target.closest("a, input, textarea, select, [data-review-scroll] button, [data-photo-navigation] button")) return;
-    if (event.pointerType !== "touch") return;
-    pointers.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
-    if (!horizontal || pointers.current.size > 1) event.currentTarget.setPointerCapture(event.pointerId);
-    if (stage === 1 && pointers.current.size === 1) {
-      focusedSwipe.current = {
-        pointerId: event.pointerId,
-        startY: event.clientY,
-        currentY: event.clientY,
-        startX: event.clientX,
-        currentX: event.clientX,
-        horizontal,
-      };
-    }
-    if (pointers.current.size === 2) {
-      focusedSwipe.current = null;
-      const [a, b] = Array.from(pointers.current.values());
-      const midpointX = (a.clientX + b.clientX) / 2;
-      const midpointY = (a.clientY + b.clientY) / 2;
-      if (!beginGesture("touch", midpointX, midpointY)) return;
-      gesture.current = {
-        startDistance: distance(a as PointerEvent, b as PointerEvent),
-        startScale: 1,
-        x: midpointX,
-        y: midpointY,
-      };
-    }
-  }
-
-  function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!pointers.current.has(event.pointerId)) return;
-    pointers.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
-    if (focusedSwipe.current?.pointerId === event.pointerId) {
-      focusedSwipe.current.currentY = event.clientY;
-      focusedSwipe.current.currentX = event.clientX;
-      if (!focusedSwipe.current.horizontal && Math.abs(event.clientY - focusedSwipe.current.startY) > 8) event.preventDefault();
-    }
-    if (pointers.current.size !== 2 || gestureSession.current.source !== "touch") return;
-    event.preventDefault();
-    const [a, b] = Array.from(pointers.current.values());
-    const midpointX = (a.clientX + b.clientX) / 2;
-    const midpointY = (a.clientY + b.clientY) / 2;
-    const nextScale = gesture.current.startScale * distance(a as PointerEvent, b as PointerEvent) / gesture.current.startDistance;
-    rawScale.current = nextScale;
-    applyPreviewScale(nextScale, midpointX, midpointY);
-  }
-
-  function onPointerEnd(event: ReactPointerEvent<HTMLDivElement>) {
-    const wasPinching = pointers.current.size === 2;
-    const swipe = focusedSwipe.current?.pointerId === event.pointerId
-      ? focusedSwipe.current
-      : null;
-    pointers.current.delete(event.pointerId);
-    focusedSwipe.current = null;
-    if (wasPinching) {
-      finishGesture("touch", gesture.current.x, gesture.current.y);
-    } else if (swipe) {
-      const dx = event.clientX - swipe.startX;
-      const dy = event.clientY - swipe.startY;
-      const delta = swipe.horizontal ? dx : dy;
-      if (swipe.horizontal && Math.abs(dx) <= Math.abs(dy) * 1.5) return;
-      if (Math.abs(delta) >= 48) moveFocusedItem(delta < 0 ? 1 : -1);
-    }
-  }
-
-  function onPointerCancel(event: ReactPointerEvent<HTMLDivElement>) {
-    pointers.current.delete(event.pointerId);
-    focusedSwipe.current = null;
-    cancelGesture("touch");
-  }
-
-  const handleWheelInput = useCallback((event: WheelEvent) => {
-    if (stage === 1 && window.matchMedia("(max-width: 1100px)").matches && !event.ctrlKey && !event.metaKey) return;
-    if (event.target instanceof Element && event.target.closest("[data-review-scroll]")) return;
-    if (modeTransitionRunning.current) {
-      if (event.cancelable) event.preventDefault();
-      return;
-    }
-    if (stage === 1 && !event.ctrlKey && !event.metaKey) {
-      if (event.cancelable) event.preventDefault();
-      focusedWheelDelta.current += event.deltaY;
-      if (focusedWheelTimer.current) clearTimeout(focusedWheelTimer.current);
-      focusedWheelTimer.current = setTimeout(() => {
-        focusedWheelDelta.current = 0;
-      }, 160);
-      if (Math.abs(focusedWheelDelta.current) >= 42) {
-        moveFocusedItem(focusedWheelDelta.current > 0 ? 1 : -1);
-        focusedWheelDelta.current = 0;
-      }
-      return;
-    }
-    if (!event.ctrlKey && !event.metaKey) return;
-    if (event.cancelable) event.preventDefault();
-    const normalizedDelta = event.deltaMode === WheelEvent.DOM_DELTA_LINE
-      ? event.deltaY * 16
-      : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
-        ? event.deltaY * window.innerHeight
-        : event.deltaY;
-
-    if (gestureSession.current.phase === "locked") {
-      lockGestureUntilQuiet(420);
-      return;
-    }
-    if (!beginGesture("wheel", event.clientX, event.clientY)) return;
-
-    lockGestureUntilQuiet(420);
-    stepWheelZoom(normalizedDelta < 0 ? 1 : -1, event.clientX, event.clientY);
-  }, [beginGesture, lockGestureUntilQuiet, moveFocusedItem, stage, stepWheelZoom]);
-
-  const handleSafariStart = useCallback((event: SafariGestureEvent) => {
-    if (event.cancelable) event.preventDefault();
-    beginGesture("safari", event.clientX, event.clientY);
-  }, [beginGesture]);
-
-  const handleSafariChange = useCallback((event: SafariGestureEvent) => {
-    if (event.cancelable) event.preventDefault();
-    if (gestureSession.current.phase === "locked") {
-      lockGestureUntilQuiet(420);
-      return;
-    }
-    if (gestureSession.current.source !== "safari") return;
-    if (event.scale === 1) return;
-    lockGestureUntilQuiet(420);
-    stepWheelZoom(event.scale > 1 ? 1 : -1, event.clientX, event.clientY);
-  }, [lockGestureUntilQuiet, stepWheelZoom]);
-
-  const handleSafariEnd = useCallback((event: SafariGestureEvent) => {
-    if (event.cancelable) event.preventDefault();
-    finishGesture("safari", gesture.current.x, gesture.current.y);
-  }, [finishGesture]);
-
-  const navigateFromHistory = useEffectEvent((region: RegionId | null, itemIndex: number) => {
-    const targetStage = itemIndex >= 0 ? 1 : 0;
-    if (region && region === activeRegionId) {
-      if (modeTransitionRunning.current) {
-        ++modeAnimationGeneration.current;
-        modeAnimations.current.forEach((animation) => animation.cancel());
-        modeAnimations.current = [];
-        modeTransitionRunning.current = false;
-        setEnteringRegion(false);
-        delete viewportRef.current?.dataset.modeTransition;
-        setRegionTitleVisible(true);
-      }
-      if (targetStage !== stage) {
-        // Use exactly the same shared-element snapshots as click/pinch navigation.
-        commitDensity(targetStage, undefined, undefined, itemIndex >= 0 ? itemIndex : activeItemIndex);
-      } else if (itemIndex >= 0) {
-        setImagesInTransit(!reducedMotion && itemIndex !== activeItemIndex);
-        setActiveItemIndex(itemIndex);
-        setDetailItemIndex(itemIndex);
-        setDetailsVisible(true);
-      }
-      return;
-    }
-    switchMode(region, targetStage, itemIndex >= 0 ? itemIndex : null, undefined, true);
-  });
-
-  useEffect(() => {
-    const previousScrollRestoration = window.history.scrollRestoration;
-    window.history.scrollRestoration = "manual";
-    const restoreFromUrl = (fromHistory = false) => {
-      if (detailsTimer.current) {
-        clearTimeout(detailsTimer.current);
-        detailsTimer.current = null;
-      }
-      if (focusedNavigationUnlockTimer.current) {
-        clearTimeout(focusedNavigationUnlockTimer.current);
-        focusedNavigationUnlockTimer.current = null;
-      }
-      if (focusedWheelTimer.current) {
-        clearTimeout(focusedWheelTimer.current);
-        focusedWheelTimer.current = null;
-      }
-      focusedNavigationLocked.current = false;
-      focusedWheelDelta.current = 0;
-
-      const params = new URLSearchParams(window.location.search);
-      const requestedRegion = params.get("region");
-      if (params.get("view") === "world" || !requestedRegion) {
-        if (fromHistory) {
-          navigateFromHistory(null, -1);
-          return;
-        }
-        setIsDensityTransitioning(true);
-        setActiveRegionId(null);
-        setStage(0);
-        setDetailsVisible(true);
-        requestAnimationFrame(() => setIsDensityTransitioning(false));
-        requestAnimationFrame(() => window.scrollTo(0, 0));
-        return;
-      }
-
-      const region = REGIONS.find(
-        (candidate) => candidate.id === requestedRegion,
-      ) ?? REGIONS[0];
-      if (!region) { setActiveRegionId(null); return; }
-      const requestedItem = params.get("item");
-      const itemIndex = requestedItem
-        ? region.items.findIndex((item) => itemSlug(item) === requestedItem)
-        : -1;
-
-      if (fromHistory) {
-        navigateFromHistory(region.id, itemIndex);
-        return;
-      }
-      setIsDensityTransitioning(true);
-      setActiveRegionId(region.id);
-      setStage(itemIndex >= 0 ? 1 : 0);
-      setActiveItemIndex(itemIndex >= 0 ? itemIndex : 0);
-      setDetailItemIndex(itemIndex >= 0 ? itemIndex : 0);
-      setDetailsVisible(true);
-      requestAnimationFrame(() => {
-        window.scrollTo(0, 0);
-        if (fromHistory && itemIndex >= 0) {
-          viewportRef.current?.focus({ preventScroll: true });
-        }
-        setIsDensityTransitioning(false);
-      });
-    };
-
-    if (!hasInitialSelection) restoreFromUrl();
-    const handlePopState = () => restoreFromUrl(true);
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-      window.history.scrollRestoration = previousScrollRestoration;
-    };
-  }, [REGIONS, hasInitialSelection]);
-
-  useEffect(() => {
-    const onGestureStart = (event: Event) => handleSafariStart(event as SafariGestureEvent);
-    const onGestureChange = (event: Event) => handleSafariChange(event as SafariGestureEvent);
-    const onGestureEnd = (event: Event) => handleSafariEnd(event as SafariGestureEvent);
-
-    window.addEventListener("wheel", handleWheelInput, { passive: false, capture: true });
-    window.addEventListener("gesturestart", onGestureStart, { passive: false });
-    window.addEventListener("gesturechange", onGestureChange, { passive: false });
-    window.addEventListener("gestureend", onGestureEnd, { passive: false });
-
-    return () => {
-      window.removeEventListener("wheel", handleWheelInput, { capture: true });
-      window.removeEventListener("gesturestart", onGestureStart);
-      window.removeEventListener("gesturechange", onGestureChange);
-      window.removeEventListener("gestureend", onGestureEnd);
-    };
-  }, [handleSafariChange, handleSafariEnd, handleSafariStart, handleWheelInput]);
-
-  useEffect(() => () => {
-    modeAnimations.current.forEach((animation) => animation.cancel());
-    if (frame.current !== null) cancelAnimationFrame(frame.current);
-    if (gestureUnlockTimer.current) clearTimeout(gestureUnlockTimer.current);
-    if (focusedWheelTimer.current) clearTimeout(focusedWheelTimer.current);
-    if (focusedNavigationUnlockTimer.current) clearTimeout(focusedNavigationUnlockTimer.current);
-    if (detailsTimer.current) clearTimeout(detailsTimer.current);
-  }, []);
-
-  const onViewportKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.target instanceof Element && event.target.closest('dialog')) return;
-    if (event.target instanceof Element && event.target.closest("[data-review-scroll]")) return;
-    if (stage !== 1 || !activeRegion) return;
-    if (event.key === "ArrowDown" || event.key === "PageDown") {
-      event.preventDefault();
-      moveFocusedItem(1);
-    } else if (event.key === "ArrowUp" || event.key === "PageUp") {
-      event.preventDefault();
-      moveFocusedItem(-1);
-    } else if (event.key === "Home") {
-      event.preventDefault();
-      setImagesInTransit(!reducedMotion && activeItemIndex !== 0);
-      setActiveItemIndex(0);
-      setDetailItemIndex(0);
-      writeLoadoutUrl(activeRegion.id, 0, true);
-    } else if (event.key === "End") {
-      event.preventDefault();
-      const lastIndex = activeRegion.items.length - 1;
-      setImagesInTransit(!reducedMotion && activeItemIndex !== lastIndex);
-      setActiveItemIndex(lastIndex);
-      setDetailItemIndex(lastIndex);
-      writeLoadoutUrl(activeRegion.id, lastIndex, true);
-    }
-  }, [activeItemIndex, activeRegion, moveFocusedItem, reducedMotion, stage, writeLoadoutUrl]);
+  const switchMode = (regionId: RegionId | null) => {
+    startTransition(() => router.push(regionHref(regionId, preview)));
+  };
 
   return (
-    <main className={styles.page} data-things-page>
+    <main className={styles.page} data-things-page data-dedicated-item={dedicatedItem ? "true" : undefined}>
       <div
         ref={viewportRef}
         className={styles.viewport}
+        style={{ '--focused-first-item-align': activeRegion?.items.length ? itemVisualAlignment(activeRegion.items[0]).left / 100 : 0 } as CSSProperties}
         data-mode={activeRegionId ? "region" : "world"}
         data-stage={stage}
         data-focus-kind={activeRegion?.kind}
-        data-pinching={isPinching ? "true" : "false"}
-        data-density-transitioning={isDensityTransitioning ? "true" : "false"}
         tabIndex={stage === 1 ? 0 : undefined}
-        onKeyDown={onViewportKeyDown}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerEnd}
-        onPointerCancel={onPointerCancel}
       >
         {activeRegion ? (
           <section
@@ -1160,9 +324,9 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
             {stage === 0 ? (
               <header
                 className={styles.gridHeader}
-                data-visible={regionTitleVisible && !isDensityTransitioning ? "true" : "false"}
+                data-visible="true"
                 style={{
-                  "--columns": DENSITY_STAGES[stage],
+                  "--columns": COLUMNS_BY_VIEW[stage],
                   "--first-item-left": `${itemVisualAlignment(activeRegion.items[0]).left}%`,
                 } as CSSProperties}
               >
@@ -1175,18 +339,13 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
             >
               <div
                 className={styles.itemLayout}
-                onTransitionEnd={(event) => {
-                  if (event.target === event.currentTarget && event.propertyName === "transform") {
-                    setImagesInTransit(false);
-                  }
-                }}
                 style={{
-                  "--columns": DENSITY_STAGES[stage],
-                  "--active-item": activeItemIndex,
+                  "--columns": COLUMNS_BY_VIEW[stage],
                 } as CSSProperties}
               >
                 {!activeRegion.items.length && <p className={styles.emptyRegion}>Nothing here yet. Check back soon.</p>}
                 {activeRegion.items.map((item, index) => {
+                  if (stage === 1 && index !== activeItemIndex) return null;
                   const data = itemsBySlug[item];
                   const imageSrc = data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.src;
                   const fullStippleSrc = data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.stippleSrc || ((stage !== 1 || index !== activeItemIndex || photoIndex === 0) ? GRAPHITE_IMAGES[data?.legacyKey || legacyByPhoto[data?.photos[0]?.src || ""] || ""] : undefined) || imageSrc;
@@ -1201,7 +360,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                       onDragStart={event => event.preventDefault()}
                       data-item-id={`${activeRegion.id}-${index}`}
                       data-active={index === activeItemIndex ? "true" : "false"}
-                      data-photo-ready={stage === 1 || !enteringRegion || !imagesInTransit ? "true" : "false"}
+                      data-photo-ready="true"
                       tabIndex={stage === 1 && index !== activeItemIndex ? -1 : 0}
                       style={{
                         "--item-index": index,
@@ -1212,12 +371,8 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                         "--visual-left": `${alignment.left}%`,
                       } as CSSProperties}
                       aria-label={`${item}, item ${index + 1} of ${activeRegion.items.length}`}
-                      onClick={(event) => {
-                        if (stage === 0) {
-                          commitDensity(1, event.clientX, event.clientY);
-                        } else {
-                          writeLoadoutUrl(activeRegion.id, index);
-                        }
+                      onClick={() => {
+                        if (stage === 0) startTransition(() => router.push(itemHref(item, activeRegion.id, preview)));
                       }}
                     >
                       <span
@@ -1226,14 +381,12 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                         data-has-image={imageSrc ? "true" : "false"}
                         data-visual-ready={itemVisualReady(item) ? "true" : "false"}
                         aria-hidden="true"
-                        style={{
-                          viewTransitionName: `loadout-${activeRegion.id}-${index}`,
-                        } as CSSProperties}
                       >
                         {imageSrc ? (
                           <>
                             <Image
                               src={imageSrc}
+                              data-motion-image={item}
                               draggable={false}
                               onLoad={event => rememberPhotoBounds(imageSrc, event.currentTarget)}
                               onError={() => rememberDefaultPhotoBounds(imageSrc)}
@@ -1287,7 +440,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                   <>
                   <aside
                     className={styles.focusedDetails}
-                    data-visible={detailsVisible && !isDensityTransitioning ? "true" : "false"}
+                    data-visible="true"
                     aria-live="polite"
                     style={{
                       "--focused-mobile-visual-height": Math.min(1, Math.max(0.55, itemPresentation(detailItem).visibleHeight + 0.08)),
@@ -1328,7 +481,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
           <section ref={worldRef} className={styles.world} aria-label="Things regions">
             <h1
               className={styles.worldTitle}
-              data-visible={regionTitleVisible ? "true" : "false"}
+              data-visible="true"
             >
               Things worth mentioning
             </h1>
@@ -1340,7 +493,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                   data-region-id={region.id}
                   aria-label={region.name}
                   onClick={() => {
-                    switchMode(region.id, 0);
+                    switchMode(region.id);
                   }}
                 >
                   <span
@@ -1349,11 +502,9 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                   >
                     {region.items.slice(0, 6).map((item, index) => {
                       const fullStippleSrc = itemsBySlug[item]?.photos[0]?.stippleSrc || GRAPHITE_IMAGES[itemsBySlug[item]?.legacyKey || legacyByPhoto[itemsBySlug[item]?.photos[0]?.src || ""] || ""] || itemsBySlug[item]?.photos[0]?.src;
-                      // The resting world uses the small drawing. Keep the full
-                      // drawing while its tile is enlarged by the mode animation.
+                      // The world uses the small drawing; the region uses the full asset.
                       const thumbnailSrc = fullStippleSrc ? (worldThumbnails as Record<string, string>)[fullStippleSrc] : undefined;
-                      const imageSrc = imagesInTransit && fullStippleSrc && fullStippleReady[fullStippleSrc]
-                        ? fullStippleSrc : thumbnailSrc || fullStippleSrc;
+                      const imageSrc = thumbnailSrc || fullStippleSrc;
                       const presentation = itemPresentation(item);
                       return (
                         <span
@@ -1372,6 +523,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection}:{catalog:C
                             <>
                             <Image
                               src={imageSrc}
+                              data-motion-image={item}
                               unoptimized
                               alt=""
                               fill

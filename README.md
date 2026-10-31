@@ -35,6 +35,10 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
+## Things navigation
+
+See [Things navigation and image motion](docs/things-navigation.md) for route ownership, history behavior, animation lifecycle, responsive layout, and verification commands.
+
 ## World-view image preparation
 
 The `/things` world view displays small stippled previews of published items. Every image sits in a fixed tile, but the visible object does not necessarily fill its image file: a jacket might occupy most of the canvas while a wallet has broad transparent margins. Equal CSS image sizes would therefore make the objects look unequal in size or misaligned. The layout uses the object's visible bounds to choose a scale and align it across the world, region, and focused views. It measures the first **original photo**, so the presentation remains stable while the gallery changes photos and when the stippled preview gives way to the color photo. File width and height alone cannot tell us where the nontransparent pixels are.
