@@ -1,8 +1,10 @@
 'use client';
 
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { createContext, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './item-layer.module.css';
+
+export const ItemLayerContext = createContext(false);
 
 // The router retains the region in the children slot. No copied grid, synthetic
 // history, image snapshots, or delayed navigation are needed to reveal it again.
@@ -26,10 +28,14 @@ export function ItemLayer({ children }: { children: ReactNode }) {
       if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
     };
   }, []);
-  return <div ref={ref} className={styles.layer} data-item-layer role="dialog"
+  return <ItemLayerContext.Provider value={true}><div ref={ref} className={styles.layer} data-item-layer role="dialog"
     aria-modal="true" aria-label="Item details" tabIndex={-1}
     onKeyDown={event => {
-      if (event.key === 'Escape') { event.preventDefault(); router.back(); }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        const gallery = ref.current?.querySelector<HTMLButtonElement>('[data-gallery-return]');
+        if (gallery) gallery.click(); else router.back();
+      }
       if (event.key !== 'Tab') return;
       const controls = Array.from(ref.current?.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
@@ -45,5 +51,6 @@ export function ItemLayer({ children }: { children: ReactNode }) {
     }}>
 
     {children}
-  </div>;
+    <div data-item-footer />
+  </div></ItemLayerContext.Provider>;
 }

@@ -7,7 +7,7 @@ for(let i=0;i<10;i++){
  await p.locator('[data-region-id=edc]').click();
  await p.waitForURL('**/things?region=edc');
  await p.locator('[data-item-id=edc-5]').click();
- await p.waitForURL('**/things/item/wallet');
+ await p.waitForURL('**/things/wallet');
  await p.evaluate(delay=>{[-1,-1,1,1,-1,-1].forEach((step,index)=>setTimeout(()=>history.go(step),index*delay));},[20,40,80,120,200][i%5]);
  await p.waitForTimeout(1300);
  await p.waitForURL('**/things');

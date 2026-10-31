@@ -18,7 +18,7 @@ for(const width of [390,1440]) {
  await page.locator('[data-region-id=edc]').click();
  await page.waitForURL('**/things?region=edc');
  await page.locator('[data-item-id=edc-5]').click();
- await page.waitForURL('**/things/item/wallet');
+ await page.waitForURL('**/things/wallet');
  for(let i=0;i<3;i++) {
   await page.goBack();await page.waitForURL('**/things?region=edc');
   await page.locator('[data-stage="0"]').waitFor();
@@ -26,7 +26,7 @@ for(const width of [390,1440]) {
   await page.goBack();await page.waitForURL('**/things');
   await page.locator('[data-region-id=edc]').waitFor();
   await page.goForward();await page.waitForURL('**/things?region=edc');
-  await page.goForward();await page.waitForURL('**/things/item/wallet');
+  await page.goForward();await page.waitForURL('**/things/wallet');
   await page.locator('[data-stage="1"]').waitFor();
   await page.waitForTimeout(80);
  }

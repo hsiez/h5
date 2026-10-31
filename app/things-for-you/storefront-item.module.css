@@ -202,7 +202,9 @@
   .mobileClaimBar {
     position: fixed;
     z-index: 20;
-    inset: auto 0 0;
+    /* Follow expanding/collapsing browser chrome, not a stale bottom inset. */
+    inset: 100dvh 0 auto;
+    transform: translateY(-100%);
     display: flex;
     justify-content: center;
     padding: var(--space-mobile-2) var(--space-mobile-3) calc(var(--space-mobile-2) + env(safe-area-inset-bottom));

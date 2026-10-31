@@ -3,8 +3,8 @@
 ## Ownership
 
 The Next router owns location and browser history. `/things` is world,
-`/things?region=edc` is a region grid, and `/things/item/wallet` is an item.
-Selecting a region or item pushes a route. Browser Back/Forward traverses those
+`/things?region=edc` is a region grid, and `/things/wallet` is an item.
+Selecting a region or opening focus pushes a route. Focus opens one history entry; there are no Previous/Next item controls. Browser Back/Forward traverses those
 entries without an application popstate interceptor. Direct item URLs do not
 invent a previous region entry. Legacy `?region=…&item=…` links redirect to the
 item route.
@@ -15,12 +15,13 @@ behavior; CSS controls their different layouts.
 
 ## Retained region on item navigation
 
-Client navigation to `/things/item/[slug]` uses the `@item/(.)item/[slug]`
+Client navigation to `/things/[slug]` uses the `@item/(.)[slug]`
 intercepting route. The children slot retains the real region DOM, image elements,
 and scroll position; a fixed, independently scrollable item layer covers it.
 The background is inert and document scrolling is locked for the layer's lifetime.
-Cleanup restores those settings and keyboard focus. Escape and browser Back use
-normal router history. There is no exit delay: removing the layer reveals the
+Cleanup restores those settings and keyboard focus. Gallery and Escape return
+through normal router history when a region is retained. A direct item visit
+(or exploration begun from one) uses an explicit collection link instead. There is no exit delay: removing the layer reveals the
 already-rendered grid immediately.
 
 The slot has empty root, default, and catch-all pages so navigation to world,
@@ -31,6 +32,19 @@ both routes. Native iPhone swipe compositing still needs real-device validation.
 `node scripts/tests/things-retained-region.mjs` verifies DOM/image identity,
 scroll preservation, Back/Forward, and standalone refresh for EDC and storefront
 items at mobile and desktop widths.
+
+## Item identity and focus sessions
+
+Existing catalog slugs identify items at `/things/<slug>`. The catalog supplies
+content, collection membership, and sort order. `/things/item/...` routes were
+removed outright. Claim routes remain `/things/claim/<slug>`.
+
+The bottom navigation row exposes Back to gallery and, on mobile for available
+storefront items, Claim. Back reuses the sign-up page's raised frame styling.
+The row is portaled into the item layer's footer target (or the document body on
+a standalone item page), and follows dynamic viewport height with safe-area
+padding. Previous/Next item controls were removed. `things-focus-session.mjs`
+verifies collection return, Forward, refresh, direct entry, and removed old paths.
 
 ## Page fade
 

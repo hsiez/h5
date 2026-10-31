@@ -434,7 +434,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                       </Fragment>)}</p>
                     </section>
                   ))}
-                  {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded factsUnderTitle slug={preview?undefined:data.slug} title={data.title} story={data.description} storyParts={data.review?.about} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
+                  {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded externalMobileActions={dedicatedItem} factsUnderTitle slug={preview?undefined:data.slug} title={data.title} story={data.description} storyParts={data.review?.about} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
                 </div>;
                 return (
                   <>

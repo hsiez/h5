@@ -1,0 +1,34 @@
+.navigation {
+  --footer-fade-height: var(--space-mobile-7);
+  position: fixed;
+  z-index: 20;
+  inset: 100dvh 0 auto;
+  transform: translateY(-100%);
+  padding: var(--space-mobile-2) var(--space-mobile-3) calc(var(--space-mobile-2) + env(safe-area-inset-bottom));
+  font-family: var(--font-sans);
+}
+.navigation::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * var(--footer-fade-height)) 0 0;
+  background: linear-gradient(to bottom,
+    rgb(255 255 255 / 0) 0,
+    rgb(255 255 255 / .12) calc(var(--footer-fade-height) * .25),
+    rgb(255 255 255 / .5) calc(var(--footer-fade-height) * .5),
+    rgb(255 255 255 / .88) calc(var(--footer-fade-height) * .75),
+    #fff var(--footer-fade-height));
+  pointer-events: none;
+}
+.row { display: flex; align-items: center; gap: 12px; max-width: 520px; margin: 0 auto; }
+/* Compact mobile variant; inner bevel and grain inherit the same radius. */
+.row .claim {
+  --radius-sm: var(--radius-lg);
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+}
+@media (min-width: 701px) { .claim { display: none; } }

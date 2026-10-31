@@ -1,0 +1,31 @@
+import {chromium,webkit} from 'playwright';
+import assert from 'node:assert/strict';
+const base=process.env.THINGS_TEST_URL||'http://localhost:3130';
+const browser=await(process.env.THINGS_BROWSER==='webkit'?webkit.launch():chromium.launch({channel:'chrome'}));
+for(const width of [390,1440]) {
+ const page=await browser.newPage({viewport:{width,height:844}});
+ await page.goto(`${base}/things`);
+ await page.locator('[data-region-id=edc]').click();
+ await page.waitForURL('**/things?region=edc');
+ await page.evaluate(()=>window.grid=document.querySelector('[data-stage="0"]'));
+ await page.locator('[data-item-id=edc-0]').click();
+ await page.waitForURL('**/things/hat');
+ assert.equal(await page.getByRole('link',{name:'Next item',exact:true}).count(),0);
+ assert.equal(await page.getByRole('link',{name:'Previous item',exact:true}).count(),0);
+ const last=page.url();
+ await page.locator('[data-item-layer]').getByRole('button',{name:'Back to gallery',exact:true}).click();
+ await page.waitForURL('**/things?region=edc');
+ await page.locator('[data-item-layer]').waitFor({state:'detached'});
+ assert.ok(await page.evaluate(()=>window.grid===document.querySelector('[data-stage="0"]')));
+ await page.goForward();await page.waitForURL(last);
+ await page.locator('[data-item-layer]').waitFor();
+ await page.reload();await page.locator('[data-stage="1"]').waitFor();
+ assert.equal(await page.locator('[data-item-layer]').count(),0);
+ await page.getByRole('link',{name:'Back to gallery',exact:true}).click();
+ await page.waitForURL('**/things?region=edc');
+ await page.locator('[data-item-layer]').waitFor({state:'detached'});
+ assert.equal((await page.goto(`${base}/things/item/hat`)).status(),404);
+ console.log(width,'canonical URL, footer navigation, gallery close, Forward, direct entry, removed old URL passed');
+ await page.close();
+}
+await browser.close();
