@@ -24,7 +24,7 @@ export type LocationMapCardProps = {
   showAttributionInfo: boolean;
 };
 
-const tileHost = "/stadia";
+const tileHost = "https://tiles.stadiamaps.com";
 
 function makeStyle(props: LocationMapCardProps): StyleSpecification {
   return {

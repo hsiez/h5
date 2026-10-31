@@ -5,9 +5,6 @@ const nextConfig: NextConfig = {
   experimental: { viewTransition: true },
   // Allow this Mac's LAN address to serve dev assets to an iPhone on the same Wi-Fi.
   allowedDevOrigins: ["10.0.125.216"],
-  async rewrites() {
-    return [{ source: "/stadia/:path*", destination: "https://tiles.stadiamaps.com/:path*" }];
-  },
 };
 
 export default withWorkflow(nextConfig);
