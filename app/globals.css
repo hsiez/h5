@@ -445,14 +445,3 @@ button:hover .bell-clapper {
   background: rgba(20, 20, 20, 0.12);
   border-radius: 2px;
 }
-
-/* ThingsMotion reads these tokens. Router navigation never waits for animation. */
-:root {
-  --motion-things-focus-duration: 620ms;
-  --motion-things-grid-duration: 400ms;
-  --motion-things-fade-duration: 180ms;
-  --motion-things-focus-easing: cubic-bezier(.2, .72, .16, 1);
-}
-@media (prefers-reduced-motion: reduce) {
-  :root { --motion-things-focus-duration: 0s; --motion-things-grid-duration: 0s; --motion-things-fade-duration: 0s; }
-}

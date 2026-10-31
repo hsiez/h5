@@ -13,7 +13,6 @@ import {
 } from "react";
 import Image from "next/image";
 import { itemHref, regionHref } from "./catalog-navigation";
-import { useThingsMotion } from "./things-motion";
 import { useRouter } from "next/navigation";
 import { FocusImageGallery } from "./focus-image-gallery";
 import { FocusImageViewer } from "./focus-image-viewer";
@@ -261,7 +260,6 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
   );
 
 
-  useThingsMotion(viewportRef, `${activeRegionId ?? "world"}:${stage === 1 ? activeItemIndex : "grid"}`, stage === 1);
 
   const photoIndex = selectedPhoto.item === activeRegion?.items[activeItemIndex] ? selectedPhoto.index : 0;
   const detailSlug = activeRegion?.items[detailItemIndex];
@@ -372,7 +370,9 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                       } as CSSProperties}
                       aria-label={`${item}, item ${index + 1} of ${activeRegion.items.length}`}
                       onClick={() => {
-                        if (stage === 0) startTransition(() => router.push(itemHref(item, activeRegion.id, preview)));
+                        if (stage === 0) {
+                          startTransition(() => router.push(itemHref(item, activeRegion.id, preview), { scroll: false }));
+                        }
                       }}
                     >
                       <span
