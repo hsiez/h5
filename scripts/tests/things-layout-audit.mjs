@@ -23,15 +23,7 @@ for(const width of [390,1440]) {
   await page.waitForTimeout(750);
   await page.evaluate(()=>window.scrollTo(0,200));
   await page.goBack(); await page.waitForURL(`**/things?region=${region}`);
-  await page.waitForFunction(()=>document.querySelector('[data-things-motion=grid]'));
-  const reverse=await page.evaluate(()=>{
-   const el=document.querySelector('[data-things-motion=grid]');
-   const animation=el.getAnimations()[0];
-   animation.finish();
-   return {duration:animation.effect.getTiming().duration};
-  });
-  assert.equal(reverse.duration,400);
-  await page.waitForTimeout(50);
+  await page.locator('[data-stage="0"]').waitFor();
   assert.equal(await page.locator('[data-things-motion]').count(),0);
   assert.notEqual(await page.locator(`[data-motion-image=${slug}]`).evaluate(e=>getComputedStyle(e).visibility),'hidden');
   console.log(width,slug,'initial copy position, scrolled return, completion passed');

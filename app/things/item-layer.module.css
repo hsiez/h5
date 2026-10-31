@@ -1,0 +1,9 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: white;
+  outline: none;
+}

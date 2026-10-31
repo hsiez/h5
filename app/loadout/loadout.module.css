@@ -1,4 +1,5 @@
 .page {
+  animation: things-page-enter 250ms ease-out;
   --loadout-title-top: clamp(40px, 8vw, 112px);
   --overview-gutter: 24px;
   --overview-max-width: 1120px;
@@ -764,6 +765,16 @@
 }
 .emptyRegion { grid-column:1/-1; padding:32px; color:var(--color-text-tertiary); }
 
-/* Every region item uses the drawing until the shared entrance completes. */
-.viewport[data-region-entering="true"] .itemPhoto { opacity: 0; transition: none; }
-.viewport[data-region-entering="true"] .itemDither { opacity: 1; transition: none; }
+/* Grids stay visible on return; fading the whole grid makes every image blink. */
+.page:has(.viewport[data-stage="0"]) { animation: none; }
+.viewport[data-stage="0"] :is(.gridHeader, .worldTitle) {
+  animation: things-page-enter 250ms ease-out;
+}
+/* Item pages and grid headings fade without delaying navigation. */
+@keyframes things-page-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page, .viewport[data-stage="0"] :is(.gridHeader, .worldTitle) { animation: none; }
+}

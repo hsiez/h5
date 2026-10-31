@@ -37,7 +37,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Things navigation
 
-See [Things navigation and image motion](docs/things-navigation.md) for route ownership, history behavior, animation lifecycle, responsive layout, and verification commands.
+See [Things navigation and page appearance](docs/things-navigation.md) for route ownership, history behavior, animation lifecycle, responsive layout, and verification commands.
 
 ## World-view image preparation
 
