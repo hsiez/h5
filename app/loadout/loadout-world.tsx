@@ -12,6 +12,7 @@ import {
   useState,
 } from "react";
 import Image from "next/image";
+import { itemHref, regionHref } from "./catalog-navigation";
 import { useThingsMotion } from "./things-motion";
 import { useRouter } from "next/navigation";
 import { FocusImageGallery } from "./focus-image-gallery";
@@ -301,7 +302,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
   }, [itemsBySlug]);
 
   const switchMode = (regionId: RegionId | null) => {
-    startTransition(() => router.push(regionId ? `/things?region=${encodeURIComponent(regionId)}` : '/things'));
+    startTransition(() => router.push(regionHref(regionId, preview)));
   };
 
   return (
@@ -371,7 +372,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                       } as CSSProperties}
                       aria-label={`${item}, item ${index + 1} of ${activeRegion.items.length}`}
                       onClick={() => {
-                        if (stage === 0) startTransition(() => router.push(`/things/item/${encodeURIComponent(item)}`));
+                        if (stage === 0) startTransition(() => router.push(itemHref(item, activeRegion.id, preview)));
                       }}
                     >
                       <span
