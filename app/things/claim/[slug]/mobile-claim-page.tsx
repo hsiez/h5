@@ -1,6 +1,8 @@
 'use client';
 
 import Image from 'next/image';
+import { EmailSentPreview } from '../../../things-for-you/email-sent-preview';
+import { EmailSentInstructions } from '../../../things-for-you/email-sent-instructions';
 import Link from 'next/link';
 import { useId, useState, type FormEvent } from 'react';
 import claimStyles from '../../../things-for-you/storefront-item.module.css';
@@ -9,11 +11,11 @@ import frameStyles from '../../../_components/paper-frame.module.css';
 
 const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function MobileClaimPage({ slug, title }: { slug?: string; title: string }) {
-  const [email, setEmail] = useState('');
+export function MobileClaimPage({ slug, title, initialState = 'entry', initialEmail = '' }: { slug?: string; title: string; initialState?: 'entry' | 'sent'; initialEmail?: string }) {
+  const [email, setEmail] = useState(initialEmail);
   const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState('');
-  const [state, setState] = useState<'entry' | 'sending' | 'sent'>('entry');
+  const [state, setState] = useState<'entry' | 'sending' | 'sent'>(initialState);
   const errorId = useId();
   const claimReady = EMAIL_ADDRESS_PATTERN.test(email.trim()) && acknowledged;
   const returnHref = slug ? `/things?region=things-for-you&item=${encodeURIComponent(slug)}` : '/things?region=things-for-you';
@@ -53,18 +55,18 @@ export function MobileClaimPage({ slug, title }: { slug?: string; title: string 
 
   return <main className={styles.page} data-things-page data-claim-page>
     <div className={styles.shell}>
-      <Link className={`${styles.back} ${frameStyles.frame} ${frameStyles.popover}`} href={returnHref} transitionTypes={['claim-back']} aria-label="Back to item">
+      {state !== 'sent' && <Link className={`${styles.back} ${frameStyles.frame} ${frameStyles.popover}`} href={returnHref} transitionTypes={['claim-back']} aria-label="Back to item">
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12.5 4.5 6 10l6.5 5.5" /></svg>
         <span>Back</span>
-      </Link>
-      <div className={styles.illustration} aria-hidden="true">
+      </Link>}
+      {state !== 'sent' && <div className={styles.illustration} aria-hidden="true">
         <Image src="/illustrations/coffee-chat-metal-cups-spaced-stipple-420.webp" alt="" width={1536} height={1024} unoptimized priority />
-      </div>
+      </div>}
       <section className={`${styles.card} ${claimStyles.claimGlass}`} aria-labelledby="claim-title">
+        {state === 'sent' && <EmailSentPreview email={email} />}
         <h1 id="claim-title" className={claimStyles.claimTitle}>{state === 'sent' ? 'Email sent' : 'How to claim'}</h1>
         {state === 'sent' ? <>
-          <div className={`${styles.intro} ${claimStyles.dialogIntro}`}><p>Open the email to choose a time and place for coffee. If you don’t see it, check your spam folder.</p></div>
-          <p className={styles.subject}>Finish claiming this {title.toLowerCase()}</p>
+          <EmailSentInstructions email={email} title={title} />
           <Link className={`${styles.submit} ${claimStyles.primaryButton}`} href={returnHref} transitionTypes={['claim-back']}><span className={claimStyles.buttonGrain} aria-hidden="true" /><span className={claimStyles.buttonLabel}>Done</span></Link>
         </> : <>
           <div className={`${styles.intro} ${claimStyles.dialogIntro}`}><p>Harley wants to trade you this item for a coffee chat. Enter your email and he’ll send a scheduling link.</p></div>

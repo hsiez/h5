@@ -1,6 +1,8 @@
 'use client';
 
 import Image from 'next/image';
+import { EmailSentPreview } from './email-sent-preview';
+import { EmailSentInstructions } from './email-sent-instructions';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
@@ -356,26 +358,14 @@ export function StorefrontItem({
         </svg>
       </button>
       <div ref={dialogBodyRef} className={styles.dialogBody}>
-      {submission === 'success' ? <div className={styles.emailPreview} role="group" aria-label="Email preview">
-        <div className={styles.previewHeader}>
-          <span className={styles.previewAvatar} aria-hidden="true">H</span>
-          <div className={styles.previewIdentity}>
-            <div className={styles.previewSender}><strong>hey@h5.codes</strong></div>
-            <div className={styles.previewRecipient}>to <strong>{email}</strong></div>
-          </div>
-        </div>
-        <div className={styles.previewContent}>
-          <strong className={styles.previewSubject}>Finish claiming this {title.toLowerCase()}</strong>
-          <div className={styles.previewSkeleton} aria-hidden="true"><span /><span /><span /></div>
-        </div>
-      </div> : <div className={styles.dialogIllustration} aria-hidden="true">
+      {submission === 'success' ? <EmailSentPreview email={email} /> : <div className={styles.dialogIllustration} aria-hidden="true">
         <Image src="/illustrations/coffee-chat-metal-cups-spaced-stipple-420.webp" alt="" width={1536} height={1024} unoptimized />
       </div>}
       <div className={`${styles.dialogContent} ${styles.claimGlass}`}>
-      <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={-1}>{submission === 'success' ? 'Email Sent' : 'How to claim'}</h2>
+      <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={-1}>{submission === 'success' ? 'Email sent' : 'How to claim'}</h2>
       <div id={dialogDescriptionId} className={styles.dialogIntro}>
         {submission === 'success'
-          ? <p>Open the email to choose a time and place for coffee. If you don’t see it, check your spam folder.</p>
+          ? <EmailSentInstructions email={email} title={title} />
           : <p>Harley wants to trade you this item for a coffee chat. Enter your email and he’ll send a scheduling link.</p>}
       </div>
       {submission === 'success' ? <div className={`${styles.dialogActions} ${styles.successActions}`}>

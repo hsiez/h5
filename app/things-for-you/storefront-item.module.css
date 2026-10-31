@@ -294,3 +294,5 @@
 @media (max-width: 700px) and (prefers-reduced-motion: reduce) {
   .claimDialog[open], .claimDialog::backdrop { animation: none; }
 }
+
+.dialogIntro > div { margin-top: 0; }

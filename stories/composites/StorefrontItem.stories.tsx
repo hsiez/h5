@@ -31,3 +31,9 @@ export const Pending: Story = { args: { ...item, status: 'pending' } };
 export const NotifyEmailInput: Story = { args: { ...Pending.args, initialAction: 'notify' } };
 export const Reserved: Story = { args: { ...item, status: 'reserved' } };
 export const Claimed: Story = { args: { ...item, status: 'claimed' } };
+
+export const MobileEmailSent: Story = {
+  args: { ...ClaimEmailInput.args },
+  render: args => <MobileClaimPage title={args.title} initialState="sent" initialEmail="you@gmail.com" />,
+  parameters: { docs: { description: { story: 'Email sent confirmation with an inbox search link and copyable subject. Sends no email.' } } },
+};
