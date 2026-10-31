@@ -13,7 +13,7 @@ export function EmailSentInstructions({ email, title }: { email: string; title: 
     return () => controller.abort();
   }, [email]);
   const providerHref = provider?.name === 'Gmail'
-    ? `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(email.trim())}#search/${encodeURIComponent(`in:anywhere from:hey@h5.codes subject:"${emailSubject}"`)}`
+    ? `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(email.trim())}#search/${encodeURIComponent(`in:anywhere subject:"${emailSubject}"`)}`
     : provider?.url;
   return (
           <div className={styles.subjectSearch}>
