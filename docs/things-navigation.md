@@ -39,8 +39,9 @@ Existing catalog slugs identify items at `/things/<slug>`. The catalog supplies
 content, collection membership, and sort order. `/things/item/...` routes were
 removed outright. Claim routes remain `/things/claim/<slug>`.
 
-The bottom navigation row exposes Back to gallery and, on mobile for available
-storefront items, Claim. Back reuses the sign-up page's raised frame styling.
+The bottom navigation row is mobile-only (up to 700px). It exposes Back to
+gallery and, for available storefront items, Claim. Desktop hides the entire
+footer, including its fade. Back reuses the sign-up page's raised frame styling.
 The row is portaled into the item layer's footer target (or the document body on
 a standalone item page), and follows dynamic viewport height with safe-area
 padding. Previous/Next item controls were removed. `things-focus-session.mjs`

@@ -31,4 +31,4 @@
   border-radius: var(--radius-lg);
   text-decoration: none;
 }
-@media (min-width: 701px) { .claim { display: none; } }
+@media (min-width: 701px) { .navigation { display: none; } }

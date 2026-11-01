@@ -13,7 +13,11 @@ for(const width of [390,1440]) {
  assert.equal(await page.getByRole('link',{name:'Next item',exact:true}).count(),0);
  assert.equal(await page.getByRole('link',{name:'Previous item',exact:true}).count(),0);
  const last=page.url();
- await page.locator('[data-item-layer]').getByRole('button',{name:'Back to gallery',exact:true}).click();
+ if(width<=700) await page.locator('[data-item-layer]').getByRole('button',{name:'Back to gallery',exact:true}).click();
+ else {
+  assert.equal(await page.getByRole('navigation',{name:'Item navigation'}).count(),0);
+  await page.goBack();
+ }
  await page.waitForURL('**/things?region=edc');
  await page.locator('[data-item-layer]').waitFor({state:'detached'});
  assert.ok(await page.evaluate(()=>window.grid===document.querySelector('[data-stage="0"]')));
@@ -21,7 +25,11 @@ for(const width of [390,1440]) {
  await page.locator('[data-item-layer]').waitFor();
  await page.reload();await page.locator('[data-stage="1"]').waitFor();
  assert.equal(await page.locator('[data-item-layer]').count(),0);
- await page.getByRole('link',{name:'Back to gallery',exact:true}).click();
+ if(width<=700) await page.getByRole('link',{name:'Back to gallery',exact:true}).click();
+ else {
+  assert.equal(await page.getByRole('navigation',{name:'Item navigation'}).count(),0);
+  await page.goBack();
+ }
  await page.waitForURL('**/things?region=edc');
  await page.locator('[data-item-layer]').waitFor({state:'detached'});
  assert.equal((await page.goto(`${base}/things/item/hat`)).status(),404);
