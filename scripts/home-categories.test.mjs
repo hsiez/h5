@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { homeCategories } from '../app/loadout/home-categories.ts';
+const regions = [{id:'edc',name:'Everyday carry'}, {id:'things-for-you',name:'Things for you'}, {id:'books',name:'Books'}, {id:'tools',name:'Tools'}];
+const entries = homeCategories(regions);
+assert.deepEqual(entries.map(e=>e.name), ['Every day carry','Kitchen','For you','Books','Tools']);
+assert.deepEqual(entries.filter(e=>e.regionId).map(e=>e.regionId), regions.map(r=>r.id));
+assert.equal(entries[1].regionId, undefined);
+const kitchen = homeCategories([...regions,{id:'cooking',name:'Kitchen'}]);
+assert.equal(kitchen[1].regionId, 'cooking');
+assert.equal(kitchen.filter(e=>e.regionId==='cooking').length, 1);
+assert.equal(homeCategories([...regions,{id:'kitchen',name:'Cooking'}])[1].regionId,'kitchen');
+console.log('Home category coverage passed');
