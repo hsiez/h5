@@ -1,5 +1,6 @@
 'use client';
 
+import inputStyles from '../_components/text-input.module.css';
 import Image from 'next/image';
 import { EmailSentPreview } from './email-sent-preview';
 import { EmailSentInstructions } from './email-sent-instructions';
@@ -128,22 +129,22 @@ export function StorefrontItem({
   const currentStatus = slug ? liveStatus : status;
   const expectedAction = currentStatus === 'available' ? 'claim' : currentStatus === 'pending' || currentStatus === 'reserved' ? 'notify' : null;
   const activeAction = action === expectedAction ? action : null;
-  const claimReady = emailValid && acknowledged;
+  const claimReady = emailValid && (activeAction === 'notify' || acknowledged);
   const primaryButtonClassName = `${styles.primaryButton}${buttonVariant === 'overlay' ? ` ${styles.originalButton}` : ''}`;
 
   useEffect(() => {
     const dialog = claimDialogRef.current;
     if (!dialog) return;
-    if (activeAction === 'claim' && !dialog.open) {
+    if (activeAction && !dialog.open) {
       dialog.showModal();
       dialog.scrollTop = 0;
       dialogHeadingRef.current?.focus({ preventScroll: true });
     }
-    if (activeAction !== 'claim' && dialog.open) dialog.close();
+    if (!activeAction && dialog.open) dialog.close();
   }, [activeAction, submission]);
 
   useEffect(() => {
-    if (activeAction !== 'claim') return;
+    if (!activeAction) return;
     const dialog = claimDialogRef.current;
     if (!dialog) return;
 
@@ -228,12 +229,12 @@ export function StorefrontItem({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (activeAction === 'claim') {
+    {
       const emailInput = event.currentTarget.querySelector<HTMLInputElement>('input[type="email"]');
       if (!email.trim()) { setFormError('Enter your email address.'); return; }
       if (!emailInput?.validity.valid) { setFormError('Enter a valid email address.'); return; }
-      if (!acknowledged) { setFormError('Please acknowledge the no-resale condition.'); return; }
-    } else if (!email.trim()) return;
+      if (activeAction === 'claim' && !acknowledged) { setFormError('Please acknowledge the no-resale condition.'); return; }
+    }
     setSubmission('loading');
     setFormError('');
     if (!slug) {
@@ -298,7 +299,7 @@ export function StorefrontItem({
         <div className={styles.content}>
           {embedded ? <OverflowFade className={styles.storyScroll} label="About this item">{introduction}</OverflowFade> : introduction}
 
-          <section className={styles.claiming} data-embedded={embedded ? 'true' : undefined} aria-label="Adoption details">
+          <section className={styles.claiming} data-footer-action={externalMobileActions && (currentStatus === 'reserved' || currentStatus === 'pending') ? 'true' : undefined} data-embedded={embedded ? 'true' : undefined} aria-label="Adoption details">
             <section className={styles.availability} aria-label="Shopping details">
               {metadataRow}
               <div className={styles.purchaseRow}>
@@ -317,30 +318,10 @@ export function StorefrontItem({
                       <span className={styles.ownerCardText}>{owner.coffeeStory}</span>
                     </span>
                   </span> : 'its new owner'} after coffee and a story.
-                </p> : !activeAction ? currentStatus === 'available'
-                  ? <button className={primaryButtonClassName} type="button" onClick={() => open('claim')}>
-                    {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
-                    <span className={styles.buttonLabel}>Claim for 1 coffee</span>
-                  </button>
-                  : <button className={styles.secondaryButton} type="button" onClick={() => open('notify')}>Notify me if it’s available</button>
-                : activeAction === 'claim' ? submission === 'success' && <p className={styles.success} role="status">Check your email for your private scheduling link.</p>
-                : submission === 'success' ? <p className={styles.success} role="status">You’ll get one email if this item becomes available again.</p>
-                : <form className={styles.emailForm} onSubmit={submit}>
-                  <label htmlFor={emailId}>Email address</label>
-                  <div className={styles.emailControls}>
-                    <input id={emailId} type="email" autoComplete="email" value={email}
-                      onChange={event => setEmail(event.target.value)} placeholder="you@example.com"
-                      disabled={submission === 'loading'} required autoFocus />
-                    <button className={`${primaryButtonClassName}${submission === 'loading' ? ` ${styles.loadingButton}` : ''}`} type="submit" disabled={submission === 'loading'}>
-                      {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
-                      {submission === 'loading' && <span className={styles.loadingSheen} aria-hidden="true" />}
-                      <span className={styles.buttonLabel}>{submission === 'loading' ? 'Sending…' : 'Notify me'}</span>
-                    </button>
-                    <button className={styles.cancelButton} type="button" onClick={cancel} disabled={submission === 'loading'}>Cancel</button>
-                  </div>
-                  {submission === 'error' && <p className={styles.formError} role="alert">{formError || 'The email could not be sent. Please try again.'}</p>}
-                </form>}
-                {(currentStatus === 'pending' || currentStatus === 'reserved') && <p className={styles.actionNote}>One availability email if it opens up again. This is not a waitlist.</p>}
+                </p> : <button className={primaryButtonClassName} type="button" onClick={() => open(currentStatus === 'available' ? 'claim' : 'notify')}>
+                  {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
+                  <span className={styles.buttonLabel}>{currentStatus === 'available' ? 'Claim for 1 coffee' : 'Notify me'}</span>
+                </button>}
               </section>
               </div>
             </section>
@@ -357,20 +338,24 @@ export function StorefrontItem({
     </div>, portalRoot)}
     <dialog ref={claimDialogRef} className={styles.claimDialog} data-state={submission === 'success' ? 'success' : 'entry'} aria-labelledby={dialogTitleId} aria-describedby={dialogDescriptionId}
       onCancel={event => { if (submission === 'loading') event.preventDefault(); }}
-      onClose={() => { if (submission !== 'success') cancel(); }}>
+      onClose={() => {
+        // Success dismissal must release the same scroll lock as cancellation.
+        if (submission === 'success') setAction(null);
+        else cancel();
+      }}>
       <button className={styles.mobileDialogClose} type="button" aria-label="Close" onClick={cancel} disabled={submission === 'loading'}>
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
           <path d="M4 4 16 16M16 4 4 16" />
         </svg>
       </button>
       <div ref={dialogBodyRef} className={styles.dialogBody}>
-      {submission === 'success' ? <EmailSentPreview email={email} /> : <div className={styles.dialogIllustration} aria-hidden="true">
+      {submission === 'success' && activeAction === 'claim' ? <EmailSentPreview email={email} /> : <div className={styles.dialogIllustration} aria-hidden="true">
         <Image src="/illustrations/coffee-chat-metal-cups-spaced-stipple-420.webp" alt="" width={1536} height={1024} unoptimized />
       </div>}
       <div className={`${styles.dialogContent} ${styles.claimGlass}`}>
-      <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={-1}>{submission === 'success' ? 'Email sent' : 'How to claim'}</h2>
+      <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={-1}>{activeAction === 'notify' ? (submission === 'success' ? 'Notification saved' : 'Item is reserved') : (submission === 'success' ? 'Email sent' : 'How to claim')}</h2>
       <div id={dialogDescriptionId} className={styles.dialogIntro}>
-        {submission === 'success'
+        {activeAction === 'notify' ? <p>{submission === 'success' ? 'We’ll email you once if it becomes available again.' : 'If the item becomes available again, we’ll notify you'}</p> : submission === 'success'
           ? <EmailSentInstructions email={email} title={title} />
           : <p>Harley wants to trade you this item for a coffee chat. Enter your email and he’ll send a scheduling link.</p>}
       </div>
@@ -382,13 +367,13 @@ export function StorefrontItem({
       </div> : <form className={styles.claimForm} onSubmit={submit} noValidate>
         <div className={styles.formField}>
           <p id={claimMessageId} className={styles.claimMessage} aria-live="polite">{(formError || (submission === 'error' && initialError)) && <span>{formError || initialError}</span>}</p>
-          <input id={emailId} type="email" aria-label="Email address" aria-describedby={claimMessageId} aria-invalid={formError === 'Enter your email address.' || formError === 'Enter a valid email address.'} autoComplete="email" value={email} onChange={event => { setEmail(event.target.value); onClaimEmailChange?.(event.target.value); setEmailValid(event.target.validity.valid && Boolean(event.target.value.trim())); setFormError(''); }}
+          <input className={inputStyles.input} id={emailId} type="email" aria-label="Email address" aria-describedby={claimMessageId} aria-invalid={formError === 'Enter your email address.' || formError === 'Enter a valid email address.'} autoComplete="email" value={email} onChange={event => { setEmail(event.target.value); onClaimEmailChange?.(event.target.value); setEmailValid(event.target.validity.valid && Boolean(event.target.value.trim())); setFormError(''); }}
             placeholder="you@example.com" pattern={EMAIL_ADDRESS_PATTERN.source} disabled={submission === 'loading'} required />
         </div>
-        <label className={styles.acknowledgement}>
+        {activeAction === 'claim' && <label className={styles.acknowledgement}>
           <input type="checkbox" checked={acknowledged} onChange={event => { setAcknowledged(event.target.checked); setFormError(''); }} disabled={submission === 'loading'} required />
           <span>I acknowledge that reselling item will result in 1,000 years of bad luck for my entire bloodline</span>
-        </label>
+        </label>}
         <div className={styles.dialogActions}>
           <button className={styles.cancelButton} type="button" onClick={cancel} disabled={submission === 'loading'}>Cancel</button>
           <button className={`${primaryButtonClassName}${submission === 'loading' ? ` ${styles.loadingButton}` : ''}`} type="submit" disabled={submission === 'loading' || !claimReady}>

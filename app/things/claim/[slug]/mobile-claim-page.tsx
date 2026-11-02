@@ -1,5 +1,6 @@
 'use client';
 
+import inputStyles from '../../../_components/text-input.module.css';
 import Image from 'next/image';
 import { EmailSentPreview } from '../../../things-for-you/email-sent-preview';
 import { EmailSentInstructions } from '../../../things-for-you/email-sent-instructions';
@@ -11,13 +12,13 @@ import frameStyles from '../../../_components/paper-frame.module.css';
 
 const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function MobileClaimPage({ slug, title, initialState = 'entry', initialEmail = '' }: { slug?: string; title: string; initialState?: 'entry' | 'sent'; initialEmail?: string }) {
+export function MobileClaimPage({ slug, title, initialState = 'entry', initialEmail = '', action = 'claim' }: { slug?: string; title: string; action?: 'claim' | 'notify'; initialState?: 'entry' | 'sent'; initialEmail?: string }) {
   const [email, setEmail] = useState(initialEmail);
   const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState('');
   const [state, setState] = useState<'entry' | 'sending' | 'sent'>(initialState);
   const errorId = useId();
-  const claimReady = EMAIL_ADDRESS_PATTERN.test(email.trim()) && acknowledged;
+  const claimReady = EMAIL_ADDRESS_PATTERN.test(email.trim()) && (action === 'notify' || acknowledged);
   const returnHref = slug ? `/things/${encodeURIComponent(slug)}` : '/things?region=things-for-you';
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -26,7 +27,7 @@ export function MobileClaimPage({ slug, title, initialState = 'entry', initialEm
       setError(email.trim() ? 'Enter a valid email address.' : 'Enter your email address.');
       return;
     }
-    if (!acknowledged) {
+    if (action === 'claim' && !acknowledged) {
       setError('Please acknowledge the no-resale condition.');
       return;
     }
@@ -35,7 +36,7 @@ export function MobileClaimPage({ slug, title, initialState = 'entry', initialEm
     setError('');
     try {
       if (slug) {
-        const response = await fetch(`/api/storefront/items/${encodeURIComponent(slug)}/claim`, {
+        const response = await fetch(`/api/storefront/items/${encodeURIComponent(slug)}/${action === 'notify' ? 'alert' : 'claim'}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: email.trim() }),
@@ -63,24 +64,24 @@ export function MobileClaimPage({ slug, title, initialState = 'entry', initialEm
         <Image src="/illustrations/coffee-chat-metal-cups-spaced-stipple-420.webp" alt="" width={1536} height={1024} unoptimized priority />
       </div>}
       <section className={`${styles.card} ${claimStyles.claimGlass}`} aria-labelledby="claim-title">
-        {state === 'sent' && <EmailSentPreview email={email} />}
-        <h1 id="claim-title" className={claimStyles.claimTitle}>{state === 'sent' ? 'Email sent' : 'How to claim'}</h1>
+        {state === 'sent' && action === 'claim' && <EmailSentPreview email={email} />}
+        <h1 id="claim-title" className={claimStyles.claimTitle}>{state === 'sent' ? (action === 'notify' ? 'Notification saved' : 'Email sent') : (action === 'notify' ? 'Get notified' : 'How to claim')}</h1>
         {state === 'sent' ? <>
-          <EmailSentInstructions email={email} title={title} />
+          {action === 'notify' ? <p>We’ll email you once if this item becomes available again. This is not a waitlist.</p> : <EmailSentInstructions email={email} title={title} />}
           <Link className={`${styles.submit} ${claimStyles.primaryButton}`} href={returnHref} transitionTypes={['claim-back']}><span className={claimStyles.buttonGrain} aria-hidden="true" /><span className={claimStyles.buttonLabel}>Done</span></Link>
         </> : <>
-          <div className={`${styles.intro} ${claimStyles.dialogIntro}`}><p>Harley wants to trade you this item for a coffee chat. Enter your email and he’ll send a scheduling link.</p></div>
+          <div className={`${styles.intro} ${claimStyles.dialogIntro}`}><p>{action === 'notify' ? 'Enter your email for one availability notification if this item opens up again. This is not a waitlist.' : 'Harley wants to trade you this item for a coffee chat. Enter your email and he’ll send a scheduling link.'}</p></div>
           <form className={`${styles.form} ${claimStyles.claimForm}`} onSubmit={submit} noValidate>
             <div className={styles.inputs}>
               <div className={claimStyles.formField}>
                 <label className={styles.visuallyHidden} htmlFor="claim-email">Email address</label>
-                <input id="claim-email" type="email" inputMode="email" autoComplete="email" enterKeyHint="done" value={email} onChange={event => { setEmail(event.target.value); setError(''); }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } }} placeholder="you@example.com" aria-invalid={Boolean(error && error.includes('email'))} aria-describedby={error ? errorId : undefined} disabled={state === 'sending'} />
+                <input className={inputStyles.input} id="claim-email" type="email" inputMode="email" autoComplete="email" enterKeyHint="done" value={email} onChange={event => { setEmail(event.target.value); setError(''); }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } }} placeholder="you@example.com" aria-invalid={Boolean(error && error.includes('email'))} aria-describedby={error ? errorId : undefined} disabled={state === 'sending'} />
                 {error && <p id={errorId} className={claimStyles.claimMessage} role="status"><span>{error}</span></p>}
               </div>
-              <label className={claimStyles.acknowledgement}>
+              {action === 'claim' && <label className={claimStyles.acknowledgement}>
                 <input type="checkbox" checked={acknowledged} onChange={event => { setAcknowledged(event.target.checked); setError(''); }} disabled={state === 'sending'} />
                 <span>I acknowledge that reselling item will result in 1,000 years of bad luck for my entire bloodline</span>
-              </label>
+              </label>}
             </div>
             <div className={claimStyles.dialogActions}>
               <button className={`${styles.submit} ${claimStyles.primaryButton}${state === 'sending' ? ` ${claimStyles.loadingButton}` : ''}`} type="submit" disabled={state === 'sending' || !claimReady}><span className={claimStyles.buttonGrain} aria-hidden="true" />{state === 'sending' && <span className={claimStyles.loadingSheen} aria-hidden="true" />}<span className={claimStyles.buttonLabel}>{state === 'sending' ? 'Sending…' : 'Submit request'}</span></button>

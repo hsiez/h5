@@ -10,6 +10,6 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
   if (!item) notFound();
   const items = catalog.items.filter(candidate => candidate.regionId === item.regionId);
   return <><ItemNavigation regionId={item.regionId}
-    slug={slug} claimable={item.status === 'available' && catalog.regions.find(region => region.id === item.regionId)?.kind === 'storefront'} />
+    slug={slug} notifiable={['pending', 'reserved'].includes(item.status) && catalog.regions.find(region => region.id === item.regionId)?.kind === 'storefront'} claimable={item.status === 'available' && catalog.regions.find(region => region.id === item.regionId)?.kind === 'storefront'} />
     <LoadoutWorld key={slug} catalog={catalog} dedicatedItem initialSelection={{ regionId: item.regionId, itemIndex: items.findIndex(candidate => candidate.slug === slug) }} /></>;
 }
