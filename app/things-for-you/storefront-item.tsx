@@ -338,7 +338,11 @@ export function StorefrontItem({
     </div>, portalRoot)}
     <dialog ref={claimDialogRef} className={styles.claimDialog} data-state={submission === 'success' ? 'success' : 'entry'} aria-labelledby={dialogTitleId} aria-describedby={dialogDescriptionId}
       onCancel={event => { if (submission === 'loading') event.preventDefault(); }}
-      onClose={() => { if (submission !== 'success') cancel(); }}>
+      onClose={() => {
+        // Success dismissal must release the same scroll lock as cancellation.
+        if (submission === 'success') setAction(null);
+        else cancel();
+      }}>
       <button className={styles.mobileDialogClose} type="button" aria-label="Close" onClick={cancel} disabled={submission === 'loading'}>
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
           <path d="M4 4 16 16M16 4 4 16" />
