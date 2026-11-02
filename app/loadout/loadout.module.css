@@ -779,3 +779,30 @@
 @media (prefers-reduced-motion: reduce) {
   .page, .viewport[data-stage="0"] :is(.gridHeader, .worldTitle) { animation: none; }
 }
+
+/* Text-first world home, with a cropped inventory illustration at its foot. */
+.worldHome { display: flex; flex-direction: column; padding-bottom: 0; overflow: hidden; }
+.homeCopy { display: grid; gap: var(--space-mobile-6); width: 100%; max-width: var(--overview-max-width); margin-inline: auto; }
+.homeHeading { display: grid; gap: 0; }
+.homeHeading .worldTitle { margin: 0; font-size: 20px; font-weight: 400; line-height: normal; letter-spacing: normal; color: #121212; }
+.homeIntro { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; max-width: 580px; font-size: 16px; line-height: 1.5; color: #121212; margin: 0; text-wrap: pretty; }
+.homeCategories { display: grid; gap: 20px; padding-bottom: 64px; }
+.homeCategories button, .upcomingCategory { display: flex; align-items: center; gap: 16px; width: fit-content; color: var(--ink); font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: clamp(36px, 4vw, 56px); line-height: 1.25; text-align: left; min-height: 48px; }
+.homeCategories button { cursor: pointer; padding: 0; border: 0; background: none; }
+.homeCategories button > span { font-family: var(--font-sans); font-size: 24px; color: var(--muted); opacity: 0.65; transition: opacity 150ms ease-out; }
+.homeCategories button:hover > span, .homeCategories button:focus-visible > span { opacity: 1; }
+.homeCategories button:focus-visible { outline: 2px solid currentColor; outline-offset: 6px; border-radius: 2px; }
+.homeCategories .upcomingCategory { color: #92928d; }
+.footerArtwork {
+  display: block;
+  flex-shrink: 0;
+  height: clamp(165px, 19.5vw, 270px);
+  margin-top: auto;
+  margin-inline: calc(-1 * var(--overview-gutter));
+  overflow: hidden;
+}
+.footerArtwork img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; }
+@media (max-width: 700px) {
+  .footerArtwork { height: 165px; }
+  .footerArtwork img { width: 700px; max-width: none; position: relative; left: 50%; transform: translateX(-50%); }
+}
