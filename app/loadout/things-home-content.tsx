@@ -1,8 +1,9 @@
+import type { ReactNode } from 'react';
 import { homeCategories } from './home-categories';
 import { StatusPill } from '../_components/status-pill';
 import styles from './loadout.module.css';
 
-export function ThingsHomeHeading({ subtitle }: { subtitle: string }) {
+export function ThingsHomeHeading({ subtitle }: { subtitle: ReactNode }) {
   return <header className={styles.homeHeading}>
     <p className={styles.homeIntro}>{subtitle}</p>
   </header>;

@@ -481,7 +481,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
         ) : (
           <section ref={worldRef} className={`${styles.world} ${styles.worldHome}`} aria-label="Things regions">
             <div className={styles.homeCopy}>
-              <ThingsHomeHeading subtitle="Amazing things are built every day. These are a few I’ve come across. Some of these could be yours." />
+              <ThingsHomeHeading subtitle={<>Amazing <em>things</em> are created every day. These are a few physical items I’ve come across. Some of these could be yours.</>} />
               <ThingsCategoryLinks regions={REGIONS} onSelect={switchMode} />
             </div>
             <picture className={styles.footerArtwork}>
