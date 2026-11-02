@@ -2,7 +2,7 @@
   --footer-fade-height: var(--space-mobile-7);
   position: fixed;
   z-index: 20;
-  inset: 100dvh 0 auto;
+  inset: var(--footer-bottom, 100dvh) 0 auto;
   transform: translateY(-100%);
   padding: var(--space-mobile-2) var(--space-mobile-3) calc(var(--space-mobile-2) + env(safe-area-inset-bottom));
   font-family: var(--font-sans);
@@ -33,7 +33,7 @@
 }
 @media (min-width: 701px) { .navigation { display: none; } }
 
-.navigation[data-notify-open] { top: var(--notify-bottom, 100dvh); background: white; border-radius: 20px 20px 0 0; }
+.navigation[data-notify-open] { background: white; border-radius: 20px 20px 0 0; }
 .notifyForm { max-width: 520px; max-height: min(70dvh, 480px); overflow-y: auto; overscroll-behavior: contain; margin: 0 auto; animation: notify-enter 180ms ease-out; }
 .notifyForm h2 { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: 24px; line-height: 1.2; margin: 0 0 8px; }
 .notifyForm p { font-size: 14px; line-height: 1.5; color: #707070; margin: 0 0 20px; }
@@ -42,3 +42,17 @@
 .notifyCancel { min-height: 44px; padding: 0 12px; border: none; background: none; color: #707070; cursor: pointer; }
 @keyframes notify-enter { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .notifyForm { animation: none; } }
+
+@media (max-width: 700px) {
+  .navigation[data-mobile-safari] .row > [aria-label="Back to gallery"] { display: none; }
+  .navigation[data-mobile-safari] .row:not(:has(.claim)) { display: none; }
+  .navigation[data-mobile-safari]:not([data-notify-open]):not(:has(.claim)) { display: none; }
+}
+
+/* Direct item visits scroll the document; intercepted visits scroll ItemLayer.
+   Limit suppression to the vertical axis to retain horizontal back gestures. */
+@media (max-width: 700px) {
+  :global(html):has(.navigation),
+  :global(body):has(.navigation) { overscroll-behavior-y: none; }
+  .notifyForm { overscroll-behavior-y: none; }
+}

@@ -8,3 +8,7 @@
   background: white;
   outline: none;
 }
+
+@media (max-width: 700px) {
+  .layer { overscroll-behavior-y: none; }
+}
