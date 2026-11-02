@@ -11,7 +11,7 @@ import { prepareStipple } from './prepare-stipple';
 import { mediaPath } from '@/lib/catalog/media';
 async function api(path:string,method='GET',body?:unknown) {
  const response=await fetch(path,{method,headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined});
- const data=await response.json();if(!response.ok) throw new Error(response.status===401?'Your session expired. Sign in again.':data.error||'Could not save');return data;
+ const data=await response.json();if(!response.ok) throw new Error(response.status===401 && !(path==='/api/admin/session' && method==='POST')?'Your session expired. Sign in again.':data.error||'Could not save');return data;
 }
 export function AdminLogin({configured}:{configured:boolean}) {
  const [password,setPassword]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);

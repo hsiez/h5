@@ -66,6 +66,27 @@ function ReviewPreview({ text, refs, leadIn, storefront = false, singleParagraph
   )}</div>;
 }
 
+function MapsLinkInput({ onImport }: { onImport: (place: { latitude: number; longitude: number; zoom: number; name?: string }) => void }) {
+  const [link, setLink] = useState('');
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function importLink(url: string) {
+    if (!url.trim() || busy) return;
+    setBusy(true); setMessage('');
+    try {
+      const response = await fetch('/api/admin/maps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Could not read the link.');
+      onImport(result); setMessage('Location filled in. Review the details below.');
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not read the link.'); }
+    finally { setBusy(false); }
+  }
+  return <div><label>Google Maps link<input type="url" value={link} placeholder="Paste a Google Maps link" disabled={busy} onChange={event => setLink(event.target.value)} onPaste={event => {
+    const url = event.clipboardData.getData('text').trim();
+    if (url) { event.preventDefault(); setLink(url); void importLink(url); }
+  }} /></label><button type="button" disabled={busy || !link.trim()} onClick={() => void importLink(link)}>{busy ? 'Reading link…' : 'Fill from link'}</button><p role="status">{message}</p></div>;
+}
+
 export function ReviewEditor({ value, onChange, photos, storefront = false }: { value: ReviewForm; onChange: (value: ReviewForm) => void; photos: Photo[]; storefront?: boolean }) {
   const [activeSection, setActiveSection] = useState<Section>('about');
   const [editingRef, setEditingRef] = useState<string | null>(null);
@@ -142,6 +163,7 @@ export function ReviewEditor({ value, onChange, photos, storefront = false }: { 
                 <label>Image description<input value={entity.alt} onChange={event => edit(ref.key, { ...ref, value: { ...ref.value, entity: { ...entity, alt: event.target.value } } })} /></label>
                 <label>Caption<input value={entity.caption} onChange={event => edit(ref.key, { ...ref, value: { ...ref.value, entity: { ...entity, caption: event.target.value } } })} /></label>
               </> : <>
+                <MapsLinkInput onImport={place => edit(ref.key, { ...ref, value: { ...ref.value, entity: { ...entity, ...place } } })} />
                 <label>Place name<input value={entity.name} onChange={event => edit(ref.key, { ...ref, value: { ...ref.value, entity: { ...entity, name: event.target.value } } })} /></label>
                 <label>City, country<input value={entity.city} onChange={event => edit(ref.key, { ...ref, value: { ...ref.value, entity: { ...entity, city: event.target.value } } })} /></label>
                 <div className={styles.coordinates}>{(['latitude', 'longitude', 'zoom'] as const).map(field => <label key={field}>{field}<input type="number" step="any" value={entity[field]} onChange={event => edit(ref.key, { ...ref, value: { ...ref.value, entity: { ...entity, [field]: Number(event.target.value) } } })} /></label>)}</div>
