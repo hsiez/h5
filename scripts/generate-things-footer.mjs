@@ -12,6 +12,13 @@ try {
     const page = await browser.newPage({ viewport: { width, height: 900 }, deviceScaleFactor: 2 });
     await page.setContent(html);
     await page.waitForFunction(() => [...document.images].every(image => image.complete && image.naturalWidth));
+    await page.evaluate(async () => {
+      await Promise.all([...document.images].map(image => image.decode()));
+      await document.fonts.ready;
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    });
+    // Allow the SVG cutout filters to finish rasterizing before capture.
+    await page.waitForTimeout(500);
     const png = await page.locator('[class*="inventoryStrip"]').screenshot();
     await sharp(png).webp({ quality: 90 }).toFile(new URL(`footer-${name}.webp`, output).pathname);
     await page.close();

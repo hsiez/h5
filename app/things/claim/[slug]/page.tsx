@@ -13,5 +13,5 @@ export default async function ClaimPage({ params }: { params: Promise<{ slug: st
   const item = catalog.items.find(candidate => candidate.slug === slug && candidate.regionId === 'things-for-you');
   if (!item) notFound();
 
-  return <MobileClaimPage slug={item.slug} title={item.title} />;
+  return <MobileClaimPage action={item.status === 'pending' || item.status === 'reserved' ? 'notify' : 'claim'} slug={item.slug} title={item.title} />;
 }
