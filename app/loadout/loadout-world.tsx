@@ -12,6 +12,7 @@ import {
   useState,
 } from "react";
 import Image from "next/image";
+import { ThingsHomeHeading, ThingsCategoryLinks } from "./things-home-content";
 import { itemHref, regionHref } from "./catalog-navigation";
 import { useRouter } from "next/navigation";
 import { FocusImageGallery } from "./focus-image-gallery";
@@ -478,80 +479,16 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
             </div>
           </section>
         ) : (
-          <section ref={worldRef} className={styles.world} aria-label="Things regions">
-            <h1
-              className={styles.worldTitle}
-              data-visible="true"
-            >
-              Things worth mentioning
-            </h1>
-            <div className={styles.worldGrid}>
-              {REGIONS.map((region, regionIndex) => (
-                <button
-                  key={region.id}
-                  className={styles.regionCard}
-                  data-region-id={region.id}
-                  aria-label={region.name}
-                  onClick={() => {
-                    switchMode(region.id);
-                  }}
-                >
-                  <span
-                    className={styles.miniGrid}
-                    aria-hidden="true"
-                  >
-                    {region.items.slice(0, 6).map((item, index) => {
-                      const fullStippleSrc = itemsBySlug[item]?.photos[0]?.stippleSrc || GRAPHITE_IMAGES[itemsBySlug[item]?.legacyKey || legacyByPhoto[itemsBySlug[item]?.photos[0]?.src || ""] || ""] || itemsBySlug[item]?.photos[0]?.src;
-                      // The world uses the small drawing; the region uses the full asset.
-                      const thumbnailSrc = fullStippleSrc ? (worldThumbnails as Record<string, string>)[fullStippleSrc] : undefined;
-                      const imageSrc = thumbnailSrc || fullStippleSrc;
-                      const presentation = itemPresentation(item);
-                      return (
-                        <span
-                          key={index}
-                          data-world-item-index={index}
-                          data-has-image={imageSrc ? "true" : "false"}
-                          data-visual-ready={itemVisualReady(item) ? "true" : "false"}
-                          style={{
-                            "--item-index": index + regionIndex * 7,
-                            "--item-scale": presentation?.scale ?? 1,
-                            "--item-x": presentation?.x ?? "0%",
-                            "--item-y": presentation?.y ?? "0%",
-                          } as CSSProperties}
-                        >
-                          {imageSrc ? (
-                            <>
-                            <Image
-                              src={imageSrc}
-                              data-motion-image={item}
-                              unoptimized
-                              alt=""
-                              fill
-                              sizes="(min-width: 900px) 12vw, 24vw"
-                              className={styles.itemImage}
-                            />
-                            {itemsBySlug[item]?.photos[0]?.src && !(itemsBySlug[item].photos[0].src in photoBounds) && !itemsBySlug[item]?.legacyKey && !legacyByPhoto[itemsBySlug[item]?.photos[0]?.src || ""] && <Image
-                              src={itemsBySlug[item].photos[0].src}
-                              alt=""
-                              fill
-                              unoptimized
-                              aria-hidden="true"
-                              onLoad={event => rememberPhotoBounds(itemsBySlug[item].photos[0].src, event.currentTarget)}
-                              onError={() => rememberDefaultPhotoBounds(itemsBySlug[item].photos[0].src)}
-                              style={{opacity:0, pointerEvents:'none'}}
-                            />}
-                            </>
-                          ) : String(index + 1).padStart(2, "0")}
-                        </span>
-                      );
-                    })}
-                    {Array.from({ length: Math.max(0, 6 - region.items.length) }, (_, index) => (
-                      <span key={`empty-${index}`} data-empty="true" />
-                    ))}
-                  </span>
-                </button>
-              ))}
+          <section ref={worldRef} className={`${styles.world} ${styles.worldHome}`} aria-label="Things regions">
+            <div className={styles.homeCopy}>
+              <ThingsHomeHeading subtitle="Amazing things are built every day. These are a few I’ve come across. Some of these could be yours." />
+              <ThingsCategoryLinks regions={REGIONS} onSelect={switchMode} />
             </div>
+            <picture className={styles.footerArtwork}>
+              <source media="(max-width: 700px)" srcSet="/things/footer-mobile.webp" />
+              {/* Precomposed decorative artwork, served locally without runtime filters. */}
+              <img src="/things/footer-desktop.webp" alt="" width="1920" height="270" decoding="async" draggable={false} />
+            </picture>
           </section>
         )}
       </div>
