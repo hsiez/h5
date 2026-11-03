@@ -11,7 +11,8 @@ import {
   useRef,
   useState,
 } from "react";
-import Image from "next/image";
+import { FocusPhoto } from "./focus-photo";
+import { prepareFocusPhoto, prepareGridPhoto } from "@/lib/catalog/image-loading";
 import { ThingsHomeHeading, ThingsCategoryLinks } from "./things-home-content";
 import { itemHref, regionHref } from "./catalog-navigation";
 import { useRouter } from "next/navigation";
@@ -164,6 +165,9 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
   const itemVisualAlignment = useCallback((slug?:string) => itemPresentation(slug), [itemPresentation]);
   const router = useRouter();
 
+  const photoRequest = useRef(0);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoError, setPhotoError] = useState(false);
   const [selectedPhoto,setSelectedPhoto] = useState({item: "", index: 0});
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [viewerImageRect, setViewerImageRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
@@ -176,6 +180,31 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
   const focusedTitleRef = useRef<HTMLHeadingElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (activeRegionId || stage !== 0) return;
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (connection?.saveData) return;
+    let cancelled = false;
+    // Warm only the first grid row, after the home page has had time to paint.
+    const sources = [...new Set(Array.from({length:3}, (_, index) =>
+      REGIONS.map(region => itemsBySlug[region.items[index]]?.photos[0]?.src)
+    ).flat().filter((src): src is string => !!src))];
+    let next = 0;
+    async function worker() {
+      while (!cancelled && next < sources.length) {
+        await prepareGridPhoto(sources[next++]).catch(() => {});
+      }
+    }
+    const start = () => { void worker(); void worker(); };
+    const idle = 'requestIdleCallback' in window ? window.requestIdleCallback(start, {timeout:2000}) : undefined;
+    const timer = idle === undefined ? setTimeout(start, 400) : undefined;
+    return () => {
+      cancelled = true;
+      if (idle !== undefined) window.cancelIdleCallback(idle);
+      if (timer !== undefined) clearTimeout(timer);
+    };
+  }, [activeRegionId, stage, REGIONS, itemsBySlug]);
+
   useLayoutEffect(() => {
     viewportRef.current?.style.setProperty("--review-scroll", "0px");
   }, [activeRegionId, activeItemIndex, stage]);
@@ -219,12 +248,8 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
       const order = [...new Set([0, 1, detailPhotos.length - 1, ...detailPhotos.map((_, index) => index)])];
       for (const index of order) {
         if (cancelled) return;
-        const image = new window.Image();
-        image.decoding = 'async';
-        image.fetchPriority = index === 0 ? 'auto' : 'low';
-        image.src = detailPhotos[index].src;
         try {
-          await image.decode();
+          const image = await prepareFocusPhoto(detailPhotos[index].src, index === 0 ? 'high' : 'low');
           if (cancelled) return;
           bounds[index] = measureVisibleBounds(image);
         } catch { /* Keep the fallback bounds when a photo cannot load. */ }
@@ -240,9 +265,27 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
     })();
     return () => { cancelled = true; };
   }, [stage, detailSlug, detailPhotos, detailGalleryKey]);
-  const selectPhoto = useCallback((item: string, index: number) => {
-    if (itemsBySlug[item]?.photos[index]) setSelectedPhoto({item,index});
+  useEffect(() => () => { photoRequest.current++; }, [detailSlug]);
+  const selectPhoto = useCallback(async (item: string, index: number) => {
+    const photo = itemsBySlug[item]?.photos[index];
+    if (!photo) return;
+    const request = ++photoRequest.current;
+    setPhotoLoading(true);
+    setPhotoError(false);
+    try {
+      await prepareFocusPhoto(photo.src, 'high');
+      if (request !== photoRequest.current) return;
+      setSelectedPhoto({item,index});
+    } catch {
+      if (request === photoRequest.current) setPhotoError(true);
+    } finally {
+      if (request === photoRequest.current) setPhotoLoading(false);
+    }
   }, [itemsBySlug]);
+
+  const handlePhotoSelect = useCallback((index: number) => {
+    if (detailSlug) void selectPhoto(detailSlug, index);
+  }, [detailSlug, selectPhoto]);
 
   const switchMode = (regionId: RegionId | null) => {
     startTransition(() => router.push(regionHref(regionId, preview)));
@@ -328,18 +371,9 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                           <>
                             {stage === 0 ? <GridPhoto key={imageSrc} src={imageSrc} eager={index < 3}
                               onReady={image => rememberPhotoBounds(imageSrc, image)}
-                              onError={() => rememberDefaultPhotoBounds(imageSrc)} /> : <Image
-                              src={imageSrc}
-                              data-motion-image={item}
-                              draggable={false}
-                              onLoad={event => rememberPhotoBounds(imageSrc, event.currentTarget)}
-                              onError={() => rememberDefaultPhotoBounds(imageSrc)}
-                              unoptimized={imageSrc.startsWith("https://") || imageSrc.startsWith("/api/catalog/media?")}
-                              alt=""
-                              fill
-                              sizes="(min-width: 900px) 30vw, 45vw"
-                              className={`${styles.itemImage} ${styles.itemPhoto}`}
-                            />}
+                              onError={() => rememberDefaultPhotoBounds(imageSrc)} /> : <FocusPhoto key={imageSrc} src={imageSrc} item={item}
+                              onReady={image => rememberPhotoBounds(imageSrc, image)}
+                              onError={() => rememberDefaultPhotoBounds(imageSrc)} />}
 
                           </>
                         ) : (
@@ -395,7 +429,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                       setViewerImageRect(rect ? { top: rect.top, left: rect.left, width: rect.width, height: rect.height } : null);
                       setImageViewerOpen(true);
                     }} />}
-                    <FocusImageGallery title={data.title} photos={data.photos} selectedIndex={photoIndex} visualHeight={galleryHeights[detailGalleryKey]?.[photoIndex]} onSelect={index => selectPhoto(detailItem,index)} />
+                    <FocusImageGallery loading={photoLoading} error={photoError} title={data.title} photos={data.photos} selectedIndex={photoIndex} visualHeight={galleryHeights[detailGalleryKey]?.[photoIndex]} onSelect={handlePhotoSelect} />
                     {activeRegion.kind === 'storefront' ? (
                       <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll data-storefront="true" tabIndex={-1} aria-label="Item review">
                         {detailsBody}
@@ -408,7 +442,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                       </OverflowFade>
                     )}
                   </aside>
-                  <FocusImageViewer open={imageViewerOpen} imageRect={viewerImageRect} title={data.title} photos={data.photos} selectedIndex={photoIndex} onSelect={index => selectPhoto(detailItem,index)} onClose={() => setImageViewerOpen(false)} />
+                  <FocusImageViewer loading={photoLoading} error={photoError} open={imageViewerOpen} imageRect={viewerImageRect} title={data.title} photos={data.photos} selectedIndex={photoIndex} onSelect={handlePhotoSelect} onClose={() => setImageViewerOpen(false)} />
                   </>
                 );
               })() : null}

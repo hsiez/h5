@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { GRID_IMAGE_SIZES } from '@/lib/catalog/image-loading';
 import { useState } from 'react';
 import styles from './loadout.module.css';
 
@@ -16,7 +17,7 @@ export function GridPhoto({ src, eager, onReady, onError }: {
   return <Image src={src} alt="" fill draggable={false}
     unoptimized={src.startsWith('https://')}
     loading={eager ? 'eager' : 'lazy'}
-    sizes="(max-width: 700px) 50vw, (max-width: 1168px) 33vw, 374px"
+    sizes={GRID_IMAGE_SIZES}
     className={`${styles.itemImage} ${styles.itemPhoto}`}
     style={{ opacity: ready ? 1 : 0 }}
     onLoad={async event => {

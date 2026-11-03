@@ -10,12 +10,16 @@ type Photo = { src: string };
 /** Controls follow the displayed artwork without moving the surrounding layout. */
 export function FocusImageGallery({
   title,
+  loading = false,
+  error = false,
   photos,
   selectedIndex,
   visualHeight,
   onSelect,
 }: {
   title: string;
+  loading?: boolean;
+  error?: boolean;
   photos: Photo[];
   selectedIndex: number;
   visualHeight?: number;
@@ -40,6 +44,7 @@ export function FocusImageGallery({
         <button type="button" aria-label="Next photo" onClick={() => onSelect((selectedIndex + 1) % photos.length)} />
       </div>
       <div ref={navigationRef} className={styles.photoNavigation} role="group" aria-label={`Photos of ${title}`}>
+        <span role="status" className={styles.galleryStatus}>{loading ? "Loading photo…" : error ? "Could not load photo. Try again." : ""}</span>
         <PaperFrame elevation="popover" className={styles.photoDotFrame}>
           {photos.map((photo, index) => (
             <button key={photo.src} type="button" className={styles.photoDot} aria-label={`Show photo ${index + 1} of ${photos.length}`} aria-current={selectedIndex === index ? "true" : undefined} onClick={() => onSelect(index)} />

@@ -814,3 +814,5 @@
 }
 
 .productIdentity { margin: 12px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+
+.galleryStatus { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 12px; color: var(--muted); }

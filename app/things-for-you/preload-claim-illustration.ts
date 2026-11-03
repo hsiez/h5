@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { prepareFocusPhoto } from '@/lib/catalog/image-loading';
 
 export const CLAIM_ILLUSTRATION = '/illustrations/coffee-chat-metal-cups-spaced-stipple-420.webp';
 let prepared: Promise<void> | undefined;
@@ -11,9 +12,7 @@ export function usePreloadClaimIllustration(primarySrc?: string) {
     let cancelled = false;
     async function prepare() {
       if (primarySrc) {
-        const primary = new window.Image();
-        primary.src = primarySrc;
-        await primary.decode().catch(() => {});
+        await prepareFocusPhoto(primarySrc).catch(() => {});
       }
       if (cancelled || prepared) return;
       const illustration = new window.Image();
