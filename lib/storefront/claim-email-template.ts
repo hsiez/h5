@@ -41,11 +41,11 @@ export function claimEmail(input: ClaimEmailInput) {
         </table>
       </td></tr>
       <tr><td style="padding:44px 24px 0;"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td height="1" bgcolor="#dededb" style="height:1px;font-size:1px;line-height:1px;background-color:#dededb;">&nbsp;</td></tr></table></td></tr>
-      <tr><td align="left" style="padding:32px 24px 0;color:#767676;font-size:12px;line-height:1.5;">This personal link expires in 48 hours. A booking request does not guarantee the item. <a href="${cancelUrl}" style="color:#767676;text-decoration:underline;white-space:nowrap;">Cancel your request</a>.</td></tr>
+      <tr><td align="left" style="padding:32px 24px 0;color:#767676;font-size:12px;line-height:1.5;">This personal link expires in one hour. A booking request does not guarantee the item. <a href="${cancelUrl}" style="color:#767676;text-decoration:underline;white-space:nowrap;">Cancel your request</a>.</td></tr>
     </table>
   </td></tr></table>
 </body></html>`;
 
-  const text = `One coffee away\n\n${claimPrompt}\n\nSchedule coffee: ${input.schedulingUrl}\n\nThis personal link expires in 48 hours. A booking request does not guarantee the item.\n\nCancel your request: ${input.cancelUrl}`;
+  const text = `One coffee away\n\n${claimPrompt}\n\nSchedule coffee: ${input.schedulingUrl}\n\nThis personal link expires in one hour. A booking request does not guarantee the item.\n\nCancel your request: ${input.cancelUrl}`;
   return { subject, html, text };
 }

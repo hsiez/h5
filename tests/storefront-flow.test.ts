@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { db } from '../lib/storefront/db';
-import { applyCalEvent, cancelUnscheduledClaim, claimCancellationDetails, completeHandoff, newToken, resolveClaimLink, startClaim, subscribeToAvailability, tokenHash, unsubscribeAvailability } from '../lib/storefront/core';
+import { applyCalEvent, cancelUnscheduledClaim, claimCancellationDetails, completeHandoff, newToken, resolveClaimLink, startClaim, subscribeToAvailability, tokenHash, unsubscribeAvailability, verifyAvailability, reopenItem } from '../lib/storefront/core';
+import { processJobs } from '../lib/storefront/worker';
 import { deliverPendingEmail } from '../lib/storefront/email';
 import { acceptFirstClaim } from '../lib/storefront/admin-decisions';
 
@@ -36,7 +37,7 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
   });
   afterAll(async () => {
     for (const id of [itemId,secondItemId,cancelItemId].filter(Boolean)) {
-      await db().query('DELETE FROM storefront_outbox WHERE claim_request_id IN (SELECT id FROM claim_requests WHERE item_id=$1)',[id]);
+      await db().query('DELETE FROM storefront_outbox WHERE claim_request_id IN (SELECT id FROM claim_requests WHERE item_id=$1) OR alert_subscription_id IN (SELECT id FROM item_availability_alerts WHERE item_id=$1)',[id]);
       await db().query('DELETE FROM claim_events WHERE claim_request_id IN (SELECT id FROM claim_requests WHERE item_id=$1)',[id]);
       await db().query('DELETE FROM item_handoffs WHERE item_id=$1',[id]);
       await db().query('DELETE FROM item_availability_alerts WHERE item_id=$1',[id]);
@@ -73,7 +74,7 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
     await expect(startClaim(secondSlug,'PERSON@example.com')).rejects.toThrow('claim in progress');
     const preissuedId=randomUUID();
     await db().query(`INSERT INTO claim_requests(id,item_id,email,token_hash,token_expires_at,cal_event_type_id)
-      VALUES($1,$2,'person@example.com',$3,now()+interval '48 hours',$4)`,
+      VALUES($1,$2,'person@example.com',$3,now()+interval '1 hour',$4)`,
       [preissuedId,secondItemId,tokenHash(newToken(preissuedId)),eventTypeId]);
     await expect(applyCalEvent(event('BOOKING_REQUESTED','cross-item-booking','person@example.com','2026-10-21T12:01:00Z',preissuedId)))
       .rejects.toThrow('claim in progress');
@@ -82,10 +83,12 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
     await applyCalEvent(event('BOOKING_REQUESTED','booking-second','second@example.com','2026-10-21T12:01:00Z',other.claimId));
     expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[secondItemId])).rows[0].status).toBe('pending');
     await applyCalEvent(event('BOOKING_REJECTED','booking-second','second@example.com','2026-10-21T12:02:00Z',other.claimId));
+    await reopenItem(secondItemId);
   });
 
   it('records an alert subscriber without giving them a claim or rank', async () => {
-    await subscribeToAvailability(slug,'alert@example.com');
+    const subscriptionId=(await subscribeToAvailability(slug,'alert@example.com'))!;
+    await verifyAvailability(newToken(subscriptionId));
     const rows=await db().query('SELECT * FROM item_availability_alerts WHERE item_id=$1',[itemId]);
     expect(rows.rowCount).toBe(1);
     expect((await db().query('SELECT count(*)::int AS n FROM claim_requests WHERE item_id=$1',[itemId])).rows[0].n).toBe(1);
@@ -93,11 +96,16 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
 
   it('reopens after a decline and queues one alert with a personal claim link', async () => {
     await applyCalEvent(event('BOOKING_REJECTED','booking-test-1','person@example.com','2026-10-21T12:03:00Z'));
+    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[itemId])).rows[0].status).toBe('pending');
+    await reopenItem(itemId);
+    const oldFetch=globalThis.fetch;
+    globalThis.fetch=async()=>Response.json({data:{status:'cancelled'}});
+    try{await processJobs();}finally{globalThis.fetch=oldFetch;}
     const item=(await db().query('SELECT status,availability_version FROM storefront_items WHERE id=$1',[itemId])).rows[0];
     expect(item.status).toBe('available');
     expect(item.availability_version).toBe(1);
-    const alert=(await db().query(`SELECT o.kind,c.email FROM storefront_outbox o JOIN claim_requests c ON c.id=o.claim_request_id
-      WHERE c.item_id=$1 AND o.kind='availability_alert'`,[itemId])).rows;
+    const alert=(await db().query(`SELECT o.kind,a.email FROM storefront_outbox o JOIN item_availability_alerts a ON a.id=o.alert_subscription_id
+      WHERE a.item_id=$1 AND o.kind='availability_alert'`,[itemId])).rows;
     expect(alert).toEqual([{kind:'availability_alert',email:'alert@example.com'}]);
     const previousFetch=globalThis.fetch;
     const previousSender=process.env.STOREFRONT_FROM_EMAIL;
@@ -137,11 +145,12 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
     await applyCalEvent(rescheduled);
     expect((await db().query('SELECT cal_booking_uid FROM claim_requests WHERE id=$1',[claimId])).rows[0].cal_booking_uid).toBe('booking-test-3');
     await applyCalEvent(event('BOOKING_CANCELLED','booking-test-3','person@example.com','2026-10-21T12:07:00Z'));
-    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[itemId])).rows[0].status).toBe('pending');
+    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[itemId])).rows[0].status).toBe('reserved');
     await applyCalEvent(event('BOOKING_REJECTED','booking-test-later','later@example.com','2026-10-21T12:07:30Z',laterClaimId));
+    await reopenItem(itemId);
     expect((await db().query('SELECT status,availability_version FROM storefront_items WHERE id=$1',[itemId])).rows[0]).toMatchObject({status:'available',availability_version:2});
     const subscription=(await db().query('SELECT id FROM item_availability_alerts WHERE item_id=$1',[itemId])).rows[0];
-    expect(await unsubscribeAvailability(newToken(subscription.id))).toBe(true);
+    expect(await unsubscribeAvailability(newToken(subscription.id))).toBe(false); // One-shot delivery already consumed it.
     expect(await unsubscribeAvailability(newToken(subscription.id))).toBe(false);
     const replacement=await startClaim(slug,'newperson@example.com');
     claimId=replacement.claimId;

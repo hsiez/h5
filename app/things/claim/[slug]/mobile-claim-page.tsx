@@ -39,7 +39,7 @@ export function MobileClaimPage({ slug, title, initialState = 'entry', initialEm
         const response = await fetch(`/api/storefront/items/${encodeURIComponent(slug)}/${action === 'notify' ? 'alert' : 'claim'}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim() }),
+          body: JSON.stringify({ email: email.trim(), acknowledged }),
         });
         const result: { error?: string } = await response.json();
         if (!response.ok) throw new Error(result.error || 'Please try again.');
@@ -65,9 +65,9 @@ export function MobileClaimPage({ slug, title, initialState = 'entry', initialEm
       </div>}
       <section className={`${styles.card} ${claimStyles.claimGlass}`} aria-labelledby="claim-title">
         {state === 'sent' && action === 'claim' && <EmailSentPreview email={email} />}
-        <h1 id="claim-title" className={claimStyles.claimTitle}>{state === 'sent' ? (action === 'notify' ? 'Notification saved' : 'Email sent') : (action === 'notify' ? 'Get notified' : 'How to claim')}</h1>
+        <h1 id="claim-title" className={claimStyles.claimTitle}>{state === 'sent' ? (action === 'notify' ? 'Check your email' : 'Email sent') : (action === 'notify' ? 'Get notified' : 'How to claim')}</h1>
         {state === 'sent' ? <>
-          {action === 'notify' ? <p>We’ll email you once if this item becomes available again. This is not a waitlist.</p> : <EmailSentInstructions email={email} title={title} />}
+          {action === 'notify' ? <p>Confirm your email to receive one availability notification. This is not a waitlist.</p> : <EmailSentInstructions email={email} title={title} />}
           <Link className={`${styles.submit} ${claimStyles.primaryButton}`} href={returnHref} transitionTypes={['claim-back']}><span className={claimStyles.buttonGrain} aria-hidden="true" /><span className={claimStyles.buttonLabel}>Done</span></Link>
         </> : <>
           <div className={`${styles.intro} ${claimStyles.dialogIntro}`}><p>{action === 'notify' ? 'Enter your email for one availability notification if this item opens up again. This is not a waitlist.' : 'Harley wants to trade you this item for a coffee chat. Enter your email and he’ll send a scheduling link.'}</p></div>
