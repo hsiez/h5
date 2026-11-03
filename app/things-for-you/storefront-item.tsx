@@ -250,7 +250,7 @@ export function StorefrontItem({
       const response = await fetch(`/api/storefront/items/${encodeURIComponent(slug)}/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, acknowledged }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || 'Please try again.');
@@ -355,9 +355,9 @@ export function StorefrontItem({
         <Image src={CLAIM_ILLUSTRATION} alt="" width={1536} height={1024} unoptimized />
       </div>}
       <div className={`${styles.dialogContent} ${styles.claimGlass}`}>
-      <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={-1}>{activeAction === 'notify' ? (submission === 'success' ? 'Notification saved' : 'Item is reserved') : (submission === 'success' ? 'Email sent' : 'How to claim')}</h2>
+      <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={-1}>{activeAction === 'notify' ? (submission === 'success' ? 'Check your email' : 'Item is reserved') : (submission === 'success' ? 'Email sent' : 'How to claim')}</h2>
       <div id={dialogDescriptionId} className={styles.dialogIntro}>
-        {activeAction === 'notify' ? <p>{submission === 'success' ? 'We’ll email you once if it becomes available again.' : 'If the item becomes available again, we’ll notify you'}</p> : submission === 'success'
+        {activeAction === 'notify' ? <p>{submission === 'success' ? 'Confirm your email to receive one availability notification.' : 'If the item becomes available again, we’ll notify you'}</p> : submission === 'success'
           ? <EmailSentInstructions email={email} title={title} />
           : <p>Harley wants to trade you this item for a coffee chat. Enter your email and he’ll send a scheduling link.</p>}
       </div>

@@ -2,6 +2,7 @@ import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { db } from '@/lib/storefront/db';
 import { FlowError } from '@/lib/storefront/core';
+import { budget } from '@/lib/storefront/admission';
 const derive = promisify(scrypt);
 export const SESSION_COOKIE = 'h5_admin';
 export const SESSION_SECONDS = 12 * 60 * 60;
@@ -38,6 +39,7 @@ export async function login(request:Request,password:string) {
   const encoded=process.env.ADMIN_PASSWORD_HASH;
   if (!encoded) throw new FlowError('Admin password has not been configured',503);
   if (typeof password!=='string' || password.length>1024) throw new FlowError('Invalid password',401);
+  await budget([{key:'admin:global',limit:100,seconds:900}]);
   const key=digest(request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local');
   const result=await db().query<{attempts:number}>(`INSERT INTO admin_login_attempts(key,attempts,window_start) VALUES($1,1,now())
     ON CONFLICT(key) DO UPDATE SET attempts=CASE WHEN admin_login_attempts.window_start<now()-interval '15 minutes' THEN 1 ELSE admin_login_attempts.attempts+1 END,

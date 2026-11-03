@@ -7,7 +7,7 @@ const client = new pg.Client({connectionString});
 await client.connect();
 try {
   await client.query('BEGIN');
-  for (const migration of ['001_storefront.sql','002_shared_cal_event.sql','003_catalog_admin.sql','004_catalog_stippling.sql','005_catalog_seo.sql']) {
+  for (const migration of ['001_storefront.sql','002_shared_cal_event.sql','003_catalog_admin.sql','004_catalog_stippling.sql','005_catalog_seo.sql','006_claim_safety.sql']) {
     await client.query(await readFile(new URL(`../db/migrations/${migration}`,import.meta.url),'utf8'));
   }
   const seed=JSON.parse(await readFile(new URL('../db/seeds/catalog.json',import.meta.url),'utf8'));

@@ -33,8 +33,8 @@ export function NotifyFooterForm({ slug, onClose }: { slug: string; onClose: () 
   return <section className={styles.notifyForm} aria-labelledby={`${id}-title`} onKeyDown={event => {
     if (event.key === 'Escape') { event.stopPropagation(); if (state !== 'sending') onClose(); }
   }}>
-    <h2 ref={heading} tabIndex={-1} id={`${id}-title`}>{state === 'saved' ? 'Notification saved' : 'Item is reserved'}</h2>
-    <p>{state === 'saved' ? 'We’ll email you once if it becomes available again.' : 'If the item becomes available again, we’ll notify you'}</p>
+    <h2 ref={heading} tabIndex={-1} id={`${id}-title`}>{state === 'saved' ? 'Check your email' : 'Item is reserved'}</h2>
+    <p>{state === 'saved' ? 'Confirm your email to receive one availability notification.' : 'If the item becomes available again, we’ll notify you'}</p>
     {state === 'saved' ? <div className={styles.row}><button type="button" className={`${buttonStyles.primaryButton} ${styles.claim}`} onClick={onClose}><span className={buttonStyles.buttonGrain} aria-hidden="true" /><span className={buttonStyles.buttonLabel}>Done</span></button></div> : <form onSubmit={submit}>
       <input className={inputStyles.input} id={`${id}-email`} aria-label="Email address" type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" required value={email} onChange={event => setEmail(event.target.value)} disabled={state === 'sending'} aria-describedby={error ? `${id}-error` : undefined} />
       {error && <p id={`${id}-error`} role="alert">{error}</p>}

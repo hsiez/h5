@@ -2,7 +2,7 @@ import { requireSession } from '@/lib/admin/auth';
 import { FlowError } from './core';
 
 export function failure(error: unknown) {
-  if (error instanceof FlowError) return Response.json({error:error.message},{status:error.status});
+  if (error instanceof FlowError) return Response.json({error:error.message},{status:error.status,headers:error.status===429?{'Retry-After':'900'}:undefined});
   if (error && typeof error === 'object' && 'code' in error && ['42P01', '42703'].includes(String(error.code))) {
     console.error('Storefront database schema is incomplete', error);
     return Response.json({error:'Database setup is incomplete. Run the catalog migration before using the admin panel.'},{status:503});

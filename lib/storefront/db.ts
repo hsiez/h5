@@ -4,9 +4,14 @@ let pool: Pool | undefined;
 
 export function db() {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
+    let connectionString = process.env.DATABASE_URL;
     if (!connectionString) throw new Error("DATABASE_URL is not configured");
-    pool = new Pool({ connectionString, max: 5 });
+    const url=new URL(connectionString);
+    if(['require','prefer','verify-ca'].includes(url.searchParams.get('sslmode')||'') && url.searchParams.get('uselibpqcompat')!=='true') {
+      url.searchParams.set('sslmode','verify-full');
+      connectionString=url.href;
+    }
+    pool = new Pool({ connectionString, max: 5, connectionTimeoutMillis: 5000, idleTimeoutMillis: 30000, statement_timeout: 15000, lock_timeout: 5000 });
   }
   return pool;
 }

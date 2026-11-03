@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto';
+import { budget } from './admission';
 import { db, transaction } from "./db";
-import { FlowError, newToken } from "./core";
+import { FlowError, newToken, tokenHash } from "./core";
 import { claimEmail } from "./claim-email-template";
 import { mediaPath, uploadedPhotoPathname } from "../catalog/media";
 
@@ -15,43 +17,83 @@ function baseUrl() {
   return url;
 }
 
-export async function deliverPendingEmail(limit = 20) {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.STOREFRONT_FROM_EMAIL;
-  if (!key || !from) throw new Error("Resend sender is not configured");
-  const rows = await db().query<{id:string;kind:string;claim_request_id:string;alert_subscription_id:string|null;email:string;title:string;slug:string;status:string;item_status:string;photo_src:string|null}>(`
-    SELECT o.id,o.kind,o.claim_request_id,o.alert_subscription_id,c.email,i.title,i.slug,c.status,i.status AS item_status,
-      (SELECT m.blob_path FROM storefront_item_media m WHERE m.item_id=i.id ORDER BY m.sort_order,m.created_at LIMIT 1) AS photo_src
-    FROM storefront_outbox o JOIN claim_requests c ON c.id=o.claim_request_id
-    JOIN storefront_items i ON i.id=c.item_id
-    WHERE o.sent_at IS NULL AND c.token_expires_at>now()
-      AND (o.availability_version IS NULL OR o.availability_version=i.availability_version)
-    ORDER BY o.created_at LIMIT $1`, [limit]);
-  let delivered = 0;
-  for (const row of rows.rows) {
-    if (row.status !== 'link_sent' || row.item_status !== 'available') continue;
-    const link = new URL(`/api/storefront/claim-link/${newToken(row.claim_request_id)}`,baseUrl()).toString();
-    const cancelLink = new URL(`/api/storefront/cancel/${newToken(row.claim_request_id)}`,baseUrl()).toString();
-    const unsubscribe=row.alert_subscription_id ? new URL(`/api/storefront/unsubscribe/${newToken(row.alert_subscription_id)}`,baseUrl()).toString() : null;
-    const message = row.kind === 'availability_alert'
-      ? availabilityAlertEmail(row.title, link, unsubscribe)
-      : claimEmail({ title: row.title, imageUrl: absoluteEmailPhotoUrl(row.photo_src, baseUrl()), schedulingUrl: link, cancelUrl: cancelLink });
-    const response = await fetch('https://api.resend.com/emails', {
-      method:'POST', headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','Idempotency-Key':row.id},
-      body:JSON.stringify({from,to:row.email,...message})
+export async function deliverPendingEmail(limit = 20, target?:{claimId?:string;subscriptionId?:string}) {
+  const key=process.env.RESEND_API_KEY,from=process.env.STOREFRONT_FROM_EMAIL;
+  if(!key||!from)throw new Error('Resend sender is not configured');
+  // Cancel obsolete jobs BEFORE taking a bounded batch, avoiding queue starvation.
+  await db().query(`UPDATE storefront_outbox o SET canceled_at=now() WHERE sent_at IS NULL AND canceled_at IS NULL AND (
+    (claim_request_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM claim_requests c JOIN storefront_items i ON i.id=c.item_id JOIN catalog_regions r ON r.id=i.region_id WHERE c.id=o.claim_request_id AND c.status='link_sent' AND c.token_expires_at>now() AND i.status='available' AND i.publication_status='published' AND i.published_at IS NOT NULL AND r.publication_status='published' AND (o.availability_version IS NULL OR o.availability_version=i.availability_version))) OR
+    (alert_subscription_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM item_availability_alerts a WHERE a.id=o.alert_subscription_id AND a.unsubscribed_at IS NULL AND a.fulfilled_at IS NULL AND ((o.kind='verify_alert' AND a.verified_at IS NULL AND a.verification_expires_at>now()) OR (o.kind='availability_alert' AND a.verified_at IS NOT NULL)))))`);
+  let delivered=0;
+  for(let n=0;n<limit;n++) {
+    const lease=randomUUID();
+    const row=await transaction(async client=>{
+      const result=await client.query(`SELECT o.*,COALESCE(c.email,a.email) AS email,i.title,i.slug,
+        (SELECT blob_path FROM storefront_item_media WHERE item_id=i.id ORDER BY sort_order,created_at LIMIT 1) AS photo_src
+        FROM storefront_outbox o LEFT JOIN claim_requests c ON c.id=o.claim_request_id LEFT JOIN item_availability_alerts a ON a.id=o.alert_subscription_id
+        JOIN storefront_items i ON i.id=COALESCE(c.item_id,a.item_id)
+        WHERE o.sent_at IS NULL AND o.canceled_at IS NULL AND o.failed_at IS NULL AND o.next_attempt_at<=now() AND (o.locked_until IS NULL OR o.locked_until<now()) AND ($1::uuid IS NULL OR o.claim_request_id=$1) AND ($2::uuid IS NULL OR o.alert_subscription_id=$2) ORDER BY o.created_at,o.id LIMIT 1 FOR UPDATE OF o SKIP LOCKED`,[target?.claimId||null,target?.subscriptionId||null]);
+      if(!result.rows[0])return null;
+      const candidate=result.rows[0];
+      if(candidate.kind==='availability_alert') {
+        // Separate availability events must not send to one subscriber concurrently.
+        await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[`delivery:${candidate.alert_subscription_id}`]);
+        const other=await client.query('SELECT 1 FROM storefront_outbox WHERE alert_subscription_id=$1 AND id<>$2 AND locked_until>now() LIMIT 1',[candidate.alert_subscription_id,candidate.id]);
+        if(other.rowCount){
+          await client.query("UPDATE storefront_outbox SET next_attempt_at=now()+interval '1 minute' WHERE id=$1",[candidate.id]);
+          return {skipped:true};
+        }
+      }
+      await client.query("UPDATE storefront_outbox SET lease_id=$2,locked_until=now()+interval '5 minutes',attempts=attempts+1 WHERE id=$1",[result.rows[0].id,lease]);return result.rows[0];
     });
-    if (!response.ok) {
-      const detail = await response.json().catch(() => null) as {message?:unknown} | null;
-      const message = typeof detail?.message === 'string' ? detail.message.slice(0, 500) : 'No reason returned';
-      console.error(`Resend rejected storefront email (HTTP ${response.status}): ${message}`);
-      throw new FlowError('Email is unavailable right now. Please try again later.',503);
+    if(!row)break;
+    if(row.skipped)continue;
+    try {
+      await budget([{key:'mail:global',limit:300,seconds:3600}]);
+      // Recheck unsubscribe after leasing; never hold a DB lock during network I/O.
+      if(row.alert_subscription_id){const sub=await db().query('SELECT * FROM item_availability_alerts WHERE id=$1',[row.alert_subscription_id]);if(!sub.rows[0]||sub.rows[0].unsubscribed_at||sub.rows[0].fulfilled_at){await db().query('UPDATE storefront_outbox SET canceled_at=now() WHERE id=$1',[row.id]);continue;}}
+      if(row.kind==='availability_alert' && !row.claim_request_id) {
+        const claimId=await transaction(async client=>{
+          const item=(await client.query('SELECT * FROM storefront_items WHERE id=(SELECT item_id FROM item_availability_alerts WHERE id=$1) FOR UPDATE',[row.alert_subscription_id])).rows[0];
+          const sub=(await client.query('SELECT * FROM item_availability_alerts WHERE id=$1 FOR UPDATE',[row.alert_subscription_id])).rows[0];
+          if(!sub || sub.unsubscribed_at || sub.fulfilled_at || !sub.verified_at || item?.status!=='available' || item.availability_version!==row.availability_version) {
+            await client.query('UPDATE storefront_outbox SET canceled_at=now(),locked_until=NULL WHERE id=$1 AND lease_id=$2',[row.id,lease]);return null;
+          }
+          const eventType=Number(process.env.STOREFRONT_CAL_EVENT_TYPE_ID);
+          if(!Number.isSafeInteger(eventType)||eventType<=0)throw Error('Cal event type is not configured');
+          const existing=await client.query("SELECT id FROM claim_requests WHERE item_id=$1 AND email=$2 AND status='link_sent' AND token_expires_at>now() ORDER BY created_at DESC LIMIT 1",[item.id,sub.email]);
+          const id=existing.rows[0]?.id||randomUUID();
+          if(!existing.rowCount)await client.query("INSERT INTO claim_requests(id,item_id,email,token_hash,token_expires_at,cal_event_type_id) VALUES($1,$2,$3,$4,now()+interval '1 hour',$5)",[id,item.id,sub.email,tokenHash(newToken(id)),eventType]);
+          await client.query('UPDATE storefront_outbox SET claim_request_id=$3 WHERE id=$1 AND lease_id=$2',[row.id,lease,id]);return id;
+        });
+        if(!claimId)continue;
+        row.claim_request_id=claimId;
+      }
+      const link=new URL(`/api/storefront/claim-link/${newToken(row.claim_request_id||'unused')}`,baseUrl()).href;
+      const unsubscribe=row.alert_subscription_id?new URL(`/api/storefront/unsubscribe/${newToken(row.alert_subscription_id)}`,baseUrl()).href:null;
+      const verify=row.alert_subscription_id?new URL(`/api/storefront/verify/${newToken(row.alert_subscription_id)}`,baseUrl()).href:'';
+      const draft=(row.kind==='verify_alert'?{subject:'Confirm your availability notification',text:`Confirm one notification for ${row.title}: ${verify}\nThis confirmation expires in one hour.`,html:`<p>Confirm one availability notification for ${escapeHtml(row.title)}.</p><p><a href="${escapeHtml(verify)}">Confirm notification</a></p><p>This link expires in one hour. Ignore this email if you did not request it.</p>`}:row.kind==='availability_alert'?availabilityAlertEmail(row.title,link,unsubscribe):claimEmail({title:row.title,imageUrl:absoluteEmailPhotoUrl(row.photo_src,baseUrl()),schedulingUrl:link,cancelUrl:new URL(`/api/storefront/cancel/${newToken(row.claim_request_id)}`,baseUrl()).href}));
+      const message=row.message || {from,to:row.email,subject:draft.subject,html:draft.html,text:draft.text};
+      await db().query('UPDATE storefront_outbox SET message=COALESCE(message,$3) WHERE id=$1 AND lease_id=$2',[row.id,lease,message]);
+      const eligible=await db().query(`SELECT 1 FROM storefront_outbox o
+        LEFT JOIN claim_requests c ON c.id=o.claim_request_id LEFT JOIN item_availability_alerts a ON a.id=o.alert_subscription_id
+        JOIN storefront_items i ON i.id=COALESCE(c.item_id,a.item_id) JOIN catalog_regions r ON r.id=i.region_id
+        WHERE o.id=$1 AND o.lease_id=$2 AND o.canceled_at IS NULL AND o.sent_at IS NULL
+        AND i.adoption_enabled=true AND i.publication_status='published' AND i.published_at IS NOT NULL AND r.publication_status='published'
+        AND (c.id IS NULL OR (c.status='link_sent' AND c.token_expires_at>now() AND i.status='available' AND (o.availability_version IS NULL OR o.availability_version=i.availability_version)))
+        AND (a.id IS NULL OR (a.unsubscribed_at IS NULL AND a.fulfilled_at IS NULL AND
+          ((o.kind='verify_alert' AND a.verified_at IS NULL AND a.verification_expires_at>now()) OR (o.kind='availability_alert' AND a.verified_at IS NOT NULL))))`,[row.id,lease]);
+      if(!eligible.rowCount){await db().query('UPDATE storefront_outbox SET canceled_at=now(),locked_until=NULL WHERE id=$1 AND lease_id=$2',[row.id,lease]);continue;}
+      const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','Idempotency-Key':row.id},body:JSON.stringify({from:message.from,to:message.to,subject:message.subject,html:message.html,text:message.text}),signal:AbortSignal.timeout(10000)});
+      if(!response.ok)throw new FlowError(`Email provider HTTP ${response.status}`,response.status);
+      await transaction(async client=>{
+        const result=await client.query('UPDATE storefront_outbox SET sent_at=now(),locked_until=NULL,last_error=NULL WHERE id=$1 AND lease_id=$2 AND sent_at IS NULL RETURNING id',[row.id,lease]);
+        if(result.rowCount && row.kind==='availability_alert')await client.query('UPDATE item_availability_alerts SET fulfilled_at=now(),unsubscribed_at=COALESCE(unsubscribed_at,now()),last_notified_version=$2 WHERE id=$1',[row.alert_subscription_id,row.availability_version]);
+      });delivered++;
+    }catch(error){
+      const permanent=error instanceof FlowError && error.status>=400&&error.status<500&&![408,409,429].includes(error.status);
+      await db().query("UPDATE storefront_outbox SET locked_until=NULL,lease_id=NULL,last_error=$3,failed_at=CASE WHEN $4 OR attempts>=8 THEN now() ELSE NULL END,next_attempt_at=now()+LEAST(3600,30*power(2,LEAST(attempts,7)))*interval '1 second' WHERE id=$1 AND lease_id=$2",[row.id,lease,error instanceof Error?error.message:'Delivery failed',permanent]);
     }
-    await transaction(async client => {
-      await client.query('UPDATE storefront_outbox SET sent_at=now() WHERE id=$1 AND sent_at IS NULL',[row.id]);
-      if (row.kind === 'availability_alert') await client.query(`UPDATE item_availability_alerts SET last_notified_version=o.availability_version
-        FROM storefront_outbox o WHERE o.id=$1 AND item_availability_alerts.id=o.alert_subscription_id`,[row.id]);
-    });
-    delivered++;
   }
   return delivered;
 }
@@ -62,8 +104,8 @@ export function availabilityAlertEmail(title: string, link: string, unsubscribe:
   const footer = unsubscribe ? `<p><a href="${escapeHtml(unsubscribe)}">Stop availability alerts for this item</a></p>` : '';
   return {
     subject: `${title} is available again`,
-    html: `<p>${escapeHtml(title)} is back on the market.</p><p><a href="${escapeHtml(link)}">Choose a time and suggest a public place</a></p><p>The link expires in 48 hours. A booking request does not guarantee the item.</p>${footer}`,
-    text: `${title} is back on the market.\n\nChoose a time and suggest a public place: ${link}\n\nThe link expires in 48 hours. A booking request does not guarantee the item.${unsubscribe ? `\n\nStop availability alerts for this item: ${unsubscribe}` : ''}`,
+    html: `<p>${escapeHtml(title)} is back on the market.</p><p><a href="${escapeHtml(link)}">Choose a time and suggest a public place</a></p><p>The link expires in one hour. A booking request does not guarantee the item.</p>${footer}`,
+    text: `${title} is back on the market.\n\nChoose a time and suggest a public place: ${link}\n\nThe link expires in one hour. A booking request does not guarantee the item.${unsubscribe ? `\n\nStop availability alerts for this item: ${unsubscribe}` : ''}`,
   };
 }
 

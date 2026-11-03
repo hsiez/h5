@@ -55,3 +55,7 @@ The integration runner creates a random temporary schema, migrates/seeds it, run
 Run `node --env-file=.env.local scripts/storefront-migrate.mjs` before deploying the SEO editor changes (migration `005_catalog_seo.sql`). Run the same migration with the target environment’s database configuration before production publishing.
 
 Brand and Model are optional; use verified product names. They appear below the display title and form the search/share title. Existing item slugs remain unchanged. In Photos, select **Use drawing for OG / X share image** on a photo with a generated stipple. Use **Preview OG / X image** to render the unsaved selection through the same renderer used publicly. Save draft keeps changes private; Publish updates metadata and the public share image. With no selection, the first drawing is used, falling back to the first photo. Social platforms may cache earlier previews.
+
+## Claim lifecycle and delivery safety
+
+Before using the updated claim/notification flow, apply `006_claim_safety.sql` through the migration runner. Pending bookings and reservations now stay for manual review; canceled Cal bookings do not automatically reopen inventory. Admin provides explicit reopening, reservation cancellation, interrupted-approval reconciliation, and failed email/job retry controls. Notification signup requires email confirmation and is consumed after one availability email. See [the lifecycle and deployment guide](security/claim-flow-operations.md), including the minute-frequency cron and restricted runtime database role requirements.
