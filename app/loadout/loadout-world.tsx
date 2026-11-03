@@ -21,7 +21,7 @@ import { OverflowFade } from "../_components/overflow-fade";
 import styles from "./loadout.module.css";
 import { type ReviewText } from "./reviews";
 import type { Catalog } from "@/lib/catalog/types";
-import worldThumbnails from "./world-thumbnails.json";
+import { GridPhoto } from "./grid-photo";
 import worldPhotoBounds from "./world-photo-bounds.json";
 import { StorefrontItem, StorefrontItemFacts } from "../things-for-you/storefront-item";
 import { InlineReference } from "./inline-reference";
@@ -37,15 +37,6 @@ type Region = {
   heading: string;
   kind: "review" | "storefront";
   items: string[];
-};
-
-const GRAPHITE_IMAGES: Record<string, string> = {
-  Belt: "/api/catalog/media?pathname=catalog%2F2dbb3111-a5f1-4926-99f2-e55cdaf8fcf4-2RyRpQQ9H1e2FrsofIbfDjCx9jv9LP.png",
-  Coat: "/api/catalog/media?pathname=catalog%2F292e0874-ae4d-493a-8dfa-0fff8210e256-6DZc9B4XoTXANKCqFwyrsQrQcvJAJu.png",
-  Hat: "/api/catalog/media?pathname=catalog%2Fa10806a5-3ccc-4ad4-aeaf-897cdded03b4-nTjjUHjdgBjdbVRF5opDnQoB7hCkEA.png",
-  Jeans: "/api/catalog/media?pathname=catalog%2F1054caef-e8a1-45bf-a35b-0d0343ecc014-WZNjH6nuvAxobJbVXlUjcViDUdBm4C.png",
-  Loafers: "/api/catalog/media?pathname=catalog%2Fa03c2461-1273-4d8a-baaf-f5454b31572b-uE0AKW2Cvniclt2iIlp6i4PVAEa9BL.png",
-  Wallet: "/api/catalog/media?pathname=catalog%2F3a5b674b-fb47-4d6a-b8a9-4235ad096014-bJIaR5bGePrQV25jVrjjTRmeetMEG1.png",
 };
 
 const ITEM_PRESENTATION: Record<string, { scale: number; x: string; y: string }> = {
@@ -149,10 +140,10 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
     () => worldPhotoBounds as Record<string, VisualBounds>
   );
   const rememberPhotoBounds = useCallback((src: string, image: HTMLImageElement) => {
-    if (!src) return;
+    if (!src || src in photoBounds) return;
     const bounds = measureVisibleBounds(image);
     setPhotoBounds(current => src in current ? current : {...current, [src]: bounds});
-  }, []);
+  }, [photoBounds]);
   const rememberDefaultPhotoBounds = useCallback((src: string) => {
     setPhotoBounds(current => src in current ? current : {...current, [src]: null});
   }, []);
@@ -181,59 +172,10 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
   const stage = initialSelection && initialSelection.itemIndex >= 0 ? 1 : 0;
   const activeItemIndex = Math.max(0, initialSelection?.itemIndex ?? 0);
   const detailItemIndex = Math.max(0, initialSelection?.itemIndex ?? 0);
-  const [fullStippleReady, setFullStippleReady] = useState<Record<string, true>>({});
-  const preloadedStipples = useRef(new Set<string>());
-  const preloadMounted = useRef(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const focusedTitleRef = useRef<HTMLHeadingElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    preloadMounted.current = true;
-    return () => { preloadMounted.current = false; };
-  }, []);
-
-  useEffect(() => {
-    const regions = activeRegionId ? REGIONS.filter(region => region.id === activeRegionId) : REGIONS;
-    const sources = [...new Set(Array.from({length: 6}, (_, index) => regions.map(region => {
-      const item = itemsBySlug[region.items[index]];
-      return item?.photos[0]?.stippleSrc || GRAPHITE_IMAGES[item?.legacyKey || legacyByPhoto[item?.photos[0]?.src || ""] || ""] || item?.photos[0]?.src;
-    })).flat())].filter((src): src is string => Boolean(src && (worldThumbnails as Record<string, string>)[src] && !preloadedStipples.current.has(src)));
-    if (!sources.length) return;
-
-    let secondFrame = 0;
-    // A second animation frame starts these requests only after the browser has
-    // had a chance to paint the lightweight world thumbnails.
-    const firstFrame = requestAnimationFrame(() => {
-      secondFrame = requestAnimationFrame(() => {
-        let next = 0;
-        const preload = async () => {
-          while (preloadMounted.current && next < sources.length) {
-            const src = sources[next++];
-            if (preloadedStipples.current.has(src)) continue;
-            preloadedStipples.current.add(src);
-            const image = new window.Image();
-            image.decoding = "async";
-            image.fetchPriority = "low";
-            image.src = src;
-            try {
-              await image.decode();
-              if (preloadMounted.current) setFullStippleReady(current => current[src] ? current : {...current, [src]: true});
-            } catch { preloadedStipples.current.delete(src); }
-          }
-        };
-        // Limit simultaneous full-size decodes so they do not monopolize the
-        // main thread immediately after the first paint.
-        void preload();
-        void preload();
-      });
-    });
-    return () => {
-      cancelAnimationFrame(firstFrame);
-      cancelAnimationFrame(secondFrame);
-    };
-  }, [activeRegionId, REGIONS, itemsBySlug, legacyByPhoto]);
-
   useLayoutEffect(() => {
     viewportRef.current?.style.setProperty("--review-scroll", "0px");
   }, [activeRegionId, activeItemIndex, stage]);
@@ -270,22 +212,23 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
   useEffect(() => {
     if (stage !== 1 || !detailSlug || !detailPhotos || detailPhotos.length < 2 || galleryHeights[detailGalleryKey]) return;
     let cancelled = false;
-    void Promise.all(detailPhotos.map(async (photo, index) => {
-      const image = new window.Image();
-      image.src = photo.src;
-      const stippleSrc = photo.stippleSrc || (index === 0 ? GRAPHITE_IMAGES[itemsBySlug[detailSlug]?.legacyKey || ""] : undefined);
-      if (stippleSrc && stippleSrc !== photo.src) {
-        const stipple = new window.Image();
-        stipple.src = stippleSrc;
-        void stipple.decode().catch(() => {});
+    void (async () => {
+      const bounds: (VisualBounds | null)[] = detailPhotos.map(() => null);
+      // Decode the visible photo first, then its immediate neighbors, then
+      // remaining photos one at a time instead of flooding the connection.
+      const order = [...new Set([0, 1, detailPhotos.length - 1, ...detailPhotos.map((_, index) => index)])];
+      for (const index of order) {
+        if (cancelled) return;
+        const image = new window.Image();
+        image.decoding = 'async';
+        image.fetchPriority = index === 0 ? 'auto' : 'low';
+        image.src = detailPhotos[index].src;
+        try {
+          await image.decode();
+          if (cancelled) return;
+          bounds[index] = measureVisibleBounds(image);
+        } catch { /* Keep the fallback bounds when a photo cannot load. */ }
       }
-      try {
-        await image.decode();
-        return measureVisibleBounds(image);
-      } catch {
-        return null;
-      }
-    })).then(bounds => {
       if (cancelled) return;
       const scale = catalogVisualPresentation(bounds[0] ?? undefined).scale;
       const firstTop = bounds[0]?.top ?? 0;
@@ -293,7 +236,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
         ...current,
         [detailGalleryKey]: bounds.map(bound => bound ? Math.max(0.1, (bound.top + bound.height - firstTop) * scale / 100) : 1),
       }));
-    });
+    })();
     return () => { cancelled = true; };
   }, [stage, detailSlug, detailPhotos, detailGalleryKey, galleryHeights, itemsBySlug]);
   const selectPhoto = useCallback((item: string, index: number) => {
@@ -347,9 +290,6 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                   if (stage === 1 && index !== activeItemIndex) return null;
                   const data = itemsBySlug[item];
                   const imageSrc = data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.src;
-                  const fullStippleSrc = data?.photos[stage === 1 && index === activeItemIndex ? photoIndex : 0]?.stippleSrc || ((stage !== 1 || index !== activeItemIndex || photoIndex === 0) ? GRAPHITE_IMAGES[data?.legacyKey || legacyByPhoto[data?.photos[0]?.src || ""] || ""] : undefined) || imageSrc;
-                  const thumbnailSrc = fullStippleSrc ? (worldThumbnails as Record<string, string>)[fullStippleSrc] : undefined;
-                  const stippleSrc = thumbnailSrc && !fullStippleReady[fullStippleSrc] ? thumbnailSrc : fullStippleSrc;
                   const presentation = itemPresentation(item);
                   const alignment = presentation;
                   return (
@@ -385,7 +325,9 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                       >
                         {imageSrc ? (
                           <>
-                            <Image
+                            {stage === 0 ? <GridPhoto key={imageSrc} src={imageSrc} eager={index < 3}
+                              onReady={image => rememberPhotoBounds(imageSrc, image)}
+                              onError={() => rememberDefaultPhotoBounds(imageSrc)} /> : <Image
                               src={imageSrc}
                               data-motion-image={item}
                               draggable={false}
@@ -396,16 +338,8 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                               fill
                               sizes="(min-width: 900px) 30vw, 45vw"
                               className={`${styles.itemImage} ${styles.itemPhoto}`}
-                            />
-                            <Image
-                              src={stippleSrc || imageSrc}
-                              draggable={false}
-                              alt=""
-                              fill
-                              unoptimized
-                              aria-hidden="true"
-                              className={`${styles.itemImage} ${styles.itemDither}`}
-                            />
+                            />}
+
                           </>
                         ) : (
                           <span>{String(index + 1).padStart(2, "0")}</span>
