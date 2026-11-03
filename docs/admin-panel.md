@@ -49,3 +49,9 @@ npm run build
 ```
 
 The integration runner creates a random temporary schema, migrates/seeds it, runs catalog/auth and storefront webhook/flow tests, and drops the schema afterward. It prefers `TEST_DATABASE_URL`, then `DATABASE_URL_UNPOOLED`, then `DATABASE_URL`. Neon pooled URLs are converted to the corresponding direct connection for schema isolation. It does not modify live catalog rows.
+
+## Search and share images
+
+Run `node --env-file=.env.local scripts/storefront-migrate.mjs` before deploying the SEO editor changes (migration `005_catalog_seo.sql`). Run the same migration with the target environment’s database configuration before production publishing.
+
+Brand and Model are optional; use verified product names. They appear below the display title and form the search/share title. Existing item slugs remain unchanged. In Photos, select **Use drawing for OG / X share image** on a photo with a generated stipple. Use **Preview OG / X image** to render the unsaved selection through the same renderer used publicly. Save draft keeps changes private; Publish updates metadata and the public share image. With no selection, the first drawing is used, falling back to the first photo. Social platforms may cache earlier previews.

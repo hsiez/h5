@@ -1,3 +1,4 @@
+export { generateMetadata } from '../../[slug]/page';
 import ItemPage from '../../[slug]/page';
 import { ItemLayer } from '../../item-layer';
 

@@ -5,6 +5,7 @@ import { validateDraft, validateRegion } from './validation';
 export async function getCatalog(admin=false):Promise<Catalog> {
  const regions=await db().query<CatalogRegion>(`SELECT * FROM catalog_regions ${admin?'':"WHERE publication_status='published'"} ORDER BY sort_order,id`);
  const items=await db().query<{data:CatalogItem}>(`SELECT json_build_object(
+  'brand',COALESCE(to_jsonb(i)->'seo'->>'brand',''),'model',COALESCE(to_jsonb(i)->'seo'->>'model',''),'ogPhotoSrc',COALESCE(to_jsonb(i)->'seo'->>'ogPhotoSrc',''),
   'id',i.id,'slug',i.slug,'title',i.title,'regionId',i.region_id,'description',i.description,'size',COALESCE(i.size_label,''),'condition',COALESCE(i.condition_note,''),
   'measurements',i.measurements,'review',i.review,'sortOrder',i.sort_order,'publicationStatus',i.publication_status,'status',i.status,'legacyKey',i.legacy_key,
   'revision',i.revision,'draft',${admin?'i.draft_data':'NULL'},'photos',COALESCE(m.photos,'[]'::json),
@@ -37,10 +38,10 @@ export async function saveItem(id:string,input:unknown,revision:unknown,action:u
   if(action==='publish') {
    if(region.publication_status!=='published') throw new FlowError('Publish the region first',400);
    if(!d.photos.length) throw new FlowError('Add at least one photo before publishing',400);
-   await client.query(`UPDATE storefront_items SET title=$2,region_id=$3,description=$4,size_label=$5,condition_note=$6,measurements=$7,review=$8,sort_order=$9,
+   await client.query(`UPDATE storefront_items SET seo=$12,title=$2,region_id=$3,description=$4,size_label=$5,condition_note=$6,measurements=$7,review=$8,sort_order=$9,
     legacy_key=CASE WHEN (SELECT blob_path FROM storefront_item_media WHERE item_id=$1 ORDER BY sort_order,created_at LIMIT 1)=$11 THEN legacy_key ELSE NULL END,
     adoption_enabled=$10,publication_status='published',published_at=COALESCE(published_at,now()),draft_data=NULL,revision=revision+1,updated_at=now() WHERE id=$1`,
-    [id,d.title,d.regionId,d.description,d.size,d.condition,d.measurements,d.review,d.sortOrder,region.kind==='storefront',d.photos[0].src]);
+    [id,d.title,d.regionId,d.description,d.size,d.condition,d.measurements,d.review,d.sortOrder,region.kind==='storefront',d.photos[0].src,{brand:d.brand,model:d.model,ogPhotoSrc:d.ogPhotoSrc}]);
    await client.query('DELETE FROM storefront_item_media WHERE item_id=$1',[id]);
    for(const [order,photo] of d.photos.entries()) await client.query('INSERT INTO storefront_item_media(item_id,blob_path,alt_text,sort_order,stipple_blob_path) VALUES($1,$2,$3,$4,$5)',[id,photo.src,photo.alt,order,photo.stippleSrc||null]);
   }
@@ -62,4 +63,4 @@ export async function saveRegion(input:unknown,create:boolean) {
   return {ok:true};
  });
 }
-export function editableItem(item:CatalogItem):ItemDraft { return item.draft || {slug:item.slug,title:item.title,regionId:item.regionId,description:item.description,size:item.size,condition:item.condition,measurements:item.measurements,photos:item.photos,review:item.review,sortOrder:item.sortOrder}; }
+export function editableItem(item:CatalogItem):ItemDraft { return item.draft || {brand:item.brand,model:item.model,ogPhotoSrc:item.ogPhotoSrc,slug:item.slug,title:item.title,regionId:item.regionId,description:item.description,size:item.size,condition:item.condition,measurements:item.measurements,photos:item.photos,review:item.review,sortOrder:item.sortOrder}; }

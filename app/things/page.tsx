@@ -4,10 +4,15 @@ import { redirect } from 'next/navigation';
 import { publicCatalog } from '@/lib/catalog/public';
 import { LoadoutWorld } from '../loadout/loadout-world';
 
-export const metadata: Metadata = {
-  title: 'Things — Harley Siezar',
-  description: 'An interactive collection of things I carry and things for you.',
-};
+export async function generateMetadata({searchParams}:{searchParams:Promise<{region?:string}>}):Promise<Metadata> {
+  const {region:id}=await searchParams;
+  const region=id?(await publicCatalog()).regions.find(region=>region.id===id):undefined;
+  const title=region?`${region.name} — Things | Harley Siezar`:'Things worth mentioning — Harley Siezar';
+  const description=region?.description || 'Amazing things are created every day. These are a few physical items I’ve come across. Some of these could be yours.';
+  const url=`https://h5.codes/things${region?`?region=${encodeURIComponent(region.id)}`:''}`;
+  const image=`https://h5.codes/api/things/og${region?`?region=${encodeURIComponent(region.id)}`:''}`;
+  return {title,description,alternates:{canonical:url},openGraph:{title,description,url,images:[{url:image,width:1200,height:630}]},twitter:{card:'summary_large_image',title,description,images:[image]}};
+}
 
 export default async function ThingsPage({
   searchParams,

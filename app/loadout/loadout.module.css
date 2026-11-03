@@ -812,3 +812,5 @@
   }
   .footerArtwork img { width: 700px; max-width: none; position: relative; left: 50%; transform: translateX(-50%); }
 }
+
+.productIdentity { margin: 12px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); }

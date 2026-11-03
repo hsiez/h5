@@ -13,7 +13,13 @@ export async function verifyPassword(password:string, encoded:string) {
   return timingSafeEqual(actual,Buffer.from(key,'hex'));
 }
 export function checkOrigin(request:Request) {
-  if (request.headers.get('origin')!==new URL(request.url).origin) throw new FlowError('Request origin is not allowed',403);
+  const url = new URL(request.url);
+  const origin = request.headers.get('origin');
+  // Next's dev server may reconstruct request.url with its listen address.
+  // Browsers supply Host for the actual URL and cannot override it in fetch.
+  const host = request.headers.get('host');
+  const hostOrigin = host && /^[a-z0-9.:[\]-]+$/i.test(host) ? `${url.protocol}//${host}` : null;
+  if (!origin || (origin !== url.origin && origin !== hostOrigin)) throw new FlowError('Request origin is not allowed',403);
 }
 export async function validSession(token:string|undefined) {
   if (!token || !/^[a-f0-9]{64}$/.test(token) || !process.env.ADMIN_PASSWORD_HASH) return false;

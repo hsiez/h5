@@ -1,7 +1,15 @@
+import { itemMetadata } from '@/lib/catalog/seo';
 import { ItemNavigation } from '../item-navigation';
 import { notFound } from 'next/navigation';
 import { publicCatalog } from '@/lib/catalog/public';
 import { LoadoutWorld } from '../../loadout/loadout-world';
+
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}) {
+  const {slug}=await params;
+  const item=(await publicCatalog()).items.find(item=>item.slug===slug);
+  if(!item) notFound();
+  return itemMetadata(item);
+}
 
 export default async function ItemPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

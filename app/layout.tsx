@@ -27,6 +27,7 @@ const iowanOldStyle = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://h5.codes"),
   title: "Harley Siezar",
   description: "AI Engineer working on Reforge Build.",
 };

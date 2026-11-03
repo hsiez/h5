@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { publicCatalog } from '@/lib/catalog/public';
 import { MobileClaimPage } from './mobile-claim-page';
 
-export const metadata: Metadata = { title: 'Claim an item — Harley Siezar' };
+export const metadata: Metadata = { title: 'Claim an item — Harley Siezar', robots: {index:false,follow:false} };
 
 export default async function ClaimPage({ params }: { params: Promise<{ slug: string }> }) {
   await connection();

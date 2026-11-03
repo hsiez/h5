@@ -31,7 +31,9 @@ export function validateDraft(value:unknown):ItemDraft {
  const v=object(value), title=text(v.title,160,true);
  if(!Array.isArray(v.photos)||v.photos.length>20) throw new FlowError('Use up to 20 photos',400);
  const measurements=object(v.measurements); if(Object.keys(measurements).length>30) throw new FlowError('Use up to 30 measurements',400);
- return {slug:slug(v.slug),title,regionId:slug(v.regionId),description:text(v.description??''),size:text(v.size??'',250),condition:text(v.condition??'',1000),sortOrder:finite(v.sortOrder??0,-10000,10000),
+ const ogPhotoSrc=v.ogPhotoSrc ? mediaUrl(v.ogPhotoSrc) : '';
+ if(ogPhotoSrc && !v.photos.some(p=>{const photo=object(p);return photo.src===ogPhotoSrc && !!photo.stippleSrc;})) throw new FlowError('Choose a photo with a generated drawing for the share image',400);
+ return {brand:text(v.brand??'',160),model:text(v.model??'',160),ogPhotoSrc,slug:slug(v.slug),title,regionId:slug(v.regionId),description:text(v.description??''),size:text(v.size??'',250),condition:text(v.condition??'',1000),sortOrder:finite(v.sortOrder??0,-10000,10000),
  measurements:Object.fromEntries(Object.entries(measurements).map(([k,val])=>[text(k,100,true),text(val,250,true)])),
  photos:v.photos.map(p=>{const photo=object(p);return {src:mediaUrl(photo.src),alt:text(photo.alt,500,true),...(photo.stippleSrc ? {stippleSrc:mediaUrl(photo.stippleSrc)} : {})}}),review:reviewData(v.review,title)};
 }
