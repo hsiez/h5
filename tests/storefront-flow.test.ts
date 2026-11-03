@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { db } from '../lib/storefront/db';
-import { applyCalEvent, cancelUnscheduledClaim, claimCancellationDetails, completeHandoff, newToken, resolveClaimLink, startClaim, subscribeToAvailability, tokenHash, unsubscribeAvailability, verifyAvailability, reopenItem } from '../lib/storefront/core';
+import { applyCalEvent, cancelClaim, claimCancellationDetails, completeHandoff, newToken, resolveClaimLink, startClaim, subscribeToAvailability, tokenHash, unsubscribeAvailability, verifyAvailability } from '../lib/storefront/core';
 import { processJobs } from '../lib/storefront/worker';
 import { deliverPendingEmail } from '../lib/storefront/email';
 import { acceptFirstClaim } from '../lib/storefront/admin-decisions';
@@ -50,8 +50,8 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
   it('cancels an unscheduled email link without changing item availability', async () => {
     const claim = await startClaim(cancelSlug, 'cancel@example.com');
     expect(await claimCancellationDetails(claim.token)).toMatchObject({ title: 'Cancel test item', status: 'link_sent' });
-    expect(await cancelUnscheduledClaim(claim.token)).toBe(true);
-    expect(await cancelUnscheduledClaim(claim.token)).toBe(false);
+    expect(await cancelClaim(claim.token)).toBe(true);
+    expect(await cancelClaim(claim.token)).toBe(true);
     await expect(resolveClaimLink(claim.token)).rejects.toThrow('expired');
     expect((await db().query('SELECT status FROM storefront_items WHERE id=$1', [cancelItemId])).rows[0].status).toBe('available');
   });
@@ -83,7 +83,6 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
     await applyCalEvent(event('BOOKING_REQUESTED','booking-second','second@example.com','2026-10-21T12:01:00Z',other.claimId));
     expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[secondItemId])).rows[0].status).toBe('pending');
     await applyCalEvent(event('BOOKING_REJECTED','booking-second','second@example.com','2026-10-21T12:02:00Z',other.claimId));
-    await reopenItem(secondItemId);
   });
 
   it('records an alert subscriber without giving them a claim or rank', async () => {
@@ -96,8 +95,6 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
 
   it('reopens after a decline and queues one alert with a personal claim link', async () => {
     await applyCalEvent(event('BOOKING_REJECTED','booking-test-1','person@example.com','2026-10-21T12:03:00Z'));
-    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[itemId])).rows[0].status).toBe('pending');
-    await reopenItem(itemId);
     const oldFetch=globalThis.fetch;
     globalThis.fetch=async()=>Response.json({data:{status:'cancelled'}});
     try{await processJobs();}finally{globalThis.fetch=oldFetch;}
@@ -145,9 +142,8 @@ describe.skipIf(!testDatabaseUrl)('storefront flow with Postgres', () => {
     await applyCalEvent(rescheduled);
     expect((await db().query('SELECT cal_booking_uid FROM claim_requests WHERE id=$1',[claimId])).rows[0].cal_booking_uid).toBe('booking-test-3');
     await applyCalEvent(event('BOOKING_CANCELLED','booking-test-3','person@example.com','2026-10-21T12:07:00Z'));
-    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[itemId])).rows[0].status).toBe('reserved');
+    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[itemId])).rows[0].status).toBe('pending');
     await applyCalEvent(event('BOOKING_REJECTED','booking-test-later','later@example.com','2026-10-21T12:07:30Z',laterClaimId));
-    await reopenItem(itemId);
     expect((await db().query('SELECT status,availability_version FROM storefront_items WHERE id=$1',[itemId])).rows[0]).toMatchObject({status:'available',availability_version:2});
     const subscription=(await db().query('SELECT id FROM item_availability_alerts WHERE item_id=$1',[itemId])).rows[0];
     expect(await unsubscribeAvailability(newToken(subscription.id))).toBe(false); // One-shot delivery already consumed it.
