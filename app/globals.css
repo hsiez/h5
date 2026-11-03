@@ -53,8 +53,9 @@
   --text-4xl--line-height: 3.25rem;
 
   /* Focus-item type stays in the same hierarchy across every region. */
-  --focus-item-title-size: clamp(30px, 4vw, 52px);
-  --focus-item-lead-in-size: clamp(24px, 2.9vw, 32px);
+  --focus-item-title-size: clamp(24px, 2.9vw, 32px);
+  --focus-item-title-color: var(--color-text-primary);
+  --focus-item-lead-in-color: var(--color-text-primary);
 
   /* ---- Font weight — three values, no more ---- */
   --font-weight-normal: 400;    /* body */
@@ -183,10 +184,6 @@ body {
   font-weight: var(--font-weight-normal);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-}
-
-@media (min-width: 1101px) {
-  :root { --focus-item-title-size: clamp(32px, 4vw, 56px); }
 }
 
 html:has([data-things-page]),

@@ -342,6 +342,7 @@
 }
 
 .detailsHeaderInner h1 {
+  color: var(--focus-item-title-color);
   max-width: 14ch;
   margin: 0;
   font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif;
@@ -588,12 +589,12 @@
 }
 /* Lead-ins remain in the sentence flow, rather than separate headings. */
 .reviewLeadIn {
-  color: var(--color-neutral-400);
+  color: var(--focus-item-lead-in-color);
   font-family: inherit;
-  font-size: var(--focus-item-lead-in-size);
-  font-weight: 400;
+  font-size: inherit;
+  font-weight: var(--font-weight-semibold);
   font-style: italic;
-  line-height: 1.125;
+  line-height: inherit;
 }
 
 /* Focused view: keep the copy at the region-title position, with the image to its right. */
