@@ -210,7 +210,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
   const detailGalleryKey = detailSlug && detailPhotos ? `${detailSlug}:${detailPhotos.map(photo => photo.src).join('|')}` : "";
 
   useEffect(() => {
-    if (stage !== 1 || !detailSlug || !detailPhotos || detailPhotos.length < 2 || galleryHeights[detailGalleryKey]) return;
+    if (stage !== 1 || !detailSlug || !detailPhotos || detailPhotos.length < 2) return;
     let cancelled = false;
     void (async () => {
       const bounds: (VisualBounds | null)[] = detailPhotos.map(() => null);
@@ -228,17 +228,18 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
           if (cancelled) return;
           bounds[index] = measureVisibleBounds(image);
         } catch { /* Keep the fallback bounds when a photo cannot load. */ }
+        if (cancelled) return;
+        // Controls need usable first-photo geometry, not the whole queue.
+        const scale = catalogVisualPresentation(bounds[0] ?? undefined).scale;
+        const firstTop = bounds[0]?.top ?? 0;
+        setGalleryHeights(current => ({
+          ...current,
+          [detailGalleryKey]: bounds.map(bound => bound ? Math.max(0.1, (bound.top + bound.height - firstTop) * scale / 100) : 1),
+        }));
       }
-      if (cancelled) return;
-      const scale = catalogVisualPresentation(bounds[0] ?? undefined).scale;
-      const firstTop = bounds[0]?.top ?? 0;
-      setGalleryHeights(current => ({
-        ...current,
-        [detailGalleryKey]: bounds.map(bound => bound ? Math.max(0.1, (bound.top + bound.height - firstTop) * scale / 100) : 1),
-      }));
     })();
     return () => { cancelled = true; };
-  }, [stage, detailSlug, detailPhotos, detailGalleryKey, galleryHeights, itemsBySlug]);
+  }, [stage, detailSlug, detailPhotos, detailGalleryKey]);
   const selectPhoto = useCallback((item: string, index: number) => {
     if (itemsBySlug[item]?.photos[index]) setSelectedPhoto({item,index});
   }, [itemsBySlug]);
