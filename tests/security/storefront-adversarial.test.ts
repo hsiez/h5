@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { db } from '../../lib/storefront/db';
-import { startClaim, applyCalEvent, subscribeToAvailability, unsubscribeAvailability, newToken, resolveClaimLink, completeHandoff, verifyAvailability, reopenItem } from '../../lib/storefront/core';
+import { startClaim, applyCalEvent, subscribeToAvailability, unsubscribeAvailability, newToken, resolveClaimLink, completeHandoff, verifyAvailability, reopenItem, cancelClaim } from '../../lib/storefront/core';
 import { deliverPendingEmail } from '../../lib/storefront/email';
 import { processJobs } from '../../lib/storefront/worker';
 import { acceptFirstClaim, declineClaim, recoverApproval } from '../../lib/storefront/admin-decisions';
@@ -9,6 +9,7 @@ import { POST as claimPost } from '../../app/api/storefront/items/[slug]/claim/r
 import { POST as alertPost } from '../../app/api/storefront/items/[slug]/alert/route';
 import { POST as webhookPost } from '../../app/api/storefront/webhooks/cal/route';
 import { GET as cronGet } from '../../app/api/cron/storefront/route';
+import { GET as cancelGet, POST as cancelPost } from '../../app/api/storefront/cancel/[token]/route';
 import { GET as adminQueue } from '../../app/api/admin/storefront/outbox/route';
 import { createHmac } from 'node:crypto';
 vi.mock('next/server',()=>({after:vi.fn()}));
@@ -144,8 +145,95 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('claim-flow security regressions
     await applyCalEvent(event('BOOKING_REQUESTED',claim,'old-booking'));await db().query("UPDATE claim_requests SET token_expires_at=now()-interval '14 days',requested_at=now()-interval '14 days' WHERE id=$1",[claim.claimId]);
     await processJobs();expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[target.id])).rows[0].status).toBe('pending');
     await applyCalEvent(event('BOOKING_CREATED',claim,'old-booking'));await expect(resolveClaimLink(other.token)).rejects.toThrow('expired');
-    await applyCalEvent(event('BOOKING_CANCELLED',claim,'old-booking'));expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[target.id])).rows[0].status).toBe('reserved');
-    await reopenItem(target.id);expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[target.id])).rows[0].status).toBe('available');
+    await applyCalEvent(event('BOOKING_CANCELLED',claim,'old-booking'));expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[target.id])).rows[0].status).toBe('available');
+  });
+  it('allows the original email to cancel an accepted claim after its booking link expires, without canceling on GET',async()=>{
+    const {target,claim}=await pending();await applyCalEvent(event('BOOKING_CREATED',claim,'audit-booking'));
+    await db().query("UPDATE claim_requests SET token_expires_at=now()-interval '14 days' WHERE id=$1",[claim.claimId]);
+    const context={params:Promise.resolve({token:claim.token})};
+    const url=`https://h5.codes/api/storefront/cancel/${claim.token}`;
+    const confirmation=await cancelGet(new Request(url),context);
+    expect(confirmation.status).toBe(200);expect(await confirmation.text()).toContain('<form method="post">');
+    expect((await db().query('SELECT status FROM claim_requests WHERE id=$1',[claim.claimId])).rows[0].status).toBe('accepted');
+    expect((await cancelPost(new Request(url,{method:'POST'}),context)).status).toBe(200);
+    expect((await db().query('SELECT status,availability_version FROM storefront_items WHERE id=$1',[target.id])).rows[0]).toMatchObject({status:'available',availability_version:1});
+    expect((await db().query('SELECT status,approval_started_at FROM claim_requests WHERE id=$1',[claim.claimId])).rows[0]).toMatchObject({status:'canceled',approval_started_at:null});
+    expect((await db().query("SELECT count(*)::int AS n FROM storefront_jobs WHERE kind='cal_cancel'")).rows[0].n).toBe(1);
+    expect((await cancelPost(new Request(url,{method:'POST'}),context)).status).toBe(200);
+    await applyCalEvent(event('BOOKING_CANCELLED',claim,'audit-booking'));
+    expect((await db().query('SELECT availability_version FROM storefront_items WHERE id=$1',[target.id])).rows[0].availability_version).toBe(1);
+    expect((await db().query("SELECT count(*)::int AS n FROM storefront_jobs WHERE kind='fanout'")).rows[0].n).toBe(1);
+  });
+  it('releases a pending email claim and reliably declines its Cal request in the worker',async()=>{
+    const {target,claim}=await pending();await db().query('UPDATE claim_requests SET approval_started_at=now() WHERE id=$1',[claim.claimId]);
+    expect(await cancelClaim(claim.token)).toBe(true);
+    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[target.id])).rows[0].status).toBe('available');
+    expect((await db().query('SELECT canceled_at FROM storefront_outbox WHERE claim_request_id=$1',[claim.claimId])).rows[0].canceled_at).not.toBeNull();
+    const actions:string[]=[];
+    vi.stubGlobal('fetch',async(url:RequestInfo|URL,init?:RequestInit)=>{actions.push(`${init?.method||'GET'} ${url}`);return Response.json({data:{status:'pending'}});});
+    await processJobs();expect(actions.some(action=>action.endsWith('/audit-booking/decline'))).toBe(true);
+    expect((await db().query("SELECT done_at FROM storefront_jobs WHERE kind='cal_cancel'")).rows[0].done_at).not.toBeNull();
+    const other=await item();await expect(startClaim(other.slug,claim.email)).resolves.toBeDefined();
+  });
+  it('cancels an accepted Cal meeting through durable cleanup and retries failures without restoring inventory',async()=>{
+    const {target,claim}=await pending();await applyCalEvent(event('BOOKING_CREATED',claim,'audit-booking'));await cancelClaim(claim.token);
+    vi.stubGlobal('fetch',async()=>new Response('',{status:503}));await processJobs();
+    expect((await db().query("SELECT attempts,done_at,last_error FROM storefront_jobs WHERE kind='cal_cancel'")).rows[0]).toMatchObject({attempts:1,done_at:null,last_error:expect.any(String)});
+    const actions:string[]=[];
+    vi.stubGlobal('fetch',async(url:RequestInfo|URL,init?:RequestInit)=>{actions.push(`${init?.method||'GET'} ${url}`);return Response.json({data:{status:'accepted'}});});
+    await db().query('UPDATE storefront_jobs SET next_attempt_at=now()');await processJobs();
+    expect(actions.some(action=>action.endsWith('/audit-booking/cancel'))).toBe(true);
+    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[target.id])).rows[0].status).toBe('available');
+  });
+  it('reopens from a signed Cal cancellation and queues one notification event',async()=>{
+    const {target,claim}=await pending();await subscribe(target.slug);await applyCalEvent(event('BOOKING_CREATED',claim,'audit-booking'));
+    const raw=JSON.stringify(event('BOOKING_CANCELLED',claim,'audit-booking'));
+    const signature=createHmac('sha256',process.env.CAL_WEBHOOK_SECRET!).update(raw).digest('hex');
+    const send=()=>webhookPost(new Request('https://h5.codes/api/storefront/webhooks/cal',{method:'POST',headers:{'x-cal-signature-256':signature},body:raw}));
+    expect((await send()).status).toBe(200);expect((await send()).status).toBe(200);
+    expect((await db().query('SELECT status,availability_version FROM storefront_items WHERE id=$1',[target.id])).rows[0]).toMatchObject({status:'available',availability_version:1});
+    expect((await db().query("SELECT count(*)::int AS n FROM storefront_jobs WHERE kind='fanout'")).rows[0].n).toBe(1);
+    expect((await db().query("SELECT count(*)::int AS n FROM storefront_jobs WHERE kind='cal_cancel'")).rows[0].n).toBe(0);
+    await processJobs();await deliverPendingEmail();expect(sent.filter(mail=>mail.to==='subscriber@example.invalid')).toHaveLength(1);
+  });
+  it.each(['email','cal'])('preserves remaining requests when a reserved claimant cancels through %s',async path=>{
+    const target=await item(),first=await startClaim(target.slug,'first@example.invalid'),next=await startClaim(target.slug,'next@example.invalid');
+    await applyCalEvent(event('BOOKING_REQUESTED',first,'first',new Date(Date.now()-1000).toISOString()));await applyCalEvent(event('BOOKING_REQUESTED',next,'next'));
+    await applyCalEvent(event('BOOKING_CREATED',first,'first'));
+    if(path==='email')await cancelClaim(first.token);else await applyCalEvent(event('BOOKING_CANCELLED',first,'first'));
+    expect((await db().query('SELECT status,availability_version FROM storefront_items WHERE id=$1',[target.id])).rows[0]).toMatchObject({status:'pending',availability_version:0});
+    expect((await db().query('SELECT status FROM claim_requests WHERE id=$1',[next.claimId])).rows[0].status).toBe('booking_requested');
+    await applyCalEvent(event('BOOKING_CREATED',next,'next'));
+    await cancelClaim(first.token);await applyCalEvent(event('BOOKING_CANCELLED',first,'first'));
+    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[target.id])).rows[0].status).toBe('reserved');
+  });
+  it('reconciles a cancellation stored by the previous manual-inventory policy',async()=>{
+    const {target,claim}=await pending();await applyCalEvent(event('BOOKING_CREATED',claim,'audit-booking'));
+    await db().query("UPDATE claim_requests SET status='canceled' WHERE id=$1",[claim.claimId]);
+    await applyCalEvent(event('BOOKING_CANCELLED',claim,'audit-booking'));
+    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[target.id])).rows[0].status).toBe('available');
+  });
+  it('does not reopen a completed handoff through either cancellation path',async()=>{
+    const {target,claim}=await pending();await applyCalEvent(event('BOOKING_CREATED',claim,'audit-booking'));await completeHandoff(target.id,'audit.webp','Handoff',true);
+    expect(await cancelClaim(claim.token)).toBe(false);await applyCalEvent(event('BOOKING_CANCELLED',claim,'audit-booking'));
+    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[target.id])).rows[0].status).toBe('claimed');
+    expect((await cancelPost(new Request('https://h5.codes/cancel',{method:'POST'}),{params:Promise.resolve({token:claim.token})})).status).toBe(409);
+  });
+  it('serializes simultaneous email and Cal cancellation without duplicate availability events',async()=>{
+    const {target,claim}=await pending();await applyCalEvent(event('BOOKING_CREATED',claim,'audit-booking'));
+    await Promise.all([cancelClaim(claim.token),applyCalEvent(event('BOOKING_CANCELLED',claim,'audit-booking'))]);
+    expect((await db().query('SELECT availability_version FROM storefront_items WHERE id=$1',[target.id])).rows[0].availability_version).toBe(1);
+    expect((await db().query("SELECT count(*)::int AS n FROM storefront_jobs WHERE kind='fanout'")).rows[0].n).toBe(1);
+  });
+  it('cannot accept a claim forfeited through the email while Cal confirmation is in flight',async()=>{
+    const {target,claim}=await pending();let started!:()=>void,release!:()=>void;
+    const began=new Promise<void>(resolve=>{started=resolve;}),held=new Promise<void>(resolve=>{release=resolve;});
+    vi.stubGlobal('fetch',async()=>{started();await held;return Response.json({ok:true});});
+    const accepting=acceptFirstClaim(claim.claimId).then(()=>null,error=>error);await began;
+    try {await cancelClaim(claim.token);}finally{release();}
+    expect(await accepting).toMatchObject({status:409});
+    expect((await db().query('SELECT status FROM claim_requests WHERE id=$1',[claim.claimId])).rows[0].status).toBe('canceled');
+    expect((await db().query('SELECT status FROM storefront_items WHERE id=$1',[target.id])).rows[0].status).toBe('available');
   });
   it('declines through Admin atomically and queues remote cleanup',async()=>{
     const {target,claim}=await pending();await declineClaim(claim.claimId,'Owner decision');
@@ -219,6 +307,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('claim-flow security regressions
   });
   it('cannot resurrect a canceled claim during confirmation',async()=>{
     const {target,claim}=await pending(),blocker=await db().connect();
+    const blockerPid=(await blocker.query('SELECT pg_backend_pid() AS pid')).rows[0].pid;
     let reached!:()=>void;const started=new Promise<void>(resolve=>{reached=resolve;});
     vi.stubGlobal('fetch',async()=>{
       await blocker.query('BEGIN');await blocker.query('SELECT id FROM storefront_items WHERE id=$1 FOR UPDATE',[target.id]);
@@ -228,7 +317,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('claim-flow security regressions
     try {
       await started;let waiting=false;
       for(let i=0;i<100;i++){
-        const result=await db().query("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name='storefront-security-audit' AND wait_event_type='Lock' AND query='SELECT status FROM storefront_items WHERE id=$1 FOR UPDATE') AS waiting");
+        const result=await db().query('SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE $1::int=ANY(pg_blocking_pids(pid))) AS waiting',[blockerPid]);
         if(result.rows[0].waiting){waiting=true;break;}await new Promise(resolve=>setTimeout(resolve,10));
       }
       expect(waiting).toBe(true);await blocker.query('COMMIT');expect(await accepting).toMatchObject({status:409});

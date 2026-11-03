@@ -89,14 +89,31 @@ export async function claimCancellationDetails(token: string) {
   return result.rows[0];
 }
 
-export async function cancelUnscheduledClaim(token: string) {
+async function releaseClaim(client:PoolClient,claim:{id:string;item_id:string},status:'canceled'|'declined') {
+  await client.query("UPDATE claim_requests SET status=$2,approval_started_at=NULL,updated_at=now() WHERE id=$1",[claim.id,status]);
+  await client.query('UPDATE storefront_outbox SET canceled_at=now() WHERE claim_request_id=$1 AND sent_at IS NULL',[claim.id]);
+  await reopenIfEmpty(client,claim.item_id);
+}
+
+export async function cancelClaim(token: string) {
   if (!/^[A-Za-z0-9_-]{40,100}$/.test(token)) throw new FlowError('Invalid link', 404);
   return transaction(async client => {
-    const result = await client.query<{id:string}>(`
-      UPDATE claim_requests SET status='canceled',updated_at=now()
-      WHERE token_hash=$1 AND status='link_sent' RETURNING id`, [tokenHash(token)]);
-    if (!result.rows[0]) return false;
-    await client.query("INSERT INTO claim_events(claim_request_id,action,actor) VALUES($1,'CLAIM_CANCELED','recipient')", [result.rows[0].id]);
+    const pointer=await client.query<{item_id:string}>('SELECT item_id FROM claim_requests WHERE token_hash=$1',[tokenHash(token)]);
+    if(!pointer.rows[0])throw new FlowError('Invalid link',404);
+    await itemForUpdate(client,pointer.rows[0].item_id);
+    const claim=(await client.query<{id:string;item_id:string;status:string;cal_booking_uid:string|null}>(
+      'SELECT id,item_id,status,cal_booking_uid FROM claim_requests WHERE token_hash=$1 FOR UPDATE',[tokenHash(token)])).rows[0];
+    if(claim.status==='canceled') {
+      // Also reconcile cancellations recorded before inventory followed this policy.
+      await reopenIfEmpty(client,claim.item_id);
+      return true;
+    }
+    if(!['link_sent','booking_requested','accepted'].includes(claim.status))return false;
+    await releaseClaim(client,claim,'canceled');
+    if(claim.cal_booking_uid)await client.query(
+      "INSERT INTO storefront_jobs(kind,item_id,uid,booking_status) VALUES('cal_cancel',$1,$2,$3) ON CONFLICT DO NOTHING",
+      [claim.item_id,claim.cal_booking_uid,claim.status]);
+    await client.query("INSERT INTO claim_events(claim_request_id,action,actor) VALUES($1,'CLAIM_CANCELED','recipient')", [claim.id]);
     return true;
   });
 }
@@ -219,9 +236,11 @@ export async function applyCalEvent(event: BookingEvent) {
       await client.query("UPDATE claim_requests SET status='accepted',updated_at=now() WHERE id=$1", [claim.id]);
       await client.query("UPDATE storefront_items SET status='reserved',updated_at=now() WHERE id=$1", [item.id]);
       await client.query("UPDATE claim_requests SET status='expired' WHERE item_id=$1 AND status='link_sent'",[item.id]);
-    } else if (['BOOKING_REJECTED','BOOKING_CANCELLED'].includes(event.triggerEvent) && ['booking_requested','accepted'].includes(claim.status)) {
-      await client.query("UPDATE claim_requests SET status=$2,updated_at=now() WHERE id=$1", [claim.id,event.triggerEvent === 'BOOKING_REJECTED' ? 'declined' : 'canceled']);
-      // Cancellation is recorded; inventory stays pending/reserved until Admin resolves it.
+    } else if (['BOOKING_REJECTED','BOOKING_CANCELLED'].includes(event.triggerEvent) && ['booking_requested','accepted','canceled','declined'].includes(claim.status)) {
+      if(['booking_requested','accepted'].includes(claim.status))
+        await releaseClaim(client,claim,event.triggerEvent==='BOOKING_REJECTED'?'declined':'canceled');
+      else await reopenIfEmpty(client,item.id); // Safe webhook replays repair previously stale inventory.
+
     } else if (event.triggerEvent === 'BOOKING_RESCHEDULED' && ['booking_requested','accepted'].includes(claim.status)) {
       await client.query("UPDATE claim_requests SET cal_booking_uid=$2,requested_start_at=$3,time_zone=$4,updated_at=now() WHERE id=$1", [claim.id,info.uid,info.start,info.timeZone]);
     }

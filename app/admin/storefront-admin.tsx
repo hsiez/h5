@@ -78,7 +78,7 @@ export function StorefrontAdmin() {
       <h2 className="text-lg font-medium">Things for you</h2>
       <button type="button" onClick={()=>refresh().catch(e=>setError(String(e)))} className="text-sm underline">Refresh</button>
     </div>
-    <p className="text-sm text-neutral-600">Review Cal requests in order. Pending requests and reservations stay until you resolve them here. Cal cancellations do not automatically reopen inventory.</p>
+    <p className="text-sm text-neutral-600">Review Cal requests in order. Pending requests and reservations stay active until canceled, declined, or completed. Participant cancellations release the claim automatically.</p>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     {queue && <div className="rounded-md border border-neutral-200 p-4 space-y-2 text-sm">
       <strong>Email and booking jobs</strong>
@@ -101,7 +101,7 @@ export function StorefrontAdmin() {
         </div>}
       </div>)}
       {['pending','reserved'].includes(item.status) && <div className="text-sm space-y-2">
-        {item.claims.some(c=>['canceled','declined'].includes(c.status)) && <p>A booking was canceled or declined. Review the remaining requests or reopen this item.</p>}
+        {item.claims.some(c=>['canceled','declined'].includes(c.status)) && <p>A booking was canceled or declined. This item still has remaining requests to review.</p>}
         <p>Reopening cancels remaining requests and queues their Cal cancellations.</p>
         <button type="button" disabled={busy} className="underline" onClick={()=>{if(window.confirm('Cancel remaining requests and make this item available again?'))operate(`/api/admin/storefront/items/${item.id}/reopen`);}}>Reopen item</button>
       </div>}
