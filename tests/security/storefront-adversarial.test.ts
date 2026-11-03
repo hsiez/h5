@@ -14,7 +14,7 @@ import { GET as adminQueue } from '../../app/api/admin/storefront/outbox/route';
 import { createHmac } from 'node:crypto';
 vi.mock('next/server',()=>({after:vi.fn()}));
 
-const sent:{to:string;subject:string}[]=[];
+const sent:{to:string;subject:string;html:string}[]=[];
 async function item() {
   const slug=`audit-${randomUUID()}`;
   const result=await db().query(`INSERT INTO storefront_items(slug,title,status,published_at,region_id,adoption_enabled,publication_status) VALUES($1,'Audit item','available',now(),'things-for-you',true,'published') RETURNING id`,[slug]);
@@ -85,6 +85,9 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('claim-flow security regressions
     expect((await alertPost(request(target.slug,'subscriber@example.invalid','alert'),{params:Promise.resolve({slug:target.slug})})).status).toBe(200);
     await reopenItem(target.id);await processJobs();await deliverPendingEmail();
     expect(sent).toEqual([{...sent[0],to:'subscriber@example.invalid',subject:'Confirm your availability notification'}]);
+    expect(sent[0].html).toContain('Get notified</td>');
+    expect(sent[0].html).toContain('>Verify email</a>');
+    expect(sent[0].html).toContain('/api/storefront/verify/');
     expect((await db().query("SELECT count(*)::int AS n FROM storefront_outbox WHERE kind='availability_alert'")).rows[0].n).toBe(0);
   });
   it('cancels queued availability mail and its unused claim when unsubscribed',async()=>{
@@ -130,6 +133,24 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)('claim-flow security regressions
   it('leases mail so two workers cannot send the same job concurrently',async()=>{
     const target=await item();await startClaim(target.slug,'once@example.invalid');
     await Promise.all([deliverPendingEmail(),deliverPendingEmail()]);expect(sent).toHaveLength(1);
+  });
+  it.each([200,503])('prepares a photo once before sending a batch, even when image preparation returns %i',async status=>{
+    const target=await item();
+    const path=`catalog/${randomUUID()}-Photo.webp`;
+    await db().query('INSERT INTO storefront_item_media(item_id,blob_path,alt_text) VALUES($1,$2,$3)',[target.id,path,'Audit photo']);
+    await startClaim(target.slug,'first@example.invalid');await startClaim(target.slug,'second@example.invalid');
+    const calls:string[]=[];
+    vi.stubGlobal('fetch',async (url:RequestInfo|URL,init?:RequestInit)=>{
+      if(String(url).includes('/api/catalog/media?')) {
+        calls.push('photo');
+        expect(String(url)).toContain('email=1&v=2');
+        return new Response('photo',{status,headers:{'Content-Type':'image/jpeg'}});
+      }
+      calls.push('send');sent.push(JSON.parse(String(init?.body)));return Response.json({id:'audit-email'});
+    });
+    expect(await deliverPendingEmail()).toBe(2);
+    expect(calls).toEqual(['photo','send','send']);
+    expect(sent).toHaveLength(2);
   });
   it('releases losing claimants and durably queues their Cal cleanup after handoff',async()=>{
     const target=await item(),another=await item();

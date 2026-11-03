@@ -14,6 +14,8 @@ describe('email photo', () => {
     expect(metadata.width).toBeLessThanOrEqual(720);
     expect(metadata.height).toBeLessThanOrEqual(900);
     expect(metadata.hasAlpha).toBe(false);
+    // Keep this real catalog image within the email transfer budget (previously 135KB).
+    expect(output.byteLength).toBeLessThan(100_000);
     for (const [index, channel] of pixel.entries()) {
       expect(Math.abs(channel - [244, 244, 241][index])).toBeLessThanOrEqual(2);
     }

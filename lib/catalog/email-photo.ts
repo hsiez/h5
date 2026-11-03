@@ -10,6 +10,6 @@ export async function emailPhotoJpeg(input: Buffer) {
     .resize({ width: 696, height: 876, fit: 'inside', withoutEnlargement: true })
     .extend({ top: 12, right: 12, bottom: 12, left: 12, background: '#f4f4f1' })
     .flatten({ background: '#f4f4f1' })
-    .jpeg({ quality: 92 })
+    .jpeg({ quality: 82 })
     .toBuffer();
 }

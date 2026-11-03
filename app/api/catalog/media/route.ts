@@ -19,6 +19,8 @@ export async function GET(request: Request) {
         'Content-Type': 'image/jpeg',
         'X-Content-Type-Options': 'nosniff',
         'Cache-Control': 'public, max-age=31536000, immutable',
+        // Uploaded photo paths are immutable. Share the prepared JPEG across email readers.
+        'Vercel-CDN-Cache-Control': 'public, max-age=31536000',
       } });
     }
     const headers = {

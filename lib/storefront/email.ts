@@ -3,6 +3,7 @@ import { budget } from './admission';
 import { db, transaction } from "./db";
 import { FlowError, newToken, tokenHash } from "./core";
 import { claimEmail } from "./claim-email-template";
+import { notificationConfirmationEmail } from "./notification-email-template";
 import { mediaPath, uploadedPhotoPathname } from "../catalog/media";
 
 function baseUrl() {
@@ -25,6 +26,7 @@ export async function deliverPendingEmail(limit = 20, target?:{claimId?:string;s
     (claim_request_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM claim_requests c JOIN storefront_items i ON i.id=c.item_id JOIN catalog_regions r ON r.id=i.region_id WHERE c.id=o.claim_request_id AND c.status='link_sent' AND c.token_expires_at>now() AND i.status='available' AND i.publication_status='published' AND i.published_at IS NOT NULL AND r.publication_status='published' AND (o.availability_version IS NULL OR o.availability_version=i.availability_version))) OR
     (alert_subscription_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM item_availability_alerts a WHERE a.id=o.alert_subscription_id AND a.unsubscribed_at IS NULL AND a.fulfilled_at IS NULL AND ((o.kind='verify_alert' AND a.verified_at IS NULL AND a.verification_expires_at>now()) OR (o.kind='availability_alert' AND a.verified_at IS NOT NULL)))))`);
   let delivered=0;
+  const preparedPhotos=new Set<string>();
   for(let n=0;n<limit;n++) {
     const lease=randomUUID();
     const row=await transaction(async client=>{
@@ -72,9 +74,16 @@ export async function deliverPendingEmail(limit = 20, target?:{claimId?:string;s
       const link=new URL(`/api/storefront/claim-link/${newToken(row.claim_request_id||'unused')}`,baseUrl()).href;
       const unsubscribe=row.alert_subscription_id?new URL(`/api/storefront/unsubscribe/${newToken(row.alert_subscription_id)}`,baseUrl()).href:null;
       const verify=row.alert_subscription_id?new URL(`/api/storefront/verify/${newToken(row.alert_subscription_id)}`,baseUrl()).href:'';
-      const draft=(row.kind==='verify_alert'?{subject:'Confirm your availability notification',text:`Confirm one notification for ${row.title}: ${verify}\nThis confirmation expires in one hour.`,html:`<p>Confirm one availability notification for ${escapeHtml(row.title)}.</p><p><a href="${escapeHtml(verify)}">Confirm notification</a></p><p>This link expires in one hour. Ignore this email if you did not request it.</p>`}:row.kind==='availability_alert'?availabilityAlertEmail(row.title,link,unsubscribe):claimEmail({title:row.title,imageUrl:absoluteEmailPhotoUrl(row.photo_src,baseUrl()),schedulingUrl:link,cancelUrl:new URL(`/api/storefront/cancel/${newToken(row.claim_request_id)}`,baseUrl()).href}));
+      const imageUrl=row.kind==='availability_alert'?null:absoluteEmailPhotoUrl(row.photo_src,baseUrl());
+      const draft=(row.kind==='verify_alert'?notificationConfirmationEmail({title:row.title,imageUrl,verificationUrl:verify}):row.kind==='availability_alert'?availabilityAlertEmail(row.title,link,unsubscribe):claimEmail({title:row.title,imageUrl,schedulingUrl:link,cancelUrl:new URL(`/api/storefront/cancel/${newToken(row.claim_request_id)}`,baseUrl()).href}));
       const message=row.message || {from,to:row.email,subject:draft.subject,html:draft.html,text:draft.text};
       await db().query('UPDATE storefront_outbox SET message=COALESCE(message,$3) WHERE id=$1 AND lease_id=$2',[row.id,lease,message]);
+      // Warm the exact public image URL before the first send, once per photo in this batch.
+      // Retried messages keep their original envelope; a changed item photo must not replace it.
+      if(!row.message && imageUrl && !preparedPhotos.has(imageUrl)) {
+        preparedPhotos.add(imageUrl);
+        await prepareEmailPhoto(imageUrl,baseUrl());
+      }
       const eligible=await db().query(`SELECT 1 FROM storefront_outbox o
         LEFT JOIN claim_requests c ON c.id=o.claim_request_id LEFT JOIN item_availability_alerts a ON a.id=o.alert_subscription_id
         JOIN storefront_items i ON i.id=COALESCE(c.item_id,a.item_id) JOIN catalog_regions r ON r.id=i.region_id
@@ -126,6 +135,30 @@ export function absoluteEmailPhotoUrl(src: string | null, origin: URL) {
   const resolved = absolutePhotoUrl(src, origin);
   if (!resolved) return null;
   const url = new URL(resolved);
-  if (uploadedPhotoPathname(url.pathname + url.search)) url.searchParams.set('email', '1');
+  if (uploadedPhotoPathname(url.pathname + url.search)) {
+    url.searchParams.set('email', '1');
+    // Bust existing immutable mail-client caches when the JPEG encoding changes.
+    url.searchParams.set('v', '2');
+  }
   return url.toString();
+}
+
+export async function prepareEmailPhoto(src: string | null, origin: URL) {
+  if (!src) return false;
+  try {
+    const url = new URL(src);
+    // Only fetch our validated media endpoint. Never follow external images or redirects.
+    if (url.origin !== origin.origin || !uploadedPhotoPathname(url.pathname + url.search) || url.searchParams.get('email') !== '1') return false;
+    const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(3000) });
+    if (!response.ok || response.headers.get('content-type')?.split(';')[0] !== 'image/jpeg') {
+      await response.body?.cancel();
+      return false;
+    }
+    // Drain the response so the CDN can finish storing it before the email is delivered.
+    await response.arrayBuffer();
+    return true;
+  } catch {
+    // A slow or unavailable photo must not prevent delivery of the verification/claim link.
+    return false;
+  }
 }

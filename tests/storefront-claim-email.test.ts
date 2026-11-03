@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { notificationConfirmationEmail } from '../lib/storefront/notification-email-template';
 import { claimEmail } from '../lib/storefront/claim-email-template';
 import { absoluteEmailPhotoUrl, absolutePhotoUrl, availabilityAlertEmail } from '../lib/storefront/email';
 
@@ -52,7 +53,7 @@ describe('claim email photo URL', () => {
     );
     expect(absolutePhotoUrl('//other.example/photo.png', new URL('https://h5.codes'))).toBeNull();
     expect(absoluteEmailPhotoUrl(pathname, new URL('https://h5.codes'))).toBe(
-      `https://h5.codes/api/catalog/media?pathname=${encodeURIComponent(pathname)}&email=1`,
+      `https://h5.codes/api/catalog/media?pathname=${encodeURIComponent(pathname)}&email=1&v=2`,
     );
   });
 });
@@ -64,5 +65,35 @@ describe('availability alert plain text', () => {
     expect(message.text).toContain(`${link}\n\nThe link expires`);
     expect(message.text).toContain('item.\n\nStop availability alerts');
     expect(message.text).not.toContain('\\n');
+  });
+});
+
+
+describe('notification confirmation email', () => {
+  it('uses the claim layout with its own confirmation link and no scheduling action', () => {
+    const message=notificationConfirmationEmail({title:'Prototype cap',imageUrl:'https://h5.codes/cap.webp',verificationUrl:'https://h5.codes/api/storefront/verify/personal'});
+    expect(message.html).toContain('Get notified</td>');
+    expect(message.html).toContain('max-width:560px');
+    expect(message.html).toContain('src="https://h5.codes/cap.webp"');
+    expect(message.html).toContain('href="https://h5.codes/api/storefront/verify/personal"');
+    expect(message.html).toContain('>Verify email</a>');
+    expect(message.html).not.toContain('Schedule coffee');
+    expect(message.html).not.toContain('Cancel your request');
+    expect(message.text).toContain('Verify your email to receive an alert if Prototype cap becomes available again.');
+    expect(message.text).toContain('expires in one hour');
+    expect(message.text).toContain('Ignore this email if you did not request it.');
+  });
+  it('escapes item text and link parameters in the shared HTML layout', () => {
+    const message=notificationConfirmationEmail({title:'Cap & <co.>',imageUrl:'https://h5.codes/cap.webp?email=1&size=small',verificationUrl:'https://h5.codes/verify?token=personal&source=email'});
+    expect(message.html).toContain('Cap &amp; &lt;co.&gt;');
+    expect(message.html).toContain('email=1&amp;size=small');
+    expect(message.html).toContain('token=personal&amp;source=email');
+    expect(message.text).toContain('Cap & <co.>');
+    expect(message.text).toContain('token=personal&source=email');
+  });
+  it('keeps confirmation usable when an item has no image', () => {
+    const message=notificationConfirmationEmail({title:'Cap',imageUrl:null,verificationUrl:'https://h5.codes/verify'});
+    expect(message.html).not.toContain('alt="Cap"');
+    expect(message.html).toContain('>Verify email</a>');
   });
 });
