@@ -2,6 +2,7 @@
 
 import inputStyles from '../_components/text-input.module.css';
 import Image from 'next/image';
+import { CLAIM_ILLUSTRATION, usePreloadClaimIllustration } from './preload-claim-illustration';
 import { EmailSentPreview } from './email-sent-preview';
 import { EmailSentInstructions } from './email-sent-instructions';
 import Link from 'next/link';
@@ -72,6 +73,7 @@ export function StorefrontItem({
   embedded = false, externalMobileActions = false, factsUnderTitle = false, status, buttonVariant = 'layered', title, story, storyParts, reason, photos, size, condition, measurements, owner, slug,
   initialAction = null, initialSubmission = 'idle', initialEmail = '', initialAcknowledged = false, initialError = '', onClaimEmailChange,
 }: StorefrontItemProps) {
+  usePreloadClaimIllustration(photos[0]?.src);
   const router = useRouter();
   const [photoIndex, setPhotoIndex] = useState(0);
   const itemRoot = useRef<HTMLDivElement>(null);
@@ -350,7 +352,7 @@ export function StorefrontItem({
       </button>
       <div ref={dialogBodyRef} className={styles.dialogBody}>
       {submission === 'success' && activeAction === 'claim' ? <EmailSentPreview email={email} /> : <div className={styles.dialogIllustration} aria-hidden="true">
-        <Image src="/illustrations/coffee-chat-metal-cups-spaced-stipple-420.webp" alt="" width={1536} height={1024} unoptimized />
+        <Image src={CLAIM_ILLUSTRATION} alt="" width={1536} height={1024} unoptimized />
       </div>}
       <div className={`${styles.dialogContent} ${styles.claimGlass}`}>
       <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={-1}>{activeAction === 'notify' ? (submission === 'success' ? 'Notification saved' : 'Item is reserved') : (submission === 'success' ? 'Email sent' : 'How to claim')}</h2>
