@@ -9,6 +9,7 @@ import { useId, useState, type FormEvent } from 'react';
 import claimStyles from '../../../things-for-you/storefront-item.module.css';
 import styles from './mobile-claim-page.module.css';
 import frameStyles from '../../../_components/paper-frame.module.css';
+import signupStyles from '../../../things-for-you/signup-form.module.css';
 
 const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -56,23 +57,23 @@ export function MobileClaimPage({ slug, title, initialState = 'entry', initialEm
 
   return <main className={styles.page} data-things-page data-claim-page>
     <div className={styles.shell}>
-      {state !== 'sent' && <Link className={`${styles.back} ${frameStyles.frame} ${frameStyles.popover}`} href={returnHref} transitionTypes={['claim-back']} aria-label="Back to item">
+      {state !== 'sent' && <Link className={`${styles.back} ${styles.entryBack} ${frameStyles.frame} ${frameStyles.popover}`} href={returnHref} transitionTypes={['claim-back']} aria-label="Back to item">
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12.5 4.5 6 10l6.5 5.5" /></svg>
         <span>Back</span>
       </Link>}
       {state !== 'sent' && <div className={styles.illustration} aria-hidden="true">
         <Image src="/illustrations/coffee-chat-metal-cups-spaced-stipple-420.webp" alt="" width={1536} height={1024} unoptimized priority />
       </div>}
-      <section className={`${styles.card} ${claimStyles.claimGlass}`} aria-labelledby="claim-title">
+      <section className={`${styles.card} ${claimStyles.claimGlass} ${signupStyles.surface}`} aria-labelledby="claim-title">
         {state === 'sent' && action === 'claim' && <EmailSentPreview email={email} />}
-        <h1 id="claim-title" className={claimStyles.claimTitle}>{state === 'sent' ? (action === 'notify' ? 'Check your email' : 'Email sent') : (action === 'notify' ? 'Get notified' : 'How to claim')}</h1>
+        <h1 id="claim-title" className={signupStyles.heading}>{state === 'sent' ? (action === 'notify' ? 'Check your email' : 'Email sent') : (action === 'notify' ? 'Get notified' : 'How to claim')}</h1>
         {state === 'sent' ? <>
-          {action === 'notify' ? <p>Confirm your email to receive one availability notification. This is not a waitlist.</p> : <EmailSentInstructions email={email} title={title} />}
-          <Link className={`${styles.submit} ${claimStyles.primaryButton}`} href={returnHref} transitionTypes={['claim-back']}><span className={claimStyles.buttonGrain} aria-hidden="true" /><span className={claimStyles.buttonLabel}>Done</span></Link>
+          <div className={signupStyles.intro}>{action === 'notify' ? <p>Confirm your email to receive one availability notification. This is not a waitlist.</p> : <EmailSentInstructions email={email} title={title} />}</div>
+          <div className={signupStyles.form}><div className={signupStyles.actions}><Link className={`${signupStyles.submit} ${claimStyles.primaryButton}`} href={returnHref} transitionTypes={['claim-back']}><span className={claimStyles.buttonGrain} aria-hidden="true" /><span className={claimStyles.buttonLabel}>Done</span></Link></div></div>
         </> : <>
-          <div className={`${styles.intro} ${claimStyles.dialogIntro}`}><p>{action === 'notify' ? 'Enter your email for one availability notification if this item opens up again. This is not a waitlist.' : 'Harley wants to trade you this item for a coffee chat. Enter your email and he’ll send a scheduling link.'}</p></div>
-          <form className={`${styles.form} ${claimStyles.claimForm}`} onSubmit={submit} noValidate>
-            <div className={styles.inputs}>
+          <div className={signupStyles.intro}><p>{action === 'notify' ? 'Enter your email for one availability notification if this item opens up again. This is not a waitlist.' : 'Harley wants to trade you this item for a coffee chat. Enter your email and he’ll send a scheduling link.'}</p></div>
+          <form className={signupStyles.form} onSubmit={submit} noValidate>
+            <div className={signupStyles.inputs}>
               <div className={claimStyles.formField}>
                 <label className={styles.visuallyHidden} htmlFor="claim-email">Email address</label>
                 <input className={inputStyles.input} id="claim-email" type="email" inputMode="email" autoComplete="email" enterKeyHint="done" value={email} onChange={event => { setEmail(event.target.value); setError(''); }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } }} placeholder="you@example.com" aria-invalid={Boolean(error && error.includes('email'))} aria-describedby={error ? errorId : undefined} disabled={state === 'sending'} />
@@ -83,8 +84,9 @@ export function MobileClaimPage({ slug, title, initialState = 'entry', initialEm
                 <span>I acknowledge that reselling item will result in 1,000 years of bad luck for my entire bloodline</span>
               </label>}
             </div>
-            <div className={claimStyles.dialogActions}>
-              <button className={`${styles.submit} ${claimStyles.primaryButton}${state === 'sending' ? ` ${claimStyles.loadingButton}` : ''}`} type="submit" disabled={state === 'sending' || !claimReady}><span className={claimStyles.buttonGrain} aria-hidden="true" />{state === 'sending' && <span className={claimStyles.loadingSheen} aria-hidden="true" />}<span className={claimStyles.buttonLabel}>{state === 'sending' ? 'Sending…' : 'Submit request'}</span></button>
+            <div className={signupStyles.actions}>
+              <Link className={`${signupStyles.cancel} ${styles.mobileCancel}`} href={returnHref} transitionTypes={['claim-back']} aria-disabled={state === 'sending' || undefined} onNavigate={event => { if (state === 'sending') event.preventDefault(); }}>Cancel</Link>
+              <button className={`${signupStyles.submit} ${claimStyles.primaryButton}${state === 'sending' ? ` ${claimStyles.loadingButton}` : ''}`} type="submit" disabled={state === 'sending' || !claimReady}><span className={claimStyles.buttonGrain} aria-hidden="true" />{state === 'sending' && <span className={claimStyles.loadingSheen} aria-hidden="true" />}<span className={claimStyles.buttonLabel}>{state === 'sending' ? 'Sending…' : 'Submit request'}</span></button>
             </div>
           </form>
         </>}

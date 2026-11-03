@@ -2,6 +2,7 @@
 import inputStyles from '../_components/text-input.module.css';
 import { useId, useRef, useState, type FormEvent } from 'react';
 import buttonStyles from '../things-for-you/storefront-item.module.css';
+import signupStyles from '../things-for-you/signup-form.module.css';
 import styles from './item-navigation.module.css';
 
 export function NotifyFooterForm({ slug, onClose }: { slug: string; onClose: () => void }) {
@@ -30,17 +31,19 @@ export function NotifyFooterForm({ slug, onClose }: { slug: string; onClose: () 
       setState('entry');
     } finally { busy.current = false; }
   }
-  return <section className={styles.notifyForm} aria-labelledby={`${id}-title`} onKeyDown={event => {
+  return <section className={`${styles.notifyForm} ${signupStyles.surface}`} aria-labelledby={`${id}-title`} onKeyDown={event => {
     if (event.key === 'Escape') { event.stopPropagation(); if (state !== 'sending') onClose(); }
   }}>
-    <h2 ref={heading} tabIndex={-1} id={`${id}-title`}>{state === 'saved' ? 'Check your email' : 'Item is reserved'}</h2>
-    <p>{state === 'saved' ? 'Confirm your email to receive one availability notification.' : 'If the item becomes available again, we’ll notify you'}</p>
-    {state === 'saved' ? <div className={styles.row}><button type="button" className={`${buttonStyles.primaryButton} ${styles.claim}`} onClick={onClose}><span className={buttonStyles.buttonGrain} aria-hidden="true" /><span className={buttonStyles.buttonLabel}>Done</span></button></div> : <form onSubmit={submit}>
+    <h2 className={signupStyles.heading} ref={heading} tabIndex={-1} id={`${id}-title`}>{state === 'saved' ? 'Check your email' : 'Item is reserved'}</h2>
+    <div className={signupStyles.intro}><p>{state === 'saved' ? 'Confirm your email to receive one availability notification.' : 'If the item becomes available again, we’ll notify you'}</p></div>
+    {state === 'saved' ? <div className={signupStyles.form}><div className={signupStyles.actions}><button type="button" className={`${buttonStyles.primaryButton} ${signupStyles.submit}`} onClick={onClose}><span className={buttonStyles.buttonGrain} aria-hidden="true" /><span className={buttonStyles.buttonLabel}>Done</span></button></div></div> : <form className={signupStyles.form} onSubmit={submit}>
+      <div className={signupStyles.inputs}>
       <input className={inputStyles.input} id={`${id}-email`} aria-label="Email address" type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" required value={email} onChange={event => setEmail(event.target.value)} disabled={state === 'sending'} aria-describedby={error ? `${id}-error` : undefined} />
-      {error && <p id={`${id}-error`} role="alert">{error}</p>}
-      <div className={styles.row}>
-        <button type="button" className={styles.notifyCancel} onClick={onClose} disabled={state === 'sending'}>Cancel</button>
-        <button type="submit" className={`${buttonStyles.primaryButton} ${styles.claim}`} disabled={state === 'sending' || !email.trim()}><span className={buttonStyles.buttonGrain} aria-hidden="true" /><span className={buttonStyles.buttonLabel}>{state === 'sending' ? 'Saving…' : 'Submit'}</span></button>
+      {error && <p className={signupStyles.message} id={`${id}-error`} role="alert">{error}</p>}
+      </div>
+      <div className={signupStyles.actions}>
+        <button type="button" className={signupStyles.cancel} onClick={onClose} disabled={state === 'sending'}>Cancel</button>
+        <button type="submit" className={`${buttonStyles.primaryButton} ${signupStyles.submit}${state === 'sending' ? ` ${buttonStyles.loadingButton}` : ''}`} disabled={state === 'sending' || !email.trim()}><span className={buttonStyles.buttonGrain} aria-hidden="true" /><span className={buttonStyles.buttonLabel}>{state === 'sending' ? 'Saving…' : 'Submit'}</span></button>
       </div>
     </form>}
   </section>;

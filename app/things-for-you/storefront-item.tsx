@@ -16,6 +16,7 @@ import type { ReviewText } from '../loadout/reviews';
 import { StorefrontStatusBadge } from './storefront-status-badge';
 import entityStyles from '../_components/inline-entity-trigger.module.css';
 import styles from './storefront-item.module.css';
+import signupStyles from './signup-form.module.css';
 
 export type StorefrontItemStatus = 'available' | 'pending' | 'reserved' | 'claimed';
 export type StorefrontButtonVariant = 'layered' | 'overlay';
@@ -354,21 +355,22 @@ export function StorefrontItem({
       {submission === 'success' && activeAction === 'claim' ? <EmailSentPreview email={email} /> : <div className={styles.dialogIllustration} aria-hidden="true">
         <Image src={CLAIM_ILLUSTRATION} alt="" width={1536} height={1024} unoptimized />
       </div>}
-      <div className={`${styles.dialogContent} ${styles.claimGlass}`}>
-      <h2 id={dialogTitleId} ref={dialogHeadingRef} tabIndex={-1}>{activeAction === 'notify' ? (submission === 'success' ? 'Check your email' : 'Item is reserved') : (submission === 'success' ? 'Email sent' : 'How to claim')}</h2>
-      <div id={dialogDescriptionId} className={styles.dialogIntro}>
+      <div className={`${styles.dialogContent} ${styles.claimGlass} ${signupStyles.surface}`}>
+      <h2 className={signupStyles.heading} id={dialogTitleId} ref={dialogHeadingRef} tabIndex={-1}>{activeAction === 'notify' ? (submission === 'success' ? 'Check your email' : 'Item is reserved') : (submission === 'success' ? 'Email sent' : 'How to claim')}</h2>
+      <div id={dialogDescriptionId} className={signupStyles.intro}>
         {activeAction === 'notify' ? <p>{submission === 'success' ? 'Confirm your email to receive one availability notification.' : 'If the item becomes available again, we’ll notify you'}</p> : submission === 'success'
           ? <EmailSentInstructions email={email} title={title} />
           : <p>Harley wants to trade you this item for a coffee chat. Enter your email and he’ll send a scheduling link.</p>}
       </div>
-      {submission === 'success' ? <div className={`${styles.dialogActions} ${styles.successActions}`}>
-        <button className={primaryButtonClassName} type="button" onClick={() => claimDialogRef.current?.close()}>
+      {submission === 'success' ? <div className={signupStyles.form}><div className={signupStyles.actions}>
+        <button className={`${primaryButtonClassName} ${signupStyles.submit}`} type="button" onClick={() => claimDialogRef.current?.close()}>
           {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
           <span className={styles.buttonLabel}>Done</span>
         </button>
-      </div> : <form className={styles.claimForm} onSubmit={submit} noValidate>
+      </div></div> : <form className={signupStyles.form} onSubmit={submit} noValidate>
+        <div className={signupStyles.inputs}>
         <div className={styles.formField}>
-          <p id={claimMessageId} className={styles.claimMessage} aria-live="polite">{(formError || (submission === 'error' && initialError)) && <span>{formError || initialError}</span>}</p>
+          <p id={claimMessageId} className={styles.claimMessage} aria-live="polite" hidden={!(formError || (submission === 'error' && initialError))}>{(formError || (submission === 'error' && initialError)) && <span>{formError || initialError}</span>}</p>
           <input className={inputStyles.input} id={emailId} type="email" aria-label="Email address" aria-describedby={claimMessageId} aria-invalid={formError === 'Enter your email address.' || formError === 'Enter a valid email address.'} autoComplete="email" value={email} onChange={event => { setEmail(event.target.value); onClaimEmailChange?.(event.target.value); setEmailValid(event.target.validity.valid && Boolean(event.target.value.trim())); setFormError(''); }}
             placeholder="you@example.com" pattern={EMAIL_ADDRESS_PATTERN.source} disabled={submission === 'loading'} required />
         </div>
@@ -376,9 +378,10 @@ export function StorefrontItem({
           <input type="checkbox" checked={acknowledged} onChange={event => { setAcknowledged(event.target.checked); setFormError(''); }} disabled={submission === 'loading'} required />
           <span>I acknowledge that reselling item will result in 1,000 years of bad luck for my entire bloodline</span>
         </label>}
-        <div className={styles.dialogActions}>
-          <button className={styles.cancelButton} type="button" onClick={cancel} disabled={submission === 'loading'}>Cancel</button>
-          <button className={`${primaryButtonClassName}${submission === 'loading' ? ` ${styles.loadingButton}` : ''}`} type="submit" disabled={submission === 'loading' || !claimReady}>
+        </div>
+        <div className={signupStyles.actions}>
+          <button className={signupStyles.cancel} type="button" onClick={cancel} disabled={submission === 'loading'}>Cancel</button>
+          <button className={`${primaryButtonClassName} ${signupStyles.submit}${submission === 'loading' ? ` ${styles.loadingButton}` : ''}`} type="submit" disabled={submission === 'loading' || !claimReady}>
             {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
             {submission === 'loading' && <span className={styles.loadingSheen} aria-hidden="true" />}
             <span className={styles.buttonLabel}>{submission === 'loading' ? 'Sending…' : <><span className={styles.desktopSubmitLabel}>Submit</span><span className={styles.mobileSubmitLabel}>Submit request</span></>}</span>

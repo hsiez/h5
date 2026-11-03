@@ -21,25 +21,11 @@
   pointer-events: none;
 }
 .row { display: flex; align-items: center; gap: 12px; max-width: 520px; margin: 0 auto; }
-/* Compact mobile variant; inner bevel and grain inherit the same radius. */
-.row .claim {
-  --radius-sm: var(--radius-lg);
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;
-  padding: 0 20px;
-  border-radius: var(--radius-lg);
-  text-decoration: none;
-}
+.claim { composes: submit from '../things-for-you/signup-form.module.css'; flex: 1; }
 @media (min-width: 701px) { .navigation { display: none; } }
 
 .navigation[data-notify-open] { background: white; border-radius: 20px 20px 0 0; }
-.notifyForm { max-width: 520px; max-height: min(70dvh, 480px); overflow-y: auto; overscroll-behavior: contain; margin: 0 auto; animation: notify-enter 180ms ease-out; }
-.notifyForm h2 { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: 24px; line-height: 1.2; margin: 0 0 8px; }
-.notifyForm p { font-size: 14px; line-height: 1.5; color: #707070; margin: 0 0 20px; }
-.notifyForm label { display: block; font-size: 14px; margin-bottom: 8px; }
-.notifyForm input { margin-bottom: 20px; }
-.notifyCancel { min-height: 44px; padding: 0 12px; border: none; background: none; color: #707070; cursor: pointer; }
+.notifyForm { max-width: 400px; max-height: min(70dvh, 480px); box-sizing: border-box; padding-block: var(--signup-padding-block); overflow-y: auto; overscroll-behavior: contain; margin: 0 auto; animation: notify-enter 180ms ease-out; }
 @keyframes notify-enter { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .notifyForm { animation: none; } }
 

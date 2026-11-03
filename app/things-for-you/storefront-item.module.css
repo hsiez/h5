@@ -132,26 +132,26 @@
 .previewSkeleton span { display: block; width: 70%; height: 7px; border-radius: var(--radius-full); background: var(--color-neutral-200); }
 .previewSkeleton span:nth-child(2) { width: 88%; }
 .previewSkeleton span:nth-child(3) { width: 58%; }
-.claimDialog h2, .claimTitle { margin: 0; font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: 32px; font-weight: 400; line-height: 1.2; }
 .claimGlass { border: 1px solid rgb(255 255 255 / 70%); border-radius: 20px; background: rgb(255 255 255 / 72%); -webkit-backdrop-filter: blur(5px) contrast(1.05); backdrop-filter: blur(5px) contrast(1.05); }
 .claimDialog h2:focus { outline: none; }
-.dialogIntro { display: grid; gap: 12px; margin: 8px 0 8px; color: var(--color-text-secondary); font-size: 16px; line-height: 1.5; }
-.dialogIntro p { margin: 0; }
-.claimForm { display: grid; gap: 20px; font-size: var(--text-sm); }
 .formField { display: grid; gap: 4px; }
 .claimMessage { height: 1.5em; margin: 0; overflow-y: auto; color: var(--color-reserved-ink); font-size: var(--text-xs); line-height: 1.5; }
 .claimMessage span { padding: 0 4px; border-radius: 2px; background: var(--color-reserved-highlight); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .acknowledgement { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: start; gap: 12px; margin: 0; color: var(--color-text-tertiary); font-size: 14px; font-weight: 400; line-height: 1.5; cursor: pointer; }
-.acknowledgement input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--color-neutral-900); cursor: pointer; }
-.acknowledgement input:disabled { cursor: default; }
-.dialogActions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 4px; }
-.successActions { margin-top: 12px; }
-.dialogActions .primaryButton { min-width: 104px; min-height: 44px; padding: 10px 16px; }
-.dialogActions .primaryButton:disabled:not(.loadingButton) { background: linear-gradient(145deg, var(--color-neutral-600), var(--color-neutral-500)); color: #f5f5f5; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 18%), 0 2px 4px rgb(20 20 20 / 8%); opacity: 1; text-shadow: none; cursor: not-allowed; }
-.dialogActions .primaryButton:disabled:not(.loadingButton)::before { background: linear-gradient(145deg, #616161, #777); }
-.dialogActions .primaryButton:disabled:not(.loadingButton)::after { opacity: .7; }
-.dialogActions .primaryButton:disabled:not(.loadingButton) .buttonGrain { opacity: .12; }
-.cancelButton { min-height: 48px; padding: 8px; border: 0; background: transparent; color: var(--color-text-tertiary); cursor: pointer; }
+.acknowledgement input { appearance: none; -webkit-appearance: none; display: grid; place-content: center; box-sizing: border-box; width: 18px; height: 18px; margin: 1px 0 0; border: 1px solid var(--color-border-strong); border-radius: 4px; background: #fff; color: #fff; accent-color: var(--color-neutral-900); cursor: pointer; }
+.acknowledgement input::before { content: ''; width: 5px; height: 9px; border: solid currentColor; border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); visibility: hidden; }
+.acknowledgement input:checked { border-color: var(--color-neutral-900); background: var(--color-neutral-900); }
+.acknowledgement input:checked::before { visibility: visible; }
+.acknowledgement input:focus-visible { border-color: var(--color-neutral-900); box-shadow: inset 0 0 0 1px var(--color-neutral-900); outline: 2px solid var(--color-neutral-900); outline-offset: 3px; }
+.acknowledgement input:disabled { opacity: .5; cursor: default; }
+@media (forced-colors: active) {
+  .acknowledgement input, .acknowledgement input:checked { appearance: auto; -webkit-appearance: auto; border: revert; background: revert; color: revert; }
+  .acknowledgement input::before { display: none; }
+}
+.primaryButton:disabled:not(.loadingButton) { background: linear-gradient(145deg, var(--color-neutral-600), var(--color-neutral-500)); color: #f5f5f5; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 18%), 0 2px 4px rgb(20 20 20 / 8%); opacity: 1; text-shadow: none; cursor: not-allowed; }
+.primaryButton:disabled:not(.loadingButton)::before { background: linear-gradient(145deg, #616161, #777); }
+.primaryButton:disabled:not(.loadingButton)::after { opacity: .7; }
+.primaryButton:disabled:not(.loadingButton) .buttonGrain { opacity: .12; }
 .mobileSubmitLabel { display: none; }
 .success { margin: 0; font-family: var(--font-sans); font-size: var(--text-sm); }
 .formError { margin: 0; color: var(--color-danger-600); font-size: var(--text-xs); }
@@ -167,7 +167,7 @@
 .ownerPhoto { position: relative; display: grid; width: 100%; aspect-ratio: 4 / 3; place-items: center; overflow: hidden; border-radius: var(--radius-sm); background: var(--color-neutral-50); color: var(--color-text-tertiary); font-family: var(--font-sans); font-size: var(--text-xs); }
 .ownerPhoto img { object-fit: cover; }
 .ownerCardText { padding: 12px 8px 8px; font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5; }
-.primaryButton:focus-visible, .secondaryButton:focus-visible, .cancelButton:focus-visible { outline: 2px solid var(--color-neutral-500); outline-offset: 3px; }
+.primaryButton:focus-visible, .secondaryButton:focus-visible { outline: 2px solid var(--color-neutral-500); outline-offset: 3px; }
 @media (max-width: 760px) { .item { padding-bottom: 64px; } .columns { grid-template-columns: minmax(0, 1fr); gap: 32px; margin-top: var(--spacing-title-content); } .gallery { max-width: 560px; } .content { max-width: 65ch; } .claiming { margin-top: 48px; } .availability { padding: 24px; } }
 @media (max-width: 480px) { .claimDialog { padding: 24px; } }
 @media (prefers-reduced-motion: reduce) { .ownerCard, .measurementsPopover, .galleryDot::after { transition: none; } .loadingSheen { animation: none; background-position: 50% 0; } }
@@ -275,17 +275,13 @@
     position: relative;
     display: block;
     margin-top: clamp(80px, 15svh, 132px);
-    padding: 24px 20px;
+    padding: var(--signup-padding-block) 20px;
   }
   .claimDialog[data-state="success"] .dialogBody { min-height: 0; }
   .claimDialog[data-state="success"] .emailPreview { margin: 36px 0 0; }
   .claimDialog[data-state="success"] .dialogContent { margin-top: 8px; }
-  .claimForm .dialogActions { width: 100%; }
-  .claimForm .dialogActions .cancelButton { display: none; }
-  .claimForm .dialogActions .primaryButton { width: 100%; min-height: 52px; }
-  .claimForm .desktopSubmitLabel { display: none; }
-  .claimForm .mobileSubmitLabel { display: inline; }
-  .dialogActions .primaryButton { min-height: 48px; }
+  .desktopSubmitLabel { display: none; }
+  .mobileSubmitLabel { display: inline; }
   @keyframes mobileClaimIn { from { opacity: 0; } to { opacity: 1; } }
 }
 
@@ -293,6 +289,5 @@
   .claimDialog[open], .claimDialog::backdrop { animation: none; }
 }
 
-.dialogIntro > div { margin-top: 0; }
 
 @media (max-width: 700px) { .claiming[data-footer-action="true"] { display: none; } }

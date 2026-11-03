@@ -1,0 +1,29 @@
+/* Shared claim/notification form format, independent of page, dialog, or footer placement. */
+.surface {
+  --signup-intro-gap: 8px;
+  --signup-form-gap: 32px;
+  --signup-input-gap: 16px;
+  --signup-actions-gap: 28px;
+  --signup-padding-block: 24px;
+}
+.heading { margin: 0; font-family: var(--font-iowan-old-style, "Iowan Old Style"), "Iowan Old Style", Palatino, Georgia, serif; font-size: 32px; font-weight: 400; line-height: 1.2; }
+.intro { margin: var(--signup-intro-gap) 0 0; color: var(--color-text-secondary); font-size: 16px; line-height: 1.5; }
+.intro p { margin: 0; }
+.form { display: grid; gap: var(--signup-actions-gap); margin: var(--signup-form-gap) 0 0; font-family: var(--font-sans); font-size: var(--text-sm); }
+.inputs { display: grid; gap: var(--signup-input-gap); }
+.actions { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; width: 100%; margin: 0; }
+.actions > :only-child { grid-column: 1 / -1; }
+.cancel {
+  composes: frame popover from '../_components/paper-frame.module.css';
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 44px; padding: 0 12px;
+  color: var(--color-text-tertiary); font-family: var(--font-sans); font-size: var(--text-sm); font-weight: 500; text-decoration: none; cursor: pointer;
+}
+.cancel:hover { color: var(--color-text-primary); }
+.cancel:focus-visible { outline: 2px solid var(--color-neutral-500); outline-offset: 3px; }
+.cancel:disabled, .cancel[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+/* Shared with the item footer; bevel, grain, and loading sheen follow the outer radius. */
+.submit:is(button, a) { --radius-sm: var(--radius-lg); box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; padding: 0 20px; border-radius: var(--radius-lg); text-decoration: none; white-space: nowrap; }
+.message { margin: 0; color: var(--color-reserved-ink); font-size: var(--text-xs); line-height: 1.5; }
+@media (max-width: 700px) {
+  .surface { --signup-form-gap: var(--space-mobile-5); --signup-input-gap: var(--space-mobile-3); --signup-actions-gap: var(--space-mobile-4); --signup-padding-block: var(--space-mobile-4); }
+}

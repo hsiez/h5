@@ -6,11 +6,13 @@
 .back:focus-visible { outline: 2px solid var(--color-neutral-500); outline-offset: 3px; }
 .illustration { position: absolute; z-index: -1; top: 44px; left: 0; right: 0; height: 250px; overflow: hidden; pointer-events: none; }
 .illustration img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.card { width: 100%; max-width: 400px; box-sizing: border-box; margin: 120px auto 0; padding: 24px 20px 28px; }
-.card .intro { margin: 8px 0 0; }
-.form { margin-top: 32px; gap: 28px; }
-.inputs { display: grid; gap: 16px; }
-.submit { width: 100%; min-height: 52px; text-decoration: none; }
+.card { width: 100%; max-width: 400px; box-sizing: border-box; margin: 120px auto 0; padding: var(--signup-padding-block) 20px; }
+.page .mobileCancel { display: none; }
+@media (max-width: 700px) {
+  .entryBack { display: none; }
+  .page .mobileCancel { display: inline-flex; }
+}
+@media (min-width: 701px) { .mobileCancel + button { grid-column: 1 / -1; } }
 .subject { margin: 28px 0; font-size: 14px; font-weight: 600; }
 .visuallyHidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (min-width: 701px) { .shell { padding-top: 100px; } .card { margin-top: 160px; } }
