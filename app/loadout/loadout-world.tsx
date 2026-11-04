@@ -316,7 +316,14 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                   "--first-item-left": `${itemVisualAlignment(activeRegion.items[0]).left}%`,
                 } as CSSProperties}
               >
-                <span>{activeRegion.heading}</span>
+                <span>
+                  {activeRegion.heading}
+                  {activeRegion.id === "things-for-you" && (
+                    <span className={styles.gridSubtitle}>
+                      Sometimes possessions find the wrong host. Maybe you&apos;re the right one.
+                    </span>
+                  )}
+                </span>
               </header>
             ) : null}
             <div

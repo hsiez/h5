@@ -75,6 +75,13 @@
   margin-left: var(--first-item-left);
 }
 
+.gridSubtitle {
+  display: block;
+  max-width: 78vw;
+  margin-top: var(--space-mobile-1);
+  letter-spacing: normal;
+}
+
 .itemLayout {
   --columns: 5;
   display: grid;
@@ -785,7 +792,8 @@
 .homeCopy { display: grid; gap: var(--space-mobile-6); width: 100%; max-width: var(--overview-max-width); margin-inline: auto; }
 .homeHeading { display: grid; gap: 0; }
 .homeHeading .worldTitle { margin: 0; font-size: 20px; font-weight: 400; line-height: normal; letter-spacing: normal; color: #121212; }
-.homeIntro { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; max-width: 580px; font-size: 16px; line-height: 1.5; color: #121212; margin: 0; text-wrap: pretty; }
+.homeIntro, .gridSubtitle { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: var(--text-base); line-height: 1.5; color: #121212; text-wrap: pretty; }
+.homeIntro { max-width: 580px; margin: 0; }
 .homeCategories { display: grid; gap: 20px; padding-bottom: 64px; }
 .homeCategories button, .upcomingCategory { display: flex; align-items: center; gap: 16px; width: fit-content; color: var(--ink); font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: clamp(36px, 4vw, 56px); line-height: 1.25; text-align: left; min-height: 48px; }
 .homeCategories button { cursor: pointer; padding: 0; border: 0; background: none; }

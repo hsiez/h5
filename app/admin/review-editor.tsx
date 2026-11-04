@@ -92,7 +92,7 @@ export function ReviewEditor({ value, onChange, photos, storefront = false }: { 
   const [editingRef, setEditingRef] = useState<string | null>(null);
   const editors = useRef<Record<Section, HTMLTextAreaElement | null>>({ about: null, pros: null, cons: null });
   const nextRef = useRef(0);
-  const visibleSections = storefront ? [{ key: 'about' as const, label: 'I am forfeiting' }] : sections;
+  const visibleSections = storefront ? [{ key: 'about' as const, label: "I'm forfeiting" }] : sections;
 
   function add(kind: 'location' | 'image', section: Section) {
     const editor = editors.current[section];

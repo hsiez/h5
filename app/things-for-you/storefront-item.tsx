@@ -266,9 +266,9 @@ export function StorefrontItem({
 
   const introduction = (storyParts?.length || story || reason) && <section className={styles.introduction} aria-label="About this item">
             {storyParts?.length ? storyParts.map((paragraph, index) => <p key={index}>
-              {index === 0 && <em className={styles.storyLeadIn}>I am forfeiting{' '}</em>}
+              {index === 0 && <em className={styles.storyLeadIn}>I&apos;m forfeiting{' '}</em>}
               {paragraph.map((part, partIndex) => typeof part === 'string' ? <span key={partIndex}>{part}</span> : <InlineReference key={partIndex} text={part.text} entity={part.entity} />)}
-            </p>) : story && <p><em className={styles.storyLeadIn}>I am forfeiting{' '}</em>{story}</p>}
+            </p>) : story && <p><em className={styles.storyLeadIn}>I&apos;m forfeiting{' '}</em>{story}</p>}
             {reason && <p>{reason}</p>}
           </section>;
 
