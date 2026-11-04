@@ -418,8 +418,8 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                   >
                     <header className={styles.detailsHeader}>
                       <div className={styles.detailsHeaderInner}>
-                        <h1 ref={focusedTitleRef}>{data.title}</h1>
-                        {(data.brand || data.model) && <p className={styles.productIdentity}>{[data.brand,data.model].filter(Boolean).join(' · ')}</p>}
+                        <h1 ref={focusedTitleRef}>{data.model || data.title}</h1>
+                        {data.brand && <p className={styles.productIdentity}>{data.brand}</p>}
                         {activeRegion.kind === 'storefront' && <div className={styles.mobileTitleFacts}><StorefrontItemFacts size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label, value]) => ({ label, value }))} /></div>}
                       </div>
                     </header>
