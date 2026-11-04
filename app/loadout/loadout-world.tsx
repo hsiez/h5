@@ -24,7 +24,7 @@ import { type ReviewText } from "./reviews";
 import type { Catalog } from "@/lib/catalog/types";
 import { GridPhoto } from "./grid-photo";
 import worldPhotoBounds from "./world-photo-bounds.json";
-import { StorefrontItem, StorefrontItemFacts } from "../things-for-you/storefront-item";
+import { StorefrontItem } from "../things-for-you/storefront-item";
 import { InlineReference } from "./inline-reference";
 
 const COLUMNS_BY_VIEW = [3, 1] as const;
@@ -411,8 +411,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                       </p>)}
                     </section>
                   ))}
-                  {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded externalMobileActions={dedicatedItem} factsUnderTitle slug={preview?undefined:data.slug} title={data.title} story={data.description} storyParts={data.review?.about} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
-                  {activeRegion.kind === 'storefront' && (data.size || data.condition || Object.keys(data.measurements).length > 0) && <div className={styles.mobileArticleFacts}><StorefrontItemFacts size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label, value]) => ({ label, value }))} /></div>}
+                  {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded externalMobileActions={dedicatedItem} factsBelowStory slug={preview?undefined:data.slug} title={data.title} story={data.description} storyParts={data.review?.about} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
                 </div>;
                 return (
                   <>

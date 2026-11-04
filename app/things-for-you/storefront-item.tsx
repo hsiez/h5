@@ -27,7 +27,7 @@ const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export type StorefrontItemProps = {
   embedded?: boolean;
   externalMobileActions?: boolean;
-  factsUnderTitle?: boolean;
+  factsBelowStory?: boolean;
   status: StorefrontItemStatus;
   buttonVariant?: StorefrontButtonVariant;
   title: string;
@@ -50,28 +50,46 @@ export type StorefrontItemProps = {
 
 export function StorefrontItemFacts({ size, condition, measurements, leadingSeparator = false }: Pick<StorefrontItemProps, 'size' | 'condition' | 'measurements'> & { leadingSeparator?: boolean }) {
   const measurementsId = useId();
-  const displaySize = size.trim().toLowerCase() === 'm' ? 'medium' : size;
-  const displayCondition = condition.trim().toLowerCase() === 'used' ? 'gently used' : condition;
+  const [measurementsOpen, setMeasurementsOpen] = useState(false);
+  const displaySize = size.trim();
+  const displayCondition = condition.trim().toLowerCase() === 'used' ? 'gently used' : condition.trim();
+  const sizeCodes: Record<string, string> = { small: 'S', medium: 'M', large: 'L', 'extra small': 'XS', 'extra large': 'XL' };
+  const normalizedSize = displaySize.replace(/^size\s+/i, '');
+  const sizeKey = normalizedSize.toLowerCase();
+  const compactSize = (Object.hasOwn(sizeCodes, sizeKey) ? sizeCodes[sizeKey] : "")
+    || (/^(?:XXS|XS|S|M|L|XL|XXL|XXXL|\d{1,3}(?:[.,]\d)?)$/i.test(normalizedSize) ? normalizedSize.toUpperCase() : '');
+  const sizeLabel = compactSize || displaySize;
+  const hasSize = !!displaySize || measurements.length > 0;
+  const separator = <span className={styles.detailSeparator} aria-hidden="true">·</span>;
 
   return <>
-    {leadingSeparator && <span className={styles.detailSeparator} aria-hidden="true">·</span>}
-    <span className={styles.detailValue}>
-      {measurements.length > 0 ? <span className={styles.measurementsEntity}>
-        <button type="button" className={entityStyles.trigger} aria-label={`Size: ${displaySize || 'View measurements'}. View measurements`} aria-describedby={measurementsId}>{displaySize || 'Measurements'}</button>
+    {leadingSeparator && (hasSize || displayCondition) ? separator : null}
+    {hasSize && <span className={styles.detailValue} data-size-circle={compactSize ? true : undefined}>
+      {measurements.length > 0 ? <span className={styles.measurementsEntity} onKeyDown={event => {
+        if (event.key === 'Escape' && measurementsOpen) {
+          event.stopPropagation();
+          setMeasurementsOpen(false);
+        }
+      }}>
+        <button type="button" className={entityStyles.trigger} aria-label={displaySize ? `Size: ${displaySize}. View measurements` : undefined}
+          aria-expanded={measurementsOpen} aria-controls={measurementsId} onClick={() => setMeasurementsOpen(open => !open)}>
+          {sizeLabel || 'Measurements'}
+          {!compactSize && <svg aria-hidden="true" viewBox="0 0 12 12" fill="none" stroke="currentColor"><path d="m2 4 4 4 4-4" /></svg>}
+        </button>
         <PaperFrame elevation="popover" className={styles.measurementsPopover}>
           <dl id={measurementsId} className={styles.measurementsList}>
             {measurements.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
           </dl>
         </PaperFrame>
-      </span> : <span aria-label={`Size: ${displaySize}`}>{displaySize}</span>}
-    </span>
-    <span className={styles.detailSeparator} aria-hidden="true">·</span>
-    <span className={styles.detailValue} aria-label={`Condition: ${displayCondition}`}>{displayCondition}</span>
+      </span> : <span aria-label={`Size: ${normalizedSize}`}>{sizeLabel}</span>}
+    </span>}
+    {hasSize && displayCondition ? separator : null}
+    {displayCondition && <span className={styles.detailValue}>{displayCondition}</span>}
   </>;
 }
 
 export function StorefrontItem({
-  embedded = false, externalMobileActions = false, factsUnderTitle = false, status, buttonVariant = 'layered', title, story, storyParts, reason, photos, size, condition, measurements, owner, slug,
+  embedded = false, externalMobileActions = false, factsBelowStory = false, status, buttonVariant = 'layered', title, story, storyParts, reason, photos, size, condition, measurements, owner, slug,
   initialAction = null, initialSubmission = 'idle', initialEmail = '', initialAcknowledged = false, initialError = '', onClaimEmailChange,
 }: StorefrontItemProps) {
   usePreloadClaimIllustration(photos[0]?.src);
@@ -277,7 +295,7 @@ export function StorefrontItem({
     <StorefrontItemFacts size={size} condition={condition} measurements={measurements} leadingSeparator />
   </div>;
 
-  return <div ref={itemRoot} className={embedded ? styles.embedded : styles.page} data-mobile-claim={embedded && currentStatus === 'available' && slug ? 'true' : undefined} data-facts-under-title={factsUnderTitle ? 'true' : undefined} data-status={currentStatus}>
+  return <div ref={itemRoot} className={embedded ? styles.embedded : styles.page} data-mobile-claim={embedded && currentStatus === 'available' && slug ? 'true' : undefined} data-facts-below-story={factsBelowStory ? 'true' : undefined} data-status={currentStatus}>
     <article className={embedded ? undefined : styles.item}>
       {!embedded && <h1>{title}</h1>}
       <div className={embedded ? undefined : styles.columns}>
@@ -301,6 +319,12 @@ export function StorefrontItem({
 }
         <div className={styles.content}>
           {embedded ? <OverflowFade className={styles.storyScroll} label="About this item">{introduction}</OverflowFade> : introduction}
+
+          {factsBelowStory && (size || condition || measurements?.length) ? (
+            <div className={styles.articleFacts}>
+              <StorefrontItemFacts size={size} condition={condition} measurements={measurements} />
+            </div>
+          ) : null}
 
           <section className={styles.claiming} data-footer-action={externalMobileActions && (currentStatus === 'reserved' || currentStatus === 'pending') ? 'true' : undefined} data-embedded={embedded ? 'true' : undefined} aria-label="Adoption details">
             <section className={styles.availability} aria-label="Shopping details">
