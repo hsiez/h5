@@ -32,16 +32,16 @@ export function validateShareFields(value:unknown):Pick<ItemFields,'title'|'bran
  if(!Array.isArray(v.photos)||v.photos.length>20) throw new FlowError('Use up to 20 photos',400);
  const ogPhotoSrc=v.ogPhotoSrc ? mediaUrl(v.ogPhotoSrc) : '';
  if(ogPhotoSrc && !v.photos.some(p=>{const photo=object(p);return photo.src===ogPhotoSrc && !!photo.stippleSrc;})) throw new FlowError('Choose a photo with a generated drawing for the share image',400);
- if(typeof v.title==='string' && v.title.length>160) throw new FlowError('Use 160 characters or fewer for the item name.',400);
+ const model=text(v.model??'',160);
  return {
-  title:text(v.title??'',160),brand:text(v.brand??'',160),model:text(v.model??'',160),ogPhotoSrc,
+  title:model||text(v.title??'',160),brand:text(v.brand??'',160),model,ogPhotoSrc,
   photos:v.photos.map(p=>{const photo=object(p);return {src:mediaUrl(photo.src),alt:text(photo.alt,500,true),...(photo.stippleSrc ? {stippleSrc:mediaUrl(photo.stippleSrc)} : {})}}),
  };
 }
 export function validateItemFields(value:unknown):ItemFields {
  const v=object(value);
  const share=validateShareFields(v);
- if(!share.title) throw new FlowError('Enter a name for this item before saving.',400);
+ if(!share.title) throw new FlowError('Enter a model before saving.',400);
  const measurements=object(v.measurements); if(Object.keys(measurements).length>30) throw new FlowError('Use up to 30 measurements',400);
  return {...share,regionId:slug(v.regionId),description:text(v.description??''),size:text(v.size??'',250),condition:text(v.condition??'',1000),sortOrder:finite(v.sortOrder??0,-10000,10000),
  measurements:Object.fromEntries(Object.entries(measurements).map(([k,val])=>[text(k,100,true),text(val,250,true)])),review:reviewData(v.review,share.title)};
