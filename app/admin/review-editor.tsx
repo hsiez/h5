@@ -5,6 +5,7 @@ import { InlineReference } from '../loadout/inline-reference';
 import type { ItemReview, ReviewText } from '../loadout/reviews';
 import reviewStyles from '../loadout/loadout.module.css';
 import storefrontStyles from '../things-for-you/storefront-item.module.css';
+import { referenceUrl } from '@/lib/catalog/reference-url';
 import type { Photo } from '@/lib/catalog/types';
 import styles from './review-editor.module.css';
 
@@ -59,7 +60,7 @@ function ReviewPreview({ text, refs, leadIn, storefront = false }: { text: strin
       const ref = part.startsWith('[[') ? refs.find(entry => marker(entry.key) === part) : undefined;
       const ready = ref && (ref.value.entity.kind === 'location'
         ? !!ref.value.entity.name.trim()
-        : !!ref.value.entity.src && !!ref.value.entity.alt.trim());
+        : ref.value.entity.kind === 'link' ? !!referenceUrl(ref.value.entity.url) : !!ref.value.entity.src && !!ref.value.entity.alt.trim());
       return ready ? <InlineReference key={partIndex} text={ref.value.text} entity={ref.value.entity} />
         : <span key={partIndex}>{ref?.value.text || part}</span>;
     })}</p>
@@ -94,12 +95,12 @@ export function ReviewEditor({ value, onChange, photos, storefront = false }: { 
   const nextRef = useRef(0);
   const visibleSections = storefront ? [{ key: 'about' as const, label: "I'm forfeiting" }] : sections;
 
-  function add(kind: 'location' | 'image', section: Section) {
+  function add(kind: 'location' | 'image' | 'link', section: Section) {
     const editor = editors.current[section];
     const start = editor?.selectionStart ?? value[section].length;
     const end = editor?.selectionEnd ?? start;
     const selected = value[section].slice(start, end).trim();
-    const label = selected || (kind === 'location' ? 'Place' : 'Photo');
+    const label = selected || (kind === 'location' ? 'Place' : kind === 'link' ? 'Link' : 'Photo');
     const key = `ref${Date.now().toString(36)}${(nextRef.current++).toString(36)}`;
     const entry: RefEntry = {
       key,
@@ -107,6 +108,7 @@ export function ReviewEditor({ value, onChange, photos, storefront = false }: { 
         text: label,
         entity: kind === 'location'
           ? { kind, name: selected || '', city: '', latitude: 47.6062, longitude: -122.3321, zoom: 14 }
+          : kind === 'link' ? { kind, url: '' }
           : { kind, src: photos[0]?.src || '', alt: photos[0]?.alt || '', caption: '', width: 1200, height: 1200 },
       },
     };
@@ -134,10 +136,11 @@ export function ReviewEditor({ value, onChange, photos, storefront = false }: { 
     <legend>Review</legend>
     {!storefront && <label className="check"><input type="checkbox" checked={value.enabled} onChange={event => onChange({ ...value, enabled: event.target.checked })} />Include a review</label>}
     {(storefront || value.enabled) && <>
-      <p className={styles.help}>Write naturally and separate paragraphs with a blank line. Select a word or phrase, then attach a photo or place to give it a hover preview.</p>
+      <p className={styles.help}>Write naturally and separate paragraphs with a blank line. Select a word or phrase, then attach a link, photo, or place.</p>
       {visibleSections.map(({ key, label }) => <section className={styles.section} key={key}>
         <div className={styles.sectionHeader}><h3>{label}</h3><span>{value[key].trim().length} characters</span></div>
         <div className={styles.editorBar} aria-label={`${label} editing tools`}>
+          <button type="button" onClick={() => add('link', key)}>+ Link</button>
           <button type="button" onClick={() => add('image', key)}>+ Image hover</button>
           <button type="button" onClick={() => add('location', key)}>+ Place hover</button>
         </div>
@@ -146,16 +149,16 @@ export function ReviewEditor({ value, onChange, photos, storefront = false }: { 
         </label>
         <div className={styles.preview} aria-label={`${label} preview`}><span className={styles.previewLabel}>Preview · hover or tap a reference</span><ReviewPreview text={value[key]} refs={value.refs} leadIn={key === 'cons' ? 'Only notes:' : label} storefront={storefront} /></div>
       </section>)}
-      {value.refs.length > 0 && <section className={styles.references} aria-label="Hover references">
-        <h3>Hover references</h3><p>These details appear when someone hovers or taps highlighted text.</p>
+      {value.refs.length > 0 && <section className={styles.references} aria-label="Inline references">
+        <h3>Inline references</h3><p>Links open a page. Photos and places show a preview.</p>
         {value.refs.map(ref => {
           const entity = ref.value.entity;
           const isOpen = editingRef === ref.key;
           return <div className={styles.reference} key={ref.key}>
-            <button type="button" className={styles.referenceToggle} aria-expanded={isOpen} onClick={() => setEditingRef(isOpen ? null : ref.key)}><span>{entity.kind === 'image' ? 'Image' : 'Place'} · {ref.value.text}</span><span>{isOpen ? '−' : '+'}</span></button>
+            <button type="button" className={styles.referenceToggle} aria-expanded={isOpen} onClick={() => setEditingRef(isOpen ? null : ref.key)}><span>{entity.kind === 'image' ? 'Image' : entity.kind === 'link' ? 'Link' : 'Place'} · {ref.value.text}</span><span>{isOpen ? '−' : '+'}</span></button>
             {isOpen && <div className={styles.referenceFields}>
               <label>Highlighted text<input value={ref.value.text} onChange={event => edit(ref.key, { ...ref, value: { ...ref.value, text: event.target.value } })} /></label>
-              {entity.kind === 'image' ? <>
+              {entity.kind === 'link' ? <label>Link URL<input type="url" placeholder="https://example.com" value={entity.url} onChange={event => edit(ref.key, { ...ref, value: { ...ref.value, entity: { ...entity, url: event.target.value } } })} /></label> : entity.kind === 'image' ? <>
                 <label>Image<select value={entity.src} onChange={event => {
                   const photo = photos.find(photo => photo.src === event.target.value);
                   edit(ref.key, { ...ref, value: { ...ref.value, entity: { ...entity, src: event.target.value, alt: photo?.alt || entity.alt } } });
@@ -168,7 +171,7 @@ export function ReviewEditor({ value, onChange, photos, storefront = false }: { 
                 <label>City, country<input value={entity.city} onChange={event => edit(ref.key, { ...ref, value: { ...ref.value, entity: { ...entity, city: event.target.value } } })} /></label>
                 <div className={styles.coordinates}>{(['latitude', 'longitude', 'zoom'] as const).map(field => <label key={field}>{field}<input type="number" step="any" value={entity[field]} onChange={event => edit(ref.key, { ...ref, value: { ...ref.value, entity: { ...entity, [field]: Number(event.target.value) } } })} /></label>)}</div>
               </>}
-              <button type="button" onClick={() => remove(ref)}>Remove hover, keep text</button>
+              <button type="button" onClick={() => remove(ref)}>Remove reference, keep text</button>
             </div>}
           </div>;
         })}

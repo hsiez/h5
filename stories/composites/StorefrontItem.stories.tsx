@@ -9,7 +9,7 @@ import { storefrontItemSample } from '../../app/things-for-you/storefront-item-s
 const meta: Meta<typeof StorefrontItem> = {
   title: 'Composites/Storefront Item',
   component: StorefrontItem,
-  parameters: { layout: 'fullscreen' },
+  parameters: { layout: 'fullscreen', nextjs: { appDirectory: true } },
   render: args => <StorefrontItem key={`${args.status}-${args.initialAction}-${args.initialSubmission}`} {...args} />,
   argTypes: {
     status: { control: 'select', options: ['available', 'pending', 'reserved', 'claimed'] },
@@ -51,4 +51,17 @@ export const MobileEmailSent: Story = {
   args: { ...ClaimEmailInput.args },
   render: args => <MobileClaimPage title={args.title} initialState="sent" initialEmail="you@gmail.com" />,
   parameters: { docs: { description: { story: 'Email sent confirmation with an inbox search link and copyable subject. Sends no email.' } } },
+};
+
+export const WithInlineLink: Story = {
+  args: {
+    ...item,
+    status: 'available',
+    reason: '',
+    storyParts: [[
+      'this cap because I reach for it less often. My friend made it. You can find ',
+      { text: 'his merch', entity: { kind: 'link', url: 'https://example.com/' } },
+      ' here.',
+    ]],
+  },
 };

@@ -1,6 +1,7 @@
 export type ReviewText = string | {
   text: string;
   entity:
+    | { kind: "link"; url: string }
     | { kind: "location"; name: string; city: string; latitude: number; longitude: number; zoom: number }
     | { kind: "image"; src: string; alt: string; caption: string; width: number; height: number };
 };

@@ -9,6 +9,7 @@ import edgeFadeStyles from "../_components/edge-fade.module.css";
 import { PaperFrame } from "../_components/paper-frame";
 import { ThumbnailFrame } from "../_components/thumbnail-frame";
 import entityStyles from "../_components/inline-entity-trigger.module.css";
+import { referenceUrl } from "@/lib/catalog/reference-url";
 import type { ReviewText } from "./reviews";
 import styles from "./loadout.module.css";
 
@@ -42,6 +43,18 @@ function EntityIcon({ kind }: { kind: Entity["kind"] }) {
 }
 
 export function InlineReference({ text, entity }: { text: string; entity: Entity }) {
+  if (entity.kind === "link") {
+    const href = referenceUrl(entity.url);
+    if (!href) return <>{text}</>;
+    return <a className={`${entityStyles.trigger} ${entityStyles.link}`} href={href}>
+      <span>{text}</span>
+      <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M2 14 14 2M6 2h8v8" /></svg>
+    </a>;
+  }
+  return <PreviewReference text={text} entity={entity} />;
+}
+
+function PreviewReference({ text, entity }: { text: string; entity: Exclude<Entity, { kind: "link" }> }) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
