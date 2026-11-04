@@ -31,8 +31,8 @@ export async function preparePhoto(file: File): Promise<File> {
     const ex = Math.min(image.width, (right + 1 + margin) * image.width / sample.width);
     const ey = Math.min(image.height, (bottom + 1 + margin) * image.height / sample.height);
     const sw = ex - sx, sh = ey - sy;
-    const scale = Math.min(PHOTO_WIDTH * SUBJECT_FRACTION / sw, PHOTO_HEIGHT * SUBJECT_FRACTION / sh);
-    if (scale > 1.05) throw new Error('The saved image lacks enough detail for this framing. Upload the original photo instead.');
+    // Keep smaller cutouts at their native size within the standard frame.
+    const scale = Math.min(1, PHOTO_WIDTH * SUBJECT_FRACTION / sw, PHOTO_HEIGHT * SUBJECT_FRACTION / sh);
     const dw = sw * scale, dh = sh * scale;
     const canvas = document.createElement('canvas');
     canvas.width = PHOTO_WIDTH; canvas.height = PHOTO_HEIGHT;
