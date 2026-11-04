@@ -358,7 +358,6 @@
   line-height: .98;
   letter-spacing: -.045em;
 }
-.mobileArticleFacts { display: none; }
 
 .detailsBody {
   display: block;
@@ -729,10 +728,6 @@
   }
   .detailsHeaderInner { width: 100%; justify-self: stretch; padding: 0; }
   .detailsHeaderInner h1 { max-width: none; }
-  .mobileArticleFacts { position: relative; display: flex; flex-wrap: wrap; max-width: 100%; align-items: center; gap: var(--space-mobile-1); margin-top: var(--space-mobile-3); color: var(--color-text-tertiary); font-family: var(--font-sans); font-size: 12px; line-height: 1.25; pointer-events: auto; }
-  .mobileArticleFacts > span[aria-hidden="true"] { display: none; }
-  .mobileArticleFacts > span:not([aria-hidden="true"]) { display: inline-flex; box-sizing: border-box; align-items: center; padding: 6px 10px; border-radius: var(--radius-full); background: var(--color-neutral-50); color: var(--color-text-tertiary); white-space: nowrap; }
-  .mobileArticleFacts button { padding: 0; background: transparent; color: inherit; }
   .detailsHeader {
     display: block;
     grid-column: 1;
