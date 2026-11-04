@@ -19,7 +19,7 @@
 .content { max-width: 75ch; }
 .claiming { margin-top: 64px; -webkit-user-select: none; user-select: none; }
 .measurementsList dd { -webkit-user-select: text; user-select: text; }
-.introduction { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: var(--text-lg); line-height: 1.8; text-wrap: pretty; }
+.introduction { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: var(--text-base); line-height: 1.8; text-wrap: pretty; }
 .storyLeadIn { color: var(--focus-item-lead-in-color); font-size: inherit; font-weight: var(--font-weight-semibold); font-style: italic; line-height: inherit; }
 .introduction p { margin: 0; }
 .introduction p + p { margin-top: 20px; }
@@ -187,7 +187,6 @@
 
 @media (max-width: 700px) {
   .embedded[data-mobile-claim="true"] .claiming { display: none; }
-  .embedded[data-mobile-claim="true"] { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
   .embedded .storyScroll {
     max-height: none;
     overflow: visible;
