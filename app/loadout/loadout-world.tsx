@@ -177,7 +177,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
   const activeItemIndex = Math.max(0, initialSelection?.itemIndex ?? 0);
   const detailItemIndex = Math.max(0, initialSelection?.itemIndex ?? 0);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const focusedTitleRef = useRef<HTMLHeadingElement>(null);
+  const focusedHeaderRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -211,15 +211,15 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
-    const title = focusedTitleRef.current;
-    if (stage !== 1 || !viewport || !title) return;
+    const header = focusedHeaderRef.current;
+    if (stage !== 1 || !viewport || !header) return;
 
     const updateHeight = (height: number) => {
       viewport.style.setProperty("--focused-measured-title-height", `${height}px`);
     };
-    updateHeight(title.offsetHeight);
+    updateHeight(header.offsetHeight);
     const observer = new ResizeObserver(([entry]) => updateHeight(entry.contentRect.height));
-    observer.observe(title);
+    observer.observe(header);
     return () => {
       observer.disconnect();
       viewport.style.removeProperty("--focused-measured-title-height");
@@ -405,6 +405,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                     </section>
                   ))}
                   {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded externalMobileActions={dedicatedItem} factsUnderTitle slug={preview?undefined:data.slug} title={data.title} story={data.description} storyParts={data.review?.about} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
+                  {activeRegion.kind === 'storefront' && (data.size || data.condition || Object.keys(data.measurements).length > 0) && <div className={styles.mobileArticleFacts}><StorefrontItemFacts size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label, value]) => ({ label, value }))} /></div>}
                 </div>;
                 return (
                   <>
@@ -413,14 +414,13 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                     data-visible="true"
                     aria-live="polite"
                     style={{
-                      "--focused-mobile-visual-height": Math.min(1, Math.max(0.55, itemPresentation(detailItem).visibleHeight + 0.08)),
+                      "--focused-mobile-visual-height": Math.min(1, itemPresentation(detailItem).visibleHeight + 0.08),
                     } as CSSProperties}
                   >
                     <header className={styles.detailsHeader}>
-                      <div className={styles.detailsHeaderInner}>
-                        <h1 ref={focusedTitleRef}>{data.model || data.title}</h1>
+                      <div className={styles.detailsHeaderInner} ref={focusedHeaderRef}>
+                        <h1>{data.model || data.title}</h1>
                         {data.brand && <p className={styles.productIdentity}>{data.brand}</p>}
-                        {activeRegion.kind === 'storefront' && <div className={styles.mobileTitleFacts}><StorefrontItemFacts size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label, value]) => ({ label, value }))} /></div>}
                       </div>
                     </header>
                     {data.photos.length > 0 && <button className={styles.mobileGalleryTrigger} type="button" aria-label={`View photos of ${data.title}`} aria-haspopup="dialog" onClick={() => {

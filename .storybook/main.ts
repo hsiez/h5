@@ -18,6 +18,7 @@ const config: StorybookConfig = {
       config.server.proxy = {
         ...config.server.proxy,
         "/api/mail-provider": { target: "http://localhost:3000", changeOrigin: true },
+        "/api/catalog/media": { target: "http://localhost:3000", changeOrigin: true },
         "/stadia": {
           target: "https://tiles.stadiamaps.com",
           changeOrigin: true,
