@@ -33,3 +33,30 @@
   outline: 2px solid currentColor;
   outline-offset: 3px;
 }
+
+.link {
+  position: relative;
+  align-items: center;
+  text-decoration: none;
+}
+
+.link::after {
+  position: absolute;
+  inset-inline: 0.28em;
+  bottom: 0.13em;
+  border-bottom: 1px solid currentColor;
+  content: "";
+  pointer-events: none;
+}
+
+.link,
+.link:hover,
+.link:focus-visible {
+  background: transparent;
+}
+
+.link svg {
+  width: 0.68em;
+  height: 0.68em;
+  transform: translateY(0.06em);
+}

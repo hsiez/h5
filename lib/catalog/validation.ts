@@ -1,6 +1,7 @@
 import type { ItemReview, ReviewText } from '@/app/loadout/reviews';
 import type { ItemDraft, ItemFields, CatalogRegion } from './types';
 import { FlowError } from '@/lib/storefront/core';
+import { referenceUrl } from './reference-url';
 import { uploadedPhotoPathname } from './media';
 function object(value:unknown):Record<string,unknown> { if (!value || typeof value!=='object' || Array.isArray(value)) throw new FlowError('Invalid item data',400); return value as Record<string,unknown>; }
 function text(value:unknown,max=10000,required=false) { if(typeof value!=='string'||value.length>max||(required&&!value.trim())) throw new FlowError('A text field is missing or too long',400); return value.trim(); }
@@ -15,6 +16,11 @@ function finite(value:unknown,min:number,max:number) { if(typeof value!=='number
 function part(value:unknown):ReviewText {
  if(typeof value==='string') { text(value,10000); return value; }
  const v=object(value), e=object(v.entity), label=text(v.text,250,true);
+ if(e.kind==='link') {
+  const url=typeof e.url==='string' && e.url.length<=2000 ? referenceUrl(e.url) : null;
+  if(!url) throw new FlowError('Enter a full link URL starting with https:// or http://.',400);
+  return {text:label,entity:{kind:'link',url}};
+ }
  if(e.kind==='image') return {text:label,entity:{kind:'image',src:mediaUrl(e.src),alt:text(e.alt,500,true),caption:text(e.caption??'',500),width:finite(e.width,1,30000),height:finite(e.height,1,30000)}};
  if(e.kind==='location') return {text:label,entity:{kind:'location',name:text(e.name,250,true),city:text(e.city,250,true),latitude:finite(e.latitude,-90,90),longitude:finite(e.longitude,-180,180),zoom:finite(e.zoom,1,20)}};
  throw new FlowError('Invalid reference type',400);
