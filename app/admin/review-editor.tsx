@@ -51,8 +51,8 @@ export function plainReviewText(text: string, refs: RefEntry[]) {
   return text.replace(/\[\[([a-z0-9]+)\]\]/g, (token, key: string) => refs.find(ref => ref.key === key)?.value.text ?? token);
 }
 
-function ReviewPreview({ text, refs, leadIn, storefront = false, singleParagraph = false }: { text: string; refs: RefEntry[]; leadIn: string; storefront?: boolean; singleParagraph?: boolean }) {
-  const paragraphs = (singleParagraph ? text.replace(/\n\s*\n/g, ' ') : text).split(/\n\s*\n/).filter(part => part.trim());
+function ReviewPreview({ text, refs, leadIn, storefront = false }: { text: string; refs: RefEntry[]; leadIn: string; storefront?: boolean }) {
+  const paragraphs = text.split(/\n\s*\n/).filter(part => part.trim());
   if (!paragraphs.length) return <p className={styles.emptyPreview}>Your writing will appear here.</p>;
   return <div className={`${styles.previewText} ${storefront ? storefrontStyles.introduction : reviewStyles.detailSection}`}>{paragraphs.map((paragraph, index) =>
     <p key={index}>{index === 0 && <em className={storefront ? storefrontStyles.storyLeadIn : reviewStyles.reviewLeadIn}>{leadIn}{' '}</em>}{paragraph.split(/(\[\[[a-z0-9]+\]\])/g).filter(Boolean).map((part, partIndex) => {
@@ -144,7 +144,7 @@ export function ReviewEditor({ value, onChange, photos, storefront = false }: { 
         <label className={styles.textLabel}><span className={styles.visuallyHidden}>{label} text</span>
           <textarea ref={element => { editors.current[key] = element; }} rows={6} value={value[key]} onFocus={() => setActiveSection(key)} onChange={event => onChange({ ...value, [key]: event.target.value })} placeholder={`Write what follows “${label}…”`} />
         </label>
-        <div className={styles.preview} aria-label={`${label} preview`}><span className={styles.previewLabel}>Preview · hover or tap a reference</span><ReviewPreview text={value[key]} refs={value.refs} leadIn={key === 'cons' ? 'Only notes:' : label} storefront={storefront} singleParagraph={!storefront && key !== 'about'} /></div>
+        <div className={styles.preview} aria-label={`${label} preview`}><span className={styles.previewLabel}>Preview · hover or tap a reference</span><ReviewPreview text={value[key]} refs={value.refs} leadIn={key === 'cons' ? 'Only notes:' : label} storefront={storefront} /></div>
       </section>)}
       {value.refs.length > 0 && <section className={styles.references} aria-label="Hover references">
         <h3>Hover references</h3><p>These details appear when someone hovers or taps highlighted text.</p>

@@ -21,7 +21,7 @@
 .measurementsList dd { -webkit-user-select: text; user-select: text; }
 .introduction { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: var(--text-base); line-height: 1.8; text-wrap: pretty; }
 .storyLeadIn { color: var(--focus-item-lead-in-color); font-size: inherit; font-weight: var(--font-weight-semibold); font-style: italic; line-height: inherit; }
-.introduction p { margin: 0; }
+.introduction p { margin: 0; white-space: pre-line; }
 .introduction p + p { margin-top: 20px; }
 .availability { margin-top: 0; padding: 32px; border-radius: var(--radius-lg); background: var(--color-neutral-50); }
 .detailsRow { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.5; }

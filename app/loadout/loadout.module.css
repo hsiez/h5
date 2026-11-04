@@ -385,6 +385,7 @@
 }
 
 .detailSection p {
+  white-space: pre-line;
   text-wrap: pretty;
   max-width: 38ch;
   margin: 0;

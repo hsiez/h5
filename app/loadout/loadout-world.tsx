@@ -405,10 +405,10 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                   </section>}
                   {activeRegion.kind !== 'storefront' && (["pros", "cons"] as const).filter(section=>content[section].length).map((section) => (
                     <section key={section} className={styles.detailSection}>
-                      <p><em className={styles.reviewLeadIn}>{section === "pros" ? "I love" : "Only notes:"}{' '}</em>{content[section].map((piece, pieceIndex) => <Fragment key={pieceIndex}>
-                        {pieceIndex > 0 && " "}
+                      {content[section].map((piece, index) => <p key={index}>
+                        {index === 0 && <em className={styles.reviewLeadIn}>{section === "pros" ? "I love" : "Only notes:"}{' '}</em>}
                         {typeof piece === "string" ? piece : <ReviewParts parts={piece} />}
-                      </Fragment>)}</p>
+                      </p>)}
                     </section>
                   ))}
                   {activeRegion.kind === 'storefront' ? <StorefrontItem key={data.slug} embedded externalMobileActions={dedicatedItem} factsUnderTitle slug={preview?undefined:data.slug} title={data.title} story={data.description} storyParts={data.review?.about} reason="" photos={data.photos} size={data.size} condition={data.condition} measurements={Object.entries(data.measurements).map(([label,value])=>({label,value}))} status={data.status} owner={data.owner}/> : !data.review && <p>{data.description || 'More about this item soon.'}</p>}
