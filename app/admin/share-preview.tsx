@@ -1,14 +1,14 @@
 'use client';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import type { ItemDraft } from '@/lib/catalog/types';
+import type { ItemFields } from '@/lib/catalog/types';
 import { productName } from '@/lib/catalog/seo';
 
-export function SharePreview({draft}:{draft:ItemDraft}) {
+export function SharePreview({draft}:{draft:ItemFields}) {
   const [url,setUrl]=useState('');
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
-  const [rendered,setRendered]=useState<ItemDraft|null>(null);
+  const [rendered,setRendered]=useState<ItemFields|null>(null);
   useEffect(()=>()=>{if(url)URL.revokeObjectURL(url);},[url]);
   async function preview() {
     setBusy(true);setError('');

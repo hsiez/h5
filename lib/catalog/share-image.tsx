@@ -53,8 +53,8 @@ export async function shareImage(item: Pick<ItemDraft,'title'|'brand'|'model'|'p
   if(selected) image=await drawingData(selected.stippleSrc || selected.src);
   const {logoSrc,font}=await shareBranding();
   const name=productName(item);
-  return new ImageResponse(<div style={{display:'flex',width:'100%',height:'100%',background:'#fff',padding:60,alignItems:'center',justifyContent:'center',gap:64,fontFamily:'Iowan'}}>
-    <div style={{display:'flex',width:image?508:1080,flexShrink:0,alignItems:'center',justifyContent:'center'}}><ShareWordmark logoSrc={logoSrc} scale={1.8}/></div>
-    {image && <div style={{display:'flex',width:508,flexShrink:0,alignItems:'center',justifyContent:'center'}}><img src={image} alt={name} width={540} height={510} style={{objectFit:'contain',flexShrink:0}}/></div>}
+  return new ImageResponse(<div style={{display:'flex',width:'100%',height:'100%',background:'#fff',padding:60,paddingLeft:image?156:60,alignItems:'center',justifyContent:'center',gap:16,fontFamily:'Iowan'}}>
+    <ShareWordmark logoSrc={logoSrc} scale={2}/>
+    {image && <img src={image} alt={name} width={540} height={510} style={{objectFit:'contain',flexShrink:0}}/>}
   </div>,{width:1200,height:630,fonts:[{name:'Iowan',data:font,weight:400,style:'normal'}]});
 }

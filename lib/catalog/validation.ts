@@ -1,5 +1,5 @@
 import type { ItemReview, ReviewText } from '@/app/loadout/reviews';
-import type { ItemDraft, CatalogRegion } from './types';
+import type { ItemDraft, ItemFields, CatalogRegion } from './types';
 import { FlowError } from '@/lib/storefront/core';
 import { uploadedPhotoPathname } from './media';
 function object(value:unknown):Record<string,unknown> { if (!value || typeof value!=='object' || Array.isArray(value)) throw new FlowError('Invalid item data',400); return value as Record<string,unknown>; }
@@ -27,15 +27,28 @@ export function reviewData(value:unknown,title:string):ItemReview|null {
  return {title,about:(v.about as unknown[]).map(parts),pros:(v.pros as unknown[]).map(x=>typeof x==='string'?text(x):parts(x)),cons:(v.cons as unknown[]).map(x=>typeof x==='string'?text(x):parts(x))};
 }
 export function slug(value:unknown) { const s=text(value,100,true); if(!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(s)) throw new FlowError('Use lowercase letters, numbers and hyphens for the URL',400); return s; }
-export function validateDraft(value:unknown):ItemDraft {
- const v=object(value), title=text(v.title,160,true);
+export function validateShareFields(value:unknown):Pick<ItemFields,'title'|'brand'|'model'|'photos'|'ogPhotoSrc'> {
+ const v=object(value);
  if(!Array.isArray(v.photos)||v.photos.length>20) throw new FlowError('Use up to 20 photos',400);
- const measurements=object(v.measurements); if(Object.keys(measurements).length>30) throw new FlowError('Use up to 30 measurements',400);
  const ogPhotoSrc=v.ogPhotoSrc ? mediaUrl(v.ogPhotoSrc) : '';
  if(ogPhotoSrc && !v.photos.some(p=>{const photo=object(p);return photo.src===ogPhotoSrc && !!photo.stippleSrc;})) throw new FlowError('Choose a photo with a generated drawing for the share image',400);
- return {brand:text(v.brand??'',160),model:text(v.model??'',160),ogPhotoSrc,slug:slug(v.slug),title,regionId:slug(v.regionId),description:text(v.description??''),size:text(v.size??'',250),condition:text(v.condition??'',1000),sortOrder:finite(v.sortOrder??0,-10000,10000),
- measurements:Object.fromEntries(Object.entries(measurements).map(([k,val])=>[text(k,100,true),text(val,250,true)])),
- photos:v.photos.map(p=>{const photo=object(p);return {src:mediaUrl(photo.src),alt:text(photo.alt,500,true),...(photo.stippleSrc ? {stippleSrc:mediaUrl(photo.stippleSrc)} : {})}}),review:reviewData(v.review,title)};
+ if(typeof v.title==='string' && v.title.length>160) throw new FlowError('Use 160 characters or fewer for the item name.',400);
+ return {
+  title:text(v.title??'',160),brand:text(v.brand??'',160),model:text(v.model??'',160),ogPhotoSrc,
+  photos:v.photos.map(p=>{const photo=object(p);return {src:mediaUrl(photo.src),alt:text(photo.alt,500,true),...(photo.stippleSrc ? {stippleSrc:mediaUrl(photo.stippleSrc)} : {})}}),
+ };
+}
+export function validateItemFields(value:unknown):ItemFields {
+ const v=object(value);
+ const share=validateShareFields(v);
+ if(!share.title) throw new FlowError('Enter a name for this item before saving.',400);
+ const measurements=object(v.measurements); if(Object.keys(measurements).length>30) throw new FlowError('Use up to 30 measurements',400);
+ return {...share,regionId:slug(v.regionId),description:text(v.description??''),size:text(v.size??'',250),condition:text(v.condition??'',1000),sortOrder:finite(v.sortOrder??0,-10000,10000),
+ measurements:Object.fromEntries(Object.entries(measurements).map(([k,val])=>[text(k,100,true),text(val,250,true)])),review:reviewData(v.review,share.title)};
+}
+export function validateDraft(value:unknown):ItemDraft {
+ const v=object(value);
+ return {...validateItemFields(v),slug:slug(v.slug)};
 }
 export function validateRegion(value:unknown):CatalogRegion {
  const v=object(value); if(!['review','storefront'].includes(String(v.kind))||!['draft','published','archived'].includes(String(v.publication_status))) throw new FlowError('Invalid region settings',400);

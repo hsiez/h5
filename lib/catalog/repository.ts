@@ -1,7 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { db, transaction } from '@/lib/storefront/db';
 import { FlowError } from '@/lib/storefront/core';
 import type { Catalog, CatalogItem, CatalogRegion, ItemDraft } from './types';
-import { validateDraft, validateRegion } from './validation';
+import { validateDraft, validateItemFields, validateRegion } from './validation';
 export async function getCatalog(admin=false):Promise<Catalog> {
  const regions=await db().query<CatalogRegion>(`SELECT * FROM catalog_regions ${admin?'':"WHERE publication_status='published'"} ORDER BY sort_order,id`);
  const items=await db().query<{data:CatalogItem}>(`SELECT json_build_object(
@@ -18,8 +19,10 @@ export async function getCatalog(admin=false):Promise<Catalog> {
  return {regions:regions.rows,items:items.rows.map(r=>r.data)};
 }
 export async function createItem(input:unknown) {
- const d=validateDraft(input);
- const result=await db().query(`INSERT INTO storefront_items(slug,title,region_id,status,draft_data) VALUES($1,$2,$3,'available',$4) RETURNING id`,[d.slug,d.title,d.regionId,d]);
+ const fields=validateItemFields(input);
+ const id=randomUUID();
+ const draft={...fields,slug:id};
+ const result=await db().query<{id:string}>(`INSERT INTO storefront_items(id,slug,title,region_id,status,draft_data) VALUES($1,$2,$3,$4,'available',$5) RETURNING id`,[id,draft.slug,draft.title,draft.regionId,draft]);
  return result.rows[0];
 }
 export async function saveItem(id:string,input:unknown,revision:unknown,action:unknown) {
