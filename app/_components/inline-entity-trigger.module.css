@@ -6,7 +6,7 @@
   padding: 0.2em 0.28em;
   border: 0;
   border-radius: 0.2em;
-  background: var(--color-neutral-150);
+  background: var(--color-neutral-100);
   color: var(--color-text-primary);
   font: inherit;
   line-height: 1;
@@ -26,7 +26,7 @@
 .trigger:hover,
 .trigger:focus-visible,
 .trigger[aria-expanded="true"] {
-  background: var(--color-neutral-200);
+  background: var(--color-neutral-150);
 }
 
 .trigger:focus-visible {
