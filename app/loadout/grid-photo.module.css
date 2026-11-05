@@ -1,0 +1,7 @@
+.placeholder {
+  position: absolute;
+  inset: 18% 12%;
+  border-radius: 12px;
+  background: var(--color-neutral-50, #fafafa);
+  pointer-events: none;
+}

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { GRID_IMAGE_SIZES } from '@/lib/catalog/image-loading';
 import { useState } from 'react';
 import styles from './loadout.module.css';
+import placeholderStyles from './grid-photo.module.css';
 
 export function GridPhoto({ src, eager, onReady, onError }: {
   src: string;
@@ -14,7 +15,9 @@ export function GridPhoto({ src, eager, onReady, onError }: {
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   if (failed) return <span>Photo unavailable</span>;
-  return <Image src={src} alt="" fill draggable={false}
+  return <>
+    {!ready && <div className={placeholderStyles.placeholder} aria-hidden="true" />}
+    <Image src={src} alt="" fill draggable={false}
     unoptimized={src.startsWith('https://')}
     loading={eager ? 'eager' : 'lazy'}
     sizes={GRID_IMAGE_SIZES}
@@ -27,5 +30,6 @@ export function GridPhoto({ src, eager, onReady, onError }: {
       onReady?.(image);
       setReady(true);
     }}
-    onError={() => { setFailed(true); onError?.(); }} />;
+    onError={() => { setFailed(true); onError?.(); }} />
+  </>;
 }

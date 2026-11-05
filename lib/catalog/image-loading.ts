@@ -2,7 +2,7 @@
 import { getImageProps } from 'next/image';
 
 export const GRID_IMAGE_SIZES = '(max-width: 700px) 50vw, (max-width: 1168px) 33vw, 374px';
-export const FOCUS_IMAGE_SIZES = '(max-width: 700px) 100vw, 900px';
+export const FOCUS_IMAGE_SIZES = '(max-width: 468px) calc(100vw - 48px), (max-width: 1100px) 420px, (max-width: 1500px) 40vw, 600px';
 const prepared = new Map<string, { image: HTMLImageElement; ready: Promise<HTMLImageElement> }>();
 
 /** Match the exact responsive resource used by focus and gallery rendering. */
