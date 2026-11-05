@@ -27,7 +27,7 @@ const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export type StorefrontItemProps = {
   embedded?: boolean;
   externalMobileActions?: boolean;
-  factsBelowStory?: boolean;
+  factsAboveStory?: boolean;
   status: StorefrontItemStatus;
   buttonVariant?: StorefrontButtonVariant;
   title: string;
@@ -52,7 +52,7 @@ export function StorefrontItemFacts({ size, condition, measurements, leadingSepa
   const measurementsId = useId();
   const [measurementsOpen, setMeasurementsOpen] = useState(false);
   const displaySize = size.trim();
-  const displayCondition = condition.trim().toLowerCase() === 'used' ? 'gently used' : condition.trim();
+  const displayCondition = condition.trim();
   const sizeCodes: Record<string, string> = { small: 'S', medium: 'M', large: 'L', 'extra small': 'XS', 'extra large': 'XL' };
   const normalizedSize = displaySize.replace(/^size\s+/i, '');
   const sizeKey = normalizedSize.toLowerCase();
@@ -89,7 +89,7 @@ export function StorefrontItemFacts({ size, condition, measurements, leadingSepa
 }
 
 export function StorefrontItem({
-  embedded = false, externalMobileActions = false, factsBelowStory = false, status, buttonVariant = 'layered', title, story, storyParts, reason, photos, size, condition, measurements, owner, slug,
+  embedded = false, externalMobileActions = false, factsAboveStory = false, status, buttonVariant = 'layered', title, story, storyParts, reason, photos, size, condition, measurements, owner, slug,
   initialAction = null, initialSubmission = 'idle', initialEmail = '', initialAcknowledged = false, initialError = '', onClaimEmailChange,
 }: StorefrontItemProps) {
   usePreloadClaimIllustration(photos[0]?.src);
@@ -295,7 +295,7 @@ export function StorefrontItem({
     <StorefrontItemFacts size={size} condition={condition} measurements={measurements} leadingSeparator />
   </div>;
 
-  return <div ref={itemRoot} className={embedded ? styles.embedded : styles.page} data-mobile-claim={embedded && currentStatus === 'available' && slug ? 'true' : undefined} data-facts-below-story={factsBelowStory ? 'true' : undefined} data-status={currentStatus}>
+  return <div ref={itemRoot} className={embedded ? styles.embedded : styles.page} data-mobile-claim={embedded && currentStatus === 'available' && slug ? 'true' : undefined} data-facts-above-story={factsAboveStory ? 'true' : undefined} data-status={currentStatus}>
     <article className={embedded ? undefined : styles.item}>
       {!embedded && <h1>{title}</h1>}
       <div className={embedded ? undefined : styles.columns}>
@@ -318,13 +318,13 @@ export function StorefrontItem({
         </div>
 }
         <div className={styles.content}>
-          {embedded ? <OverflowFade className={styles.storyScroll} label="About this item">{introduction}</OverflowFade> : introduction}
-
-          {factsBelowStory && (size || condition || measurements?.length) ? (
+          {factsAboveStory && (size || condition || measurements?.length) ? (
             <div className={styles.articleFacts}>
               <StorefrontItemFacts size={size} condition={condition} measurements={measurements} />
             </div>
           ) : null}
+
+          {embedded ? <OverflowFade className={styles.storyScroll} label="About this item">{introduction}</OverflowFade> : introduction}
 
           <section className={styles.claiming} data-footer-action={externalMobileActions && (currentStatus === 'reserved' || currentStatus === 'pending') ? 'true' : undefined} data-embedded={embedded ? 'true' : undefined} aria-label="Adoption details">
             <section className={styles.availability} aria-label="Shopping details">

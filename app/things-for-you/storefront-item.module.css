@@ -222,14 +222,14 @@
   .embedded, .embedded article, .embedded article > div, .embedded .content { height: auto; }
   .embedded .storyScroll { max-height: min(42svh, 400px); }
   .claiming[data-embedded="true"] { width: 100%; max-width: 440px; margin-inline: auto; }
-  .articleFacts { position: relative; display: flex; flex-wrap: wrap; max-width: 100%; align-items: center; gap: var(--space-mobile-1); margin-top: var(--space-mobile-3); font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.25; pointer-events: auto; }
-  .embedded[data-facts-below-story="true"] .detailsRow { display: none; }
+  .articleFacts { position: relative; display: flex; flex-wrap: wrap; max-width: 100%; align-items: center; gap: var(--space-mobile-1); margin: 0 0 var(--space-mobile-3); font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.25; pointer-events: auto; }
+  .embedded[data-facts-above-story="true"] .detailsRow { display: none; }
 }
 
 @media (700px < width <= 1100px) {
-  .embedded[data-facts-below-story="true"] .claiming { margin-top: var(--space-mobile-3); }
-  .embedded[data-facts-below-story="true"] .availability { padding: 0; background: transparent; }
-  .embedded[data-facts-below-story="true"] .purchaseRow { margin-top: 0; }
+  .embedded[data-facts-above-story="true"] .claiming { margin-top: var(--space-mobile-3); }
+  .embedded[data-facts-above-story="true"] .availability { padding: 0; background: transparent; }
+  .embedded[data-facts-above-story="true"] .purchaseRow { margin-top: 0; }
 }
 
 @media (max-width: 700px) {
