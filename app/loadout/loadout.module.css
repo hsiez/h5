@@ -791,11 +791,11 @@
 .homeIntro, .gridSubtitle { font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: var(--text-base); line-height: 1.5; color: #121212; text-wrap: pretty; }
 .homeIntro { max-width: 580px; margin: 0; }
 .homeCategories { display: grid; gap: 20px; padding-bottom: 64px; }
-.homeCategories button, .upcomingCategory { display: flex; align-items: center; gap: 16px; width: fit-content; color: var(--ink); font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: clamp(36px, 4vw, 56px); line-height: 1.25; text-align: left; min-height: 48px; }
-.homeCategories button { cursor: pointer; padding: 0; border: 0; background: none; }
-.homeCategories button > span { font-family: var(--font-sans); font-size: 24px; color: var(--muted); opacity: 0.65; transition: opacity 150ms ease-out; }
-.homeCategories button:hover > span, .homeCategories button:focus-visible > span { opacity: 1; }
-.homeCategories button:focus-visible { outline: 2px solid currentColor; outline-offset: 6px; border-radius: 2px; }
+.homeCategories a, .upcomingCategory { display: flex; align-items: center; gap: 16px; width: fit-content; color: var(--ink); font-family: var(--font-iowan-old-style), "Iowan Old Style", Palatino, Georgia, serif; font-size: clamp(36px, 4vw, 56px); line-height: 1.25; text-align: left; min-height: 48px; }
+.homeCategories a { cursor: pointer; padding: 0; border: 0; background: none; }
+.homeCategories a > span { font-family: var(--font-sans); font-size: 24px; color: var(--muted); opacity: 0.65; transition: opacity 150ms ease-out; }
+.homeCategories a:hover > span, .homeCategories a:focus-visible > span { opacity: 1; }
+.homeCategories a:focus-visible { outline: 2px solid currentColor; outline-offset: 6px; border-radius: 2px; }
 .homeCategories .upcomingCategory { color: #92928d; }
 .footerArtwork {
   display: block;
@@ -828,3 +828,5 @@
 @media (max-width: 700px) {
   .focusedDetails { padding-bottom: calc(var(--space-mobile-7) + var(--space-mobile-5) + env(safe-area-inset-bottom)); }
 }
+
+.homeCategories a, .item { text-decoration: none; }

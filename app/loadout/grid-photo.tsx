@@ -8,8 +8,8 @@ import styles from './loadout.module.css';
 export function GridPhoto({ src, eager, onReady, onError }: {
   src: string;
   eager: boolean;
-  onReady: (image: HTMLImageElement) => void;
-  onError: () => void;
+  onReady?: (image: HTMLImageElement) => void;
+  onError?: () => void;
 }) {
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -24,8 +24,8 @@ export function GridPhoto({ src, eager, onReady, onError }: {
       const image = event.currentTarget;
       try { await image.decode(); } catch { /* onError handles failed downloads. */ }
       if (!image.isConnected) return;
-      onReady(image);
+      onReady?.(image);
       setReady(true);
     }}
-    onError={() => { setFailed(true); onError(); }} />;
+    onError={() => { setFailed(true); onError?.(); }} />;
 }

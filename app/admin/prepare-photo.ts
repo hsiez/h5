@@ -1,3 +1,4 @@
+import { alphaBounds } from '@/lib/catalog/photo-bounds';
 export const MAX_PHOTO_BYTES = 8_000_000;
 export const PHOTO_WIDTH = 2160;
 export const PHOTO_HEIGHT = 2400;
@@ -48,5 +49,22 @@ export async function preparePhoto(file: File): Promise<File> {
       }
     }
     throw new Error('This image could not be reduced enough to upload.');
+  } finally { image.close(); }
+}
+
+/** Read the final encoded image, so stored bounds match the uploaded pixels. */
+export async function preparedPhotoBounds(file: File) {
+  const image = await createImageBitmap(file);
+  try {
+    const factor = Math.min(1, 256 / Math.max(image.width, image.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.width * factor));
+    canvas.height = Math.max(1, Math.round(image.height * factor));
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('Could not measure the prepared photo.');
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const bounds = alphaBounds(context.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
+    if (!bounds) throw new Error('This image has no visible item.');
+    return bounds;
   } finally { image.close(); }
 }

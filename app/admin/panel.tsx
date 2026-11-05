@@ -7,7 +7,7 @@ import type { Catalog, CatalogItem, CatalogRegion, ItemFields } from '@/lib/cata
 import { StorefrontAdmin } from './storefront-admin';
 import { ReviewEditor, fromReview, plainReviewText, toReview } from './review-editor';
 import styles from './panel.module.css';
-import { preparePhoto } from './prepare-photo';
+import { preparePhoto, preparedPhotoBounds } from './prepare-photo';
 import { prepareStipple } from './prepare-stipple';
 import { mediaPath } from '@/lib/catalog/media';
 async function api(path:string,method='GET',body?:unknown) {
@@ -62,13 +62,14 @@ function ItemEditor({item,regions,onClose,onSaved}:{item?:CatalogItem;regions:Ca
  async function preparePair(file:File, label:string) {
   setMessage(`Preparing ${label}`);
   const prepared=await preparePhoto(file);
+  const bounds=await preparedPhotoBounds(prepared);
   setMessage(`Drawing stippling for ${label}`);
   const stipple=await prepareStipple(prepared);
   setMessage(`Uploading ${label}`);
   const options={access:'private' as const,handleUploadUrl:'/api/admin/catalog/upload',contentType:'image/webp'};
   const blob=await uploadBlob(`catalog/${crypto.randomUUID()}.webp`,prepared,options);
   const art=await uploadBlob(`catalog/${crypto.randomUUID()}.webp`,stipple,options);
-  return {src:mediaPath(blob.pathname),stippleSrc:mediaPath(art.pathname)};
+  return {src:mediaPath(blob.pathname),stippleSrc:mediaPath(art.pathname),bounds};
  }
  async function standardizePhotos() {
   if(!draft.photos.length) return;

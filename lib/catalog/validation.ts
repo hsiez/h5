@@ -33,6 +33,13 @@ export function reviewData(value:unknown,title:string):ItemReview|null {
  return {title,about:(v.about as unknown[]).map(parts),pros:(v.pros as unknown[]).map(x=>typeof x==='string'?text(x):parts(x)),cons:(v.cons as unknown[]).map(x=>typeof x==='string'?text(x):parts(x))};
 }
 export function slug(value:unknown) { const s=text(value,100,true); if(!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(s)) throw new FlowError('Use lowercase letters, numbers and hyphens for the URL',400); return s; }
+function photoBounds(value: unknown) {
+ if(value===undefined || value===null) return undefined;
+ const b=object(value);
+ const bounds={left:finite(b.left,0,100),top:finite(b.top,0,100),width:finite(b.width,0.001,100),height:finite(b.height,0.001,100)};
+ if(bounds.left+bounds.width>100.001 || bounds.top+bounds.height>100.001) throw new FlowError('Invalid photo bounds',400);
+ return bounds;
+}
 export function validateShareFields(value:unknown):Pick<ItemFields,'title'|'brand'|'model'|'photos'|'ogPhotoSrc'> {
  const v=object(value);
  if(!Array.isArray(v.photos)||v.photos.length>20) throw new FlowError('Use up to 20 photos',400);
@@ -41,7 +48,7 @@ export function validateShareFields(value:unknown):Pick<ItemFields,'title'|'bran
  const model=text(v.model??'',160);
  return {
   title:model||text(v.title??'',160),brand:text(v.brand??'',160),model,ogPhotoSrc,
-  photos:v.photos.map(p=>{const photo=object(p);return {src:mediaUrl(photo.src),alt:text(photo.alt,500,true),...(photo.stippleSrc ? {stippleSrc:mediaUrl(photo.stippleSrc)} : {})}}),
+  photos:v.photos.map(p=>{const photo=object(p);return {bounds:photoBounds(photo.bounds),src:mediaUrl(photo.src),alt:text(photo.alt,500,true),...(photo.stippleSrc ? {stippleSrc:mediaUrl(photo.stippleSrc)} : {})}}),
  };
 }
 export function validateItemFields(value:unknown):ItemFields {

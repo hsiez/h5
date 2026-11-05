@@ -2,7 +2,6 @@
 
 import {
   Fragment,
-  startTransition,
   type CSSProperties,
   useCallback,
   useEffect,
@@ -14,8 +13,8 @@ import {
 import { FocusPhoto } from "./focus-photo";
 import { prepareFocusPhoto, prepareGridPhoto } from "@/lib/catalog/image-loading";
 import { ThingsHomeHeading, ThingsCategoryLinks } from "./things-home-content";
-import { itemHref, regionHref } from "./catalog-navigation";
-import { useRouter } from "next/navigation";
+import { itemHref } from "./catalog-navigation";
+import { IntentLink } from "../_components/intent-link";
 import { FocusImageGallery } from "./focus-image-gallery";
 import { FocusImageViewer } from "./focus-image-viewer";
 import { OverflowFade } from "../_components/overflow-fade";
@@ -59,30 +58,6 @@ const ITEM_ALPHA_BOUNDS: Record<string, { left: number; top: number }> = {
 };
 
 type VisualBounds = { left: number; top: number; width: number; height: number };
-
-function measureVisibleBounds(image: HTMLImageElement): VisualBounds | null {
-  const width = image.naturalWidth, height = image.naturalHeight;
-  if (!width || !height) return null;
-  const canvas = document.createElement('canvas');
-  const factor = Math.min(1, 256 / Math.max(width, height));
-  canvas.width = Math.max(1, Math.round(width * factor));
-  canvas.height = Math.max(1, Math.round(height * factor));
-  const context = canvas.getContext('2d', { willReadFrequently: true });
-  if (!context) return null;
-  try {
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-    let left = canvas.width, top = canvas.height, right = -1, bottom = -1;
-    for (let y = 0; y < canvas.height; y++) for (let x = 0; x < canvas.width; x++) {
-      if (pixels[(y * canvas.width + x) * 4 + 3] < 16) continue;
-      left = Math.min(left, x); top = Math.min(top, y);
-      right = Math.max(right, x); bottom = Math.max(bottom, y);
-    }
-    if (right < left) return null;
-    return {left: left / canvas.width * 100, top: top / canvas.height * 100,
-      width: (right + 1 - left) / canvas.width * 100, height: (bottom + 1 - top) / canvas.height * 100};
-  } catch { return null; }
-}
 
 function catalogVisualPresentation(bounds?: VisualBounds) {
   if (!bounds) return {scale: 1, x: '0%', y: '0%', left: 9, focusY: -9, visibleHeight: 1};
@@ -137,17 +112,10 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
   const legacyByPhoto = useMemo(() => Object.fromEntries(catalog.items
     .filter(item => item.legacyKey && item.photos[0]?.src)
     .map(item => [item.photos[0].src, item.legacyKey!])), [catalog]);
-  const [photoBounds, setPhotoBounds] = useState<Record<string, VisualBounds | null>>(
-    () => worldPhotoBounds as Record<string, VisualBounds>
-  );
-  const rememberPhotoBounds = useCallback((src: string, image: HTMLImageElement) => {
-    if (!src || src in photoBounds) return;
-    const bounds = measureVisibleBounds(image);
-    setPhotoBounds(current => src in current ? current : {...current, [src]: bounds});
-  }, [photoBounds]);
-  const rememberDefaultPhotoBounds = useCallback((src: string) => {
-    setPhotoBounds(current => src in current ? current : {...current, [src]: null});
-  }, []);
+  const photoBounds = useMemo<Record<string, VisualBounds>>(() => ({
+    ...worldPhotoBounds,
+    ...Object.fromEntries(catalog.items.flatMap(item => item.photos.filter(photo => photo.bounds).map(photo => [photo.src, photo.bounds!]))),
+  }), [catalog]);
   const itemPresentation = useCallback((slug?: string) => {
     const item = slug ? itemsBySlug[slug] : undefined;
     const legacyKey = item?.legacyKey || legacyByPhoto[item?.photos[0]?.src || ''];
@@ -157,13 +125,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
     // makes the artwork appear to resize as the user navigates.
     return catalogVisualPresentation(photoBounds[item?.photos[0]?.src || ''] ?? undefined);
   }, [itemsBySlug, legacyByPhoto, photoBounds]);
-  const itemVisualReady = useCallback((slug: string) => {
-    const item = itemsBySlug[slug];
-    const src = item?.photos[0]?.src;
-    return !src || Boolean(item?.legacyKey || legacyByPhoto[src]) || src in photoBounds;
-  }, [itemsBySlug, legacyByPhoto, photoBounds]);
   const itemVisualAlignment = useCallback((slug?:string) => itemPresentation(slug), [itemPresentation]);
-  const router = useRouter();
 
   const photoRequest = useRef(0);
   const [photoLoading, setPhotoLoading] = useState(false);
@@ -171,7 +133,6 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
   const [selectedPhoto,setSelectedPhoto] = useState({item: "", index: 0});
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [viewerImageRect, setViewerImageRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
-  const [galleryHeights, setGalleryHeights] = useState<Record<string, number[]>>({});
   const activeRegionId = initialSelection ? initialSelection.regionId : REGIONS[0]?.id ?? null;
   const stage = initialSelection && initialSelection.itemIndex >= 0 ? 1 : 0;
   const activeItemIndex = Math.max(0, initialSelection?.itemIndex ?? 0);
@@ -236,35 +197,31 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
   const photoIndex = selectedPhoto.item === activeRegion?.items[activeItemIndex] ? selectedPhoto.index : 0;
   const detailSlug = activeRegion?.items[detailItemIndex];
   const detailPhotos = detailSlug ? itemsBySlug[detailSlug]?.photos : undefined;
-  const detailGalleryKey = detailSlug && detailPhotos ? `${detailSlug}:${detailPhotos.map(photo => photo.src).join('|')}` : "";
+  const firstBounds = detailPhotos?.[0] ? photoBounds[detailPhotos[0].src] : undefined;
+  const galleryScale = catalogVisualPresentation(firstBounds).scale;
+  const galleryHeights = detailPhotos?.map(photo => {
+    const bounds = photoBounds[photo.src];
+    return bounds ? Math.max(0.1, (bounds.top + bounds.height - (firstBounds?.top ?? 0)) * galleryScale / 100) : 1;
+  });
 
   useEffect(() => {
     if (stage !== 1 || !detailSlug || !detailPhotos || detailPhotos.length < 2) return;
     let cancelled = false;
     void (async () => {
-      const bounds: (VisualBounds | null)[] = detailPhotos.map(() => null);
       // Decode the visible photo first, then its immediate neighbors, then
       // remaining photos one at a time instead of flooding the connection.
       const order = [...new Set([0, 1, detailPhotos.length - 1, ...detailPhotos.map((_, index) => index)])];
       for (const index of order) {
         if (cancelled) return;
         try {
-          const image = await prepareFocusPhoto(detailPhotos[index].src, index === 0 ? 'high' : 'low');
-          if (cancelled) return;
-          bounds[index] = measureVisibleBounds(image);
+          await prepareFocusPhoto(detailPhotos[index].src, index === 0 ? 'high' : 'low');
         } catch { /* Keep the fallback bounds when a photo cannot load. */ }
         if (cancelled) return;
-        // Controls need usable first-photo geometry, not the whole queue.
-        const scale = catalogVisualPresentation(bounds[0] ?? undefined).scale;
-        const firstTop = bounds[0]?.top ?? 0;
-        setGalleryHeights(current => ({
-          ...current,
-          [detailGalleryKey]: bounds.map(bound => bound ? Math.max(0.1, (bound.top + bound.height - firstTop) * scale / 100) : 1),
-        }));
+
       }
     })();
     return () => { cancelled = true; };
-  }, [stage, detailSlug, detailPhotos, detailGalleryKey]);
+  }, [stage, detailSlug, detailPhotos]);
   useEffect(() => () => { photoRequest.current++; }, [detailSlug]);
   const selectPhoto = useCallback(async (item: string, index: number) => {
     const photo = itemsBySlug[item]?.photos[index];
@@ -286,10 +243,6 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
   const handlePhotoSelect = useCallback((index: number) => {
     if (detailSlug) void selectPhoto(detailSlug, index);
   }, [detailSlug, selectPhoto]);
-
-  const switchMode = (regionId: RegionId | null) => {
-    startTransition(() => router.push(regionHref(regionId, preview)));
-  };
 
   return (
     <main className={styles.page} data-things-page data-dedicated-item={dedicatedItem ? "true" : undefined}>
@@ -344,7 +297,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                   const presentation = itemPresentation(item);
                   const alignment = presentation;
                   return (
-                    <button
+                    <IntentLink
                       key={`${activeRegion.id}-${index}`}
                       className={styles.item}
                       onDragStart={event => event.preventDefault()}
@@ -361,33 +314,27 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                         "--visual-left": `${alignment.left}%`,
                       } as CSSProperties}
                       aria-label={`${item}, item ${index + 1} of ${activeRegion.items.length}`}
-                      onClick={() => {
-                        if (stage === 0) {
-                          startTransition(() => router.push(itemHref(item, activeRegion.id, preview), { scroll: false }));
-                        }
-                      }}
+                      href={itemHref(item, activeRegion.id, preview)}
+                      scroll={false}
+                      onClick={event => { if (stage !== 0) event.preventDefault(); }}
                     >
                       <span
                         className={styles.itemMedia}
                         data-shared-item-index={index}
                         data-has-image={imageSrc ? "true" : "false"}
-                        data-visual-ready={itemVisualReady(item) ? "true" : "false"}
+                        data-visual-ready="true"
                         aria-hidden="true"
                       >
                         {imageSrc ? (
                           <>
-                            {stage === 0 ? <GridPhoto key={imageSrc} src={imageSrc} eager={index < 3}
-                              onReady={image => rememberPhotoBounds(imageSrc, image)}
-                              onError={() => rememberDefaultPhotoBounds(imageSrc)} /> : <FocusPhoto key={imageSrc} src={imageSrc} item={item}
-                              onReady={image => rememberPhotoBounds(imageSrc, image)}
-                              onError={() => rememberDefaultPhotoBounds(imageSrc)} />}
+                            {stage === 0 ? <GridPhoto key={imageSrc} src={imageSrc} eager={index < 3} /> : <FocusPhoto key={imageSrc} src={imageSrc} item={item} />}
 
                           </>
                         ) : (
                           <span>{String(index + 1).padStart(2, "0")}</span>
                         )}
                       </span>
-                    </button>
+                    </IntentLink>
                   );
                 })}
               </div>
@@ -435,7 +382,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                       setViewerImageRect(rect ? { top: rect.top, left: rect.left, width: rect.width, height: rect.height } : null);
                       setImageViewerOpen(true);
                     }} />}
-                    <FocusImageGallery loading={photoLoading} error={photoError} title={data.title} photos={data.photos} selectedIndex={photoIndex} visualHeight={galleryHeights[detailGalleryKey]?.[photoIndex]} onSelect={handlePhotoSelect} />
+                    <FocusImageGallery loading={photoLoading} error={photoError} title={data.title} photos={data.photos} selectedIndex={photoIndex} visualHeight={galleryHeights?.[photoIndex]} onSelect={handlePhotoSelect} />
                     {activeRegion.kind === 'storefront' ? (
                       <div key={`${activeRegion.id}-${detailItemIndex}`} className={styles.detailsContent} data-review-scroll data-storefront="true" tabIndex={-1} aria-label="Item review">
                         {detailsBody}
@@ -458,7 +405,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
           <section ref={worldRef} className={`${styles.world} ${styles.worldHome}`} aria-label="Things regions">
             <div className={styles.homeCopy}>
               <ThingsHomeHeading subtitle={<>Amazing <em>things</em> are created every day. These are a few physical items I’ve come across. Some of these could be yours.</>} />
-              <ThingsCategoryLinks regions={REGIONS} onSelect={switchMode} />
+              <ThingsCategoryLinks regions={REGIONS} preview={preview} />
             </div>
             <picture className={styles.footerArtwork}>
               <source media="(max-width: 700px)" srcSet="/things/footer-mobile.webp" />
