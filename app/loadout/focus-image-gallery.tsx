@@ -1,21 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
-import { PaperFrame } from "../_components/paper-frame";
+import frameStyles from "../_components/paper-frame.module.css";
 import styles from "./loadout.module.css";
+import controlStyles from "./focus-image-gallery.module.css";
 
 type Photo = { src: string };
 
-/** Controls follow the displayed artwork without moving the surrounding layout. */
 export function FocusImageGallery({
-  title,
-  loading = false,
-  error = false,
-  photos,
-  selectedIndex,
-  visualHeight,
-  onSelect,
+  title, loading = false, error = false, photos, selectedIndex, visualHeight, onSelect,
 }: {
   title: string;
   loading?: boolean;
@@ -25,32 +18,26 @@ export function FocusImageGallery({
   visualHeight?: number;
   onSelect: (index: number) => void;
 }) {
-  const navigationRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    navigationRef.current?.animate([{ opacity: 0 }, { opacity: 1 }], {
-      duration: 180,
-      easing: "ease-out",
-    });
-  }, [selectedIndex]);
-
   if (photos.length < 2) return null;
 
   return (
-    <div className={styles.focusImageGallery} data-photo-navigation data-ready={visualHeight ? "true" : "false"} style={{"--gallery-visual-height": visualHeight ?? 1} as CSSProperties}>
-      <div className={styles.photoHitZones}>
-        <button type="button" aria-label="Previous photo" onClick={() => onSelect((selectedIndex + photos.length - 1) % photos.length)} />
-        <button type="button" aria-label="Next photo" onClick={() => onSelect((selectedIndex + 1) % photos.length)} />
-      </div>
-      <div ref={navigationRef} className={styles.photoNavigation} role="group" aria-label={`Photos of ${title}`}>
-        <span role="status" className={styles.galleryStatus}>{loading ? "Loading photo…" : error ? "Could not load photo. Try again." : ""}</span>
-        <PaperFrame elevation="popover" className={styles.photoDotFrame}>
-          {photos.map((photo, index) => (
-            <button key={photo.src} type="button" className={styles.photoDot} aria-label={`Show photo ${index + 1} of ${photos.length}`} aria-current={selectedIndex === index ? "true" : undefined} onClick={() => onSelect(index)} />
-          ))}
-        </PaperFrame>
-      </div>
+    <div className={`${styles.focusImageGallery} ${controlStyles.gallery}`} data-photo-navigation
+      data-ready={visualHeight ? "true" : "false"}
+      style={{ "--gallery-visual-height": visualHeight ?? 1 } as CSSProperties}
+      role="group" aria-label={`Photos of ${title}`}>
+      <button className={`${frameStyles.frame} ${frameStyles.popover} ${controlStyles.previous}`}
+        type="button" aria-label="Previous photo"
+        onClick={() => onSelect((selectedIndex + photos.length - 1) % photos.length)}>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3L4 10l8 7M4 10h14" /></svg>
+      </button>
+      <span className={controlStyles.status} role="status">
+        {loading ? "Loading photo…" : error ? "Could not load photo. Try again." : `Photo ${selectedIndex + 1} of ${photos.length}`}
+      </span>
+      <button className={`${frameStyles.frame} ${frameStyles.popover} ${controlStyles.next}`}
+        type="button" aria-label="Next photo"
+        onClick={() => onSelect((selectedIndex + 1) % photos.length)}>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3l8 7-8 7M16 10H2" /></svg>
+      </button>
     </div>
   );
 }
