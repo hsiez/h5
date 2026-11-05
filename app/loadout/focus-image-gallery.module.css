@@ -1,4 +1,4 @@
-.gallery {
+.gallery.gallery {
   height: calc(var(--focused-image-height) * var(--gallery-visual-height));
   pointer-events: auto;
 }
