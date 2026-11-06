@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { EmailSentPreview } from '../../../things-for-you/email-sent-preview';
 import { EmailSentInstructions } from '../../../things-for-you/email-sent-instructions';
 import Link from 'next/link';
-import { useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import claimStyles from '../../../things-for-you/storefront-item.module.css';
 import styles from './mobile-claim-page.module.css';
 import frameStyles from '../../../_components/paper-frame.module.css';
@@ -19,6 +19,12 @@ export function MobileClaimPage({ slug, title, initialState = 'entry', initialEm
   const [error, setError] = useState('');
   const [state, setState] = useState<'entry' | 'sending' | 'sent'>(initialState);
   const errorId = useId();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const previousState = useRef(state);
+  useEffect(() => {
+    if (state === 'sent' && previousState.current !== 'sent') headingRef.current?.focus({preventScroll:true});
+    previousState.current = state;
+  }, [state]);
   const claimReady = EMAIL_ADDRESS_PATTERN.test(email.trim()) && (action === 'notify' || acknowledged);
   const returnHref = slug ? `/things/${encodeURIComponent(slug)}` : '/things?region=things-for-you';
 
@@ -66,7 +72,7 @@ export function MobileClaimPage({ slug, title, initialState = 'entry', initialEm
       </div>}
       <section className={`${styles.card} ${claimStyles.claimGlass} ${signupStyles.surface}`} aria-labelledby="claim-title">
         {state === 'sent' && action === 'claim' && <EmailSentPreview email={email} />}
-        <h1 id="claim-title" className={signupStyles.heading}>{state === 'sent' ? (action === 'notify' ? 'Check your email' : 'Email sent') : (action === 'notify' ? 'Get notified' : 'How to claim')}</h1>
+        <h1 ref={headingRef} tabIndex={-1} id="claim-title" className={signupStyles.heading}>{state === 'sent' ? (action === 'notify' ? 'Check your email' : 'Email sent') : (action === 'notify' ? 'Get notified' : 'How to claim')}</h1>
         {state === 'sent' ? <>
           <div className={signupStyles.intro}>{action === 'notify' ? <p>Confirm your email to receive one availability notification. This is not a waitlist.</p> : <EmailSentInstructions email={email} title={title} />}</div>
           <div className={signupStyles.form}><div className={signupStyles.actions}><Link className={`${signupStyles.submit} ${claimStyles.primaryButton}`} href={returnHref} transitionTypes={['claim-back']}><span className={claimStyles.buttonGrain} aria-hidden="true" /><span className={claimStyles.buttonLabel}>Done</span></Link></div></div>
@@ -76,7 +82,7 @@ export function MobileClaimPage({ slug, title, initialState = 'entry', initialEm
             <div className={signupStyles.inputs}>
               <div className={claimStyles.formField}>
                 <label className={styles.visuallyHidden} htmlFor="claim-email">Email address</label>
-                <input className={inputStyles.input} id="claim-email" type="email" inputMode="email" autoComplete="email" enterKeyHint="done" value={email} onChange={event => { setEmail(event.target.value); setError(''); }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } }} placeholder="you@example.com" aria-invalid={Boolean(error && error.includes('email'))} aria-describedby={error ? errorId : undefined} disabled={state === 'sending'} />
+                <input className={inputStyles.input} id="claim-email" type="email" inputMode="email" autoComplete="email" enterKeyHint="done" value={email} onChange={event => { setEmail(event.target.value); setError(''); }} placeholder="you@example.com" aria-invalid={Boolean(error && error.includes('email'))} aria-describedby={error ? errorId : undefined} disabled={state === 'sending'} />
                 {error && <p id={errorId} className={claimStyles.claimMessage} role="status"><span>{error}</span></p>}
               </div>
               {action === 'claim' && <label className={claimStyles.acknowledgement}>

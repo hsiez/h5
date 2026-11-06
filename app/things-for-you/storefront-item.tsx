@@ -64,16 +64,17 @@ export function StorefrontItemFacts({ size, condition, measurements, leadingSepa
 
   return <>
     {leadingSeparator && (hasSize || displayCondition) ? separator : null}
-    {hasSize && <span className={styles.detailValue} data-size-circle={compactSize ? true : undefined}>
-      {measurements.length > 0 ? <span className={styles.measurementsEntity} onKeyDown={event => {
+    <dl className={styles.factsList}>
+    {hasSize && <div><dt className={styles.visuallyHidden}>Size</dt><dd className={styles.detailValue} data-size-circle={compactSize ? true : undefined}>
+      {measurements.length > 0 ? <div className={styles.measurementsEntity} onKeyDown={event => {
         if (event.key === 'Escape' && measurementsOpen) {
           event.stopPropagation();
           setMeasurementsOpen(false);
         }
       }}>
-        <button type="button" className={entityStyles.trigger} aria-label={displaySize ? `Size: ${displaySize}. View measurements` : undefined}
+        <button type="button" className={entityStyles.trigger}
           aria-expanded={measurementsOpen} aria-controls={measurementsId} onClick={() => setMeasurementsOpen(open => !open)}>
-          {sizeLabel || 'Measurements'}
+          {sizeLabel ? <>{sizeLabel}<span className={styles.visuallyHidden}>. View measurements</span></> : 'Measurements'}
           {!compactSize && <svg aria-hidden="true" viewBox="0 0 12 12" fill="none" stroke="currentColor"><path d="m2 4 4 4 4-4" /></svg>}
         </button>
         <PaperFrame elevation="popover" className={styles.measurementsPopover}>
@@ -81,10 +82,10 @@ export function StorefrontItemFacts({ size, condition, measurements, leadingSepa
             {measurements.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
           </dl>
         </PaperFrame>
-      </span> : <span aria-label={`Size: ${normalizedSize}`}>{sizeLabel}</span>}
-    </span>}
-    {hasSize && displayCondition ? separator : null}
-    {displayCondition && <span className={styles.detailValue}>{displayCondition}</span>}
+      </div> : sizeLabel}
+    </dd></div>}
+    {displayCondition && <div><dt className={styles.visuallyHidden}>Condition</dt><dd className={styles.detailValue}>{displayCondition}</dd></div>}
+    </dl>
   </>;
 }
 
@@ -282,13 +283,13 @@ export function StorefrontItem({
     }
   }
 
-  const introduction = (storyParts?.length || story || reason) && <section className={styles.introduction} aria-label="About this item">
+  const introduction = (storyParts?.length || story || reason) && <div className={styles.introduction}>
             {storyParts?.length ? storyParts.map((paragraph, index) => <p key={index}>
               {index === 0 && <em className={styles.storyLeadIn}>I&apos;m forfeiting{' '}</em>}
               {paragraph.map((part, partIndex) => typeof part === 'string' ? <span key={partIndex}>{part}</span> : <InlineReference key={partIndex} text={part.text} entity={part.entity} />)}
             </p>) : story && <p><em className={styles.storyLeadIn}>I&apos;m forfeiting{' '}</em>{story}</p>}
             {reason && <p>{reason}</p>}
-          </section>;
+          </div>;
 
   const metadataRow = <div className={styles.detailsRow}>
     <StorefrontStatusBadge status={currentStatus} />

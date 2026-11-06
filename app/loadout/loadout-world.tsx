@@ -270,7 +270,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                 } as CSSProperties}
               >
                 <span>
-                  {activeRegion.heading}
+                  <h1 className={styles.gridHeading}>{activeRegion.heading}</h1>
                   {activeRegion.id === "things-for-you" && (
                     <span className={styles.gridSubtitle}>
                       Sometimes possessions find the wrong host. Maybe you&apos;re the right one.
@@ -313,7 +313,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                         "--focus-y": `${alignment.focusY}%`,
                         "--visual-left": `${alignment.left}%`,
                       } as CSSProperties}
-                      aria-label={`${item}, item ${index + 1} of ${activeRegion.items.length}`}
+                      aria-label={`${data.model || data.title}${data.brand ? ` by ${data.brand}` : ""}, item ${index + 1} of ${activeRegion.items.length}`}
                       href={itemHref(item, activeRegion.id, preview)}
                       scroll={false}
                       onClick={event => { if (stage !== 0) event.preventDefault(); }}
@@ -362,17 +362,17 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                 </div>;
                 return (
                   <>
-                  <aside
+                  <section
+                    aria-labelledby={`item-title-${data.slug}`}
                     className={styles.focusedDetails}
                     data-visible="true"
-                    aria-live="polite"
                     style={{
                       "--focused-mobile-visual-height": Math.min(1, itemPresentation(detailItem).visibleHeight + 0.08),
                     } as CSSProperties}
                   >
                     <header className={styles.detailsHeader}>
                       <div className={styles.detailsHeaderInner} ref={focusedHeaderRef}>
-                        <h1>{data.model || data.title}</h1>
+                        <h1 id={`item-title-${data.slug}`}>{data.model || data.title}</h1>
                         {data.brand && <p className={styles.productIdentity}>{data.brand}</p>}
                       </div>
                     </header>
@@ -394,7 +394,7 @@ export function LoadoutWorld({catalog,preview=false,initialSelection,dedicatedIt
                         {detailsBody}
                       </OverflowFade>
                     )}
-                  </aside>
+                  </section>
                   <FocusImageViewer loading={photoLoading} error={photoError} open={imageViewerOpen} imageRect={viewerImageRect} title={data.title} photos={data.photos} selectedIndex={photoIndex} onSelect={handlePhotoSelect} onClose={() => setImageViewerOpen(false)} />
                   </>
                 );

@@ -31,6 +31,9 @@ export function ItemLayer({ children }: { children: ReactNode }) {
   return <ItemLayerContext.Provider value={true}><div ref={ref} className={styles.layer} data-item-layer role="dialog"
     aria-modal="true" aria-label="Item details" tabIndex={-1}
     onKeyDown={event => {
+      // Native child dialogs own their Escape and Tab behavior.
+      if (event.target instanceof Element && event.target.closest('dialog[open]')) return;
+      if (event.defaultPrevented) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         const gallery = ref.current?.querySelector<HTMLButtonElement>('[data-gallery-return]');

@@ -7,6 +7,7 @@ import styles from './loadout.module.css';
 
 export function ThingsHomeHeading({ subtitle }: { subtitle: ReactNode }) {
   return <header className={styles.homeHeading}>
+    <h1 className={styles.visuallyHidden}>Things</h1>
     <p className={styles.homeIntro}>{subtitle}</p>
   </header>;
 }
