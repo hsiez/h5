@@ -1,5 +1,8 @@
 'use client';
 
+import { FocusImageGallery } from '../loadout/focus-image-gallery';
+import { MobileActionBar } from '../things/mobile-action-bar';
+import footerStyles from '../things/mobile-action-bar.module.css';
 import inputStyles from '../_components/text-input.module.css';
 import Image from 'next/image';
 import { CLAIM_ILLUSTRATION, usePreloadClaimIllustration } from './preload-claim-illustration';
@@ -304,18 +307,8 @@ export function StorefrontItem({
           <div className={styles.photo}>
             {photo ? <Image src={photo.src} alt={photo.alt} fill sizes="(max-width: 760px) 100vw, 52vw" className={styles.image} unoptimized={photo.src.startsWith('https://') || photo.src.startsWith('/api/catalog/media?')} priority />
               : <span className={styles.photoEmpty}>Photograph coming soon</span>}
-            {photos.length > 1 && <div className={styles.photoNavigation}>
-              <button type="button" aria-label="Previous photo" onClick={() => setPhotoIndex((photoIndex + photos.length - 1) % photos.length)} />
-              <button type="button" aria-label="Next photo" onClick={() => setPhotoIndex((photoIndex + 1) % photos.length)} />
-            </div>}
+            <FocusImageGallery standalone title={title} photos={photos} selectedIndex={photoIndex} onSelect={setPhotoIndex} />
           </div>
-          {photos.length > 1 && <div className={styles.galleryControls} aria-label="Item photos">
-            <PaperFrame elevation="popover" className={styles.galleryDotFrame}>
-              {photos.map((_, index) => <button key={index} type="button" className={styles.galleryDot}
-                aria-label={`Show photo ${index + 1}`} aria-current={photoIndex === index ? 'true' : undefined}
-                onClick={() => setPhotoIndex(index)} />)}
-            </PaperFrame>
-          </div>}
         </div>
 }
         <div className={styles.content}>
@@ -358,12 +351,12 @@ export function StorefrontItem({
         </div>
       </div>
     </article>
-    {embedded && !externalMobileActions && currentStatus === 'available' && slug && portalRoot && createPortal(<div className={styles.mobileClaimBar}>
-      <Link className={primaryButtonClassName} href={`/things/claim/${encodeURIComponent(slug)}`} transitionTypes={['claim-forward']}>
+    {embedded && !externalMobileActions && currentStatus === 'available' && slug && portalRoot && createPortal(<MobileActionBar label="Item actions"><div className={footerStyles.row} data-action-row>
+      <Link className={`${primaryButtonClassName} ${footerStyles.action}`} data-footer-action href={`/things/claim/${encodeURIComponent(slug)}`} transitionTypes={['claim-forward']}>
         {buttonVariant === 'layered' && <span className={styles.buttonGrain} aria-hidden="true" />}
         <span className={styles.buttonLabel}>Claim for 1 coffee</span>
       </Link>
-    </div>, portalRoot)}
+    </div></MobileActionBar>, portalRoot)}
     <dialog ref={claimDialogRef} className={styles.claimDialog} data-state={submission === 'success' ? 'success' : 'entry'} aria-labelledby={dialogTitleId} aria-describedby={dialogDescriptionId}
       onCancel={event => { if (submission === 'loading') event.preventDefault(); }}
       onClose={() => {

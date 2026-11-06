@@ -10,12 +10,13 @@ import claimPageStyles from './claim/[slug]/mobile-claim-page.module.css';
 import claimStyles from '../things-for-you/storefront-item.module.css';
 import frameStyles from '../_components/paper-frame.module.css';
 import styles from './item-navigation.module.css';
+import { MobileActionBar } from './mobile-action-bar';
+import footerStyles from './mobile-action-bar.module.css';
 
 export function ItemNavigation({regionId,slug,claimable,notifiable=false}:{regionId:string;slug:string;claimable:boolean;notifiable?:boolean}) {
   const [mobileSafari, setMobileSafari] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
   const notifyButton = useRef<HTMLButtonElement>(null);
-  const footer = useRef<HTMLElement>(null);
   const closeNotify = () => { setNotifyOpen(false); requestAnimationFrame(() => notifyButton.current?.focus({preventScroll:true})); };
   const inGallery = useContext(ItemLayerContext);
   const router = useRouter();
@@ -30,48 +31,22 @@ export function ItemNavigation({regionId,slug,claimable,notifiable=false}:{regio
     });
     return ()=>cancelAnimationFrame(frame);
   },[]);
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    const element = footer.current;
-    if (!target || !viewport || !element) return;
-    let frame = 0;
-    const update = () => {
-      frame = 0;
-      element.style.setProperty('--footer-bottom', `${viewport.offsetTop + viewport.height}px`);
-    };
-    const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(update);
-    };
-    update();
-    viewport.addEventListener('resize', schedule);
-    viewport.addEventListener('scroll', schedule);
-    window.addEventListener('resize', schedule);
-    window.addEventListener('pageshow', schedule);
-    return () => {
-      cancelAnimationFrame(frame);
-      viewport.removeEventListener('resize', schedule);
-      viewport.removeEventListener('scroll', schedule);
-      window.removeEventListener('resize', schedule);
-      window.removeEventListener('pageshow', schedule);
-      element.style.removeProperty('--footer-bottom');
-    };
-  }, [target]);
   const backContent = <><svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12.5 4.5 6 10l6.5 5.5" /></svg><span>Back</span></>;
   const backClass = `${claimPageStyles.back} ${frameStyles.frame} ${frameStyles.popover}`;
   const backPosition = {position:'relative',top:'auto',left:'auto',flexShrink:0} as const;
   return <><span ref={anchor} hidden />{target && createPortal(
-    <nav ref={footer} className={styles.navigation} data-mobile-safari={mobileSafari || undefined} data-notify-open={notifyOpen || undefined} aria-label="Item navigation">
-      {notifyOpen ? <NotifyFooterForm key={slug} slug={slug} onClose={closeNotify} /> : <div className={styles.row}>
+    <MobileActionBar className={styles.navigation} data-mobile-safari={mobileSafari || undefined} data-notify-open={notifyOpen || undefined} label="Item navigation">
+      {notifyOpen ? <NotifyFooterForm key={slug} slug={slug} onClose={closeNotify} /> : <div className={footerStyles.row} data-action-row>
         {inGallery ? <button className={backClass} style={backPosition} type="button" data-gallery-return aria-label="Back to gallery" onClick={()=>{
           const retainedGrid=document.querySelector('[data-things-background] [data-stage="0"]');
           if(retainedGrid) router.back(); else router.push(regionHref(regionId));
         }}>{backContent}</button>
           : <Link className={backClass} style={backPosition} href={regionHref(regionId)} aria-label="Back to gallery">{backContent}</Link>}
-        {notifiable && <button ref={notifyButton} type="button" className={`${claimStyles.primaryButton} ${styles.claim}`} aria-expanded={notifyOpen} onClick={() => setNotifyOpen(true)}><span className={claimStyles.buttonGrain} aria-hidden="true" /><span className={claimStyles.buttonLabel}>Notify me</span></button>}
-        {claimable && !notifiable && <Link className={`${claimStyles.primaryButton} ${styles.claim}`} href={`/things/claim/${encodeURIComponent(slug)}`} transitionTypes={['claim-forward']}>
+        {notifiable && <button ref={notifyButton} type="button" className={`${claimStyles.primaryButton} ${footerStyles.action}`} data-footer-action aria-expanded={notifyOpen} onClick={() => setNotifyOpen(true)}><span className={claimStyles.buttonGrain} aria-hidden="true" /><span className={claimStyles.buttonLabel}>Notify me</span></button>}
+        {claimable && !notifiable && <Link className={`${claimStyles.primaryButton} ${footerStyles.action}`} data-footer-action href={`/things/claim/${encodeURIComponent(slug)}`} transitionTypes={['claim-forward']}>
           <span className={claimStyles.buttonGrain} aria-hidden="true" />
           <span className={claimStyles.buttonLabel}>Claim for 1 coffee</span>
         </Link>}
       </div>}
-    </nav>,target)}</>;
+    </MobileActionBar>,target)}</>;
 }

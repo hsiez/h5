@@ -1,0 +1,26 @@
+.bar {
+  --footer-fade-height: var(--space-mobile-7);
+  position: fixed;
+  z-index: 20;
+  inset: var(--footer-bottom, 100dvh) 0 auto;
+  transform: translateY(-100%);
+  padding: var(--space-mobile-2) var(--space-mobile-3) calc(var(--space-mobile-2) + env(safe-area-inset-bottom));
+  font-family: var(--font-sans);
+}
+.bar::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * var(--footer-fade-height)) 0 0;
+  background: linear-gradient(to bottom,
+    rgb(255 255 255 / 0) 0,
+    rgb(255 255 255 / .12) calc(var(--footer-fade-height) * .25),
+    rgb(255 255 255 / .5) calc(var(--footer-fade-height) * .5),
+    rgb(255 255 255 / .88) calc(var(--footer-fade-height) * .75),
+    #fff var(--footer-fade-height));
+  pointer-events: none;
+}
+.row { display: flex; align-items: center; gap: 12px; max-width: 520px; margin: 0 auto; }
+.action { composes: submit from '../things-for-you/signup-form.module.css'; flex: 1; }
+@media (min-width: 701px) { .bar { display: none; } }
+

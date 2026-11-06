@@ -1,38 +1,12 @@
-.navigation {
-  --footer-fade-height: var(--space-mobile-7);
-  position: fixed;
-  z-index: 20;
-  inset: var(--footer-bottom, 100dvh) 0 auto;
-  transform: translateY(-100%);
-  padding: var(--space-mobile-2) var(--space-mobile-3) calc(var(--space-mobile-2) + env(safe-area-inset-bottom));
-  font-family: var(--font-sans);
-}
-.navigation::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: calc(-1 * var(--footer-fade-height)) 0 0;
-  background: linear-gradient(to bottom,
-    rgb(255 255 255 / 0) 0,
-    rgb(255 255 255 / .12) calc(var(--footer-fade-height) * .25),
-    rgb(255 255 255 / .5) calc(var(--footer-fade-height) * .5),
-    rgb(255 255 255 / .88) calc(var(--footer-fade-height) * .75),
-    #fff var(--footer-fade-height));
-  pointer-events: none;
-}
-.row { display: flex; align-items: center; gap: 12px; max-width: 520px; margin: 0 auto; }
-.claim { composes: submit from '../things-for-you/signup-form.module.css'; flex: 1; }
-@media (min-width: 701px) { .navigation { display: none; } }
-
 .navigation[data-notify-open] { background: white; border-radius: 20px 20px 0 0; }
 .notifyForm { max-width: 400px; max-height: min(70dvh, 480px); box-sizing: border-box; padding-block: var(--signup-padding-block); overflow-y: auto; overscroll-behavior: contain; margin: 0 auto; animation: notify-enter 180ms ease-out; }
 @keyframes notify-enter { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .notifyForm { animation: none; } }
 
 @media (max-width: 700px) {
-  .navigation[data-mobile-safari] .row > [aria-label="Back to gallery"] { display: none; }
-  .navigation[data-mobile-safari] .row:not(:has(.claim)) { display: none; }
-  .navigation[data-mobile-safari]:not([data-notify-open]):not(:has(.claim)) { display: none; }
+  .navigation[data-mobile-safari] :global([data-action-row]) > [aria-label="Back to gallery"] { display: none; }
+  .navigation[data-mobile-safari] :global([data-action-row]):not(:has(:global([data-footer-action]))) { display: none; }
+  .navigation[data-mobile-safari]:not([data-notify-open]):not(:has(:global([data-footer-action]))) { display: none; }
 }
 
 /* Direct item visits scroll the document; intercepted visits scroll ItemLayer.

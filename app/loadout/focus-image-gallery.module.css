@@ -1,5 +1,5 @@
 .gallery.gallery {
-  height: calc(var(--focused-image-height) * var(--gallery-visual-height));
+  height: calc(var(--focused-image-height, 100%) * var(--gallery-visual-height));
   pointer-events: auto;
 }
 .gallery button {
@@ -25,3 +25,6 @@
 @media (prefers-reduced-motion: reduce) {
   .gallery button { transition: none; }
 }
+
+.standalone { position: absolute; inset: 0; width: 100%; z-index: 3; }
+@media (hover: none) { .gallery button { opacity: 1; } }

@@ -8,8 +8,9 @@ import controlStyles from "./focus-image-gallery.module.css";
 type Photo = { src: string };
 
 export function FocusImageGallery({
-  title, loading = false, error = false, photos, selectedIndex, visualHeight, onSelect,
+  title, loading = false, error = false, photos, selectedIndex, visualHeight, onSelect, standalone = false,
 }: {
+  standalone?: boolean;
   title: string;
   loading?: boolean;
   error?: boolean;
@@ -21,8 +22,8 @@ export function FocusImageGallery({
   if (photos.length < 2) return null;
 
   return (
-    <div className={`${styles.focusImageGallery} ${controlStyles.gallery}`} data-photo-navigation
-      data-ready={visualHeight ? "true" : "false"}
+    <div className={`${standalone ? controlStyles.standalone : styles.focusImageGallery} ${controlStyles.gallery}`} data-photo-navigation
+      data-ready={standalone || visualHeight ? "true" : "false"}
       style={{ "--gallery-visual-height": visualHeight ?? 1 } as CSSProperties}
       role="group" aria-label={`Photos of ${title}`}>
       <button className={`${frameStyles.frame} ${frameStyles.popover} ${controlStyles.previous}`}

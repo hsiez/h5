@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { StorefrontItem } from '../../app/things-for-you/storefront-item';
 import { MobileClaimPage } from '../../app/things/claim/[slug]/mobile-claim-page';
 import { NotifyFooterForm } from '../../app/things/notify-footer-form';
+import { MobileActionBar } from '../../app/things/mobile-action-bar';
 import footerStyles from '../../app/things/item-navigation.module.css';
 import { storefrontItemSample } from '../../app/things-for-you/storefront-item-sample';
 
@@ -27,9 +28,9 @@ function NotifyFooterPreview() {
   const [open, setOpen] = useState(true);
   return <main style={{ minHeight: '100svh', background: '#f4f4f1', padding: 24 }}>
     <p>Reserved item · notification footer preview</p>
-    <nav className={footerStyles.navigation} data-notify-open={open || undefined} aria-label="Item navigation">
+    <MobileActionBar className={footerStyles.navigation} data-notify-open={open || undefined} label="Item navigation">
       {open ? <NotifyFooterForm slug="storybook-preview-only" onClose={() => setOpen(false)} /> : <button type="button" onClick={() => setOpen(true)}>Notify me</button>}
-    </nav>
+    </MobileActionBar>
   </main>;
 }
 

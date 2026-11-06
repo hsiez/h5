@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import buttons from '../../app/things-for-you/storefront-item.module.css';
 import frame from '../../app/_components/paper-frame.module.css';
-import footer from '../../app/things/item-navigation.module.css';
+import footer from '../../app/things/mobile-action-bar.module.css';
 import styles from './claim-buttons.module.css';
 
 function ClaimButtons() {
@@ -12,7 +12,7 @@ function ClaimButtons() {
       <h2>{variant === 'primary' ? 'Primary · current Claim' : variant === 'secondary' ? 'Secondary · existing flat outline' : 'Secondary · paper-style exploration'}</h2>
       <div className={footer.row}>
         <button type="button" className={`${frame.frame} ${frame.popover} ${styles.back}`}><span aria-hidden="true">‹</span> Back</button>
-        <button type="button" className={`${variant === 'primary' ? buttons.primaryButton : variant === 'secondary' ? buttons.secondaryButton : `${frame.frame} ${frame.popover} ${styles.paper}`} ${footer.claim}`}>
+        <button type="button" className={`${variant === 'primary' ? buttons.primaryButton : variant === 'secondary' ? buttons.secondaryButton : `${frame.frame} ${frame.popover} ${styles.paper}`} ${footer.action}`}>
           {variant === 'primary' && <span className={buttons.buttonGrain} aria-hidden="true" />}
           <span className={buttons.buttonLabel}>{variant === 'primary' ? 'Claim for 1 coffee' : 'Notify me'}</span>
         </button>
